@@ -57,6 +57,27 @@ SSO 측에는 별도로 OAuth Client를 등록해야 합니다: `authorization_c
 - `POST /api/users/me/email/verification/confirm`
 - `PATCH /api/users/me/email`, `PATCH /api/users/me/password`
 - `DELETE /api/users/me`
+- `POST /api/qr/tokens` — 내 동적 QR 토큰 발급
+- `POST /api/qr/scan` — 관리자 권한별 QR 사용자 조회
+
+## 동적 사용자 QR
+
+QR 문자열에는 사용자 정보나 Access Token을 넣지 않습니다. 백엔드는 256비트 난수 토큰과 만료 시각만 반환하며, 프런트엔드가 QR 이미지로 렌더링합니다.
+
+```text
+QR token --SHA-256 key--> festival_qr_tokens userUuid mapping (기본 유효시간 60초)
+userUuid --> SSO client_credentials --> /api/internal/users/profiles/batch
+```
+
+`festival_qr_tokens`에는 QR 원문이나 개인정보를 저장하지 않고 토큰 해시, userUuid, 만료 시각만 저장합니다. 새 QR 발급 시 기존 QR을 삭제하지 않으며 각 토큰은 자신의 만료 시각까지 사용할 수 있습니다. 스캔 응답 범위는 축제 DB의 역할로 제한됩니다.
+
+- `BOOTH_MANAGER`: 마스킹된 이름과 학번, 학과, 학년
+- `STAFF`: 이름, 학번, 학과, 학년
+- `ADMIN`: STAFF 정보와 전화번호, 이메일
+- `SUPER_ADMIN`: SSO 전체 프로필과 축제 역할
+- `USER`: 스캔 불가
+
+SSO Client에는 `client_credentials` grant와 `user.email.read user.profile.read` scope가 발급되어야 합니다. 서비스 Access Token은 서버 메모리에 만료 시각과 함께 캐싱됩니다.
 
 ## Swagger / OpenAPI
 

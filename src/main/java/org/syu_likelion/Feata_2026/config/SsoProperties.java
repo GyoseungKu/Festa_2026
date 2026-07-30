@@ -6,7 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties("sso")
 public record SsoProperties(String baseUrl, String clientId, String clientSecret,
                             Duration connectTimeout, Duration readTimeout,
-                            String refreshCookieName) {
+                            String refreshCookieName, String serviceScopes) {
     public SsoProperties {
         baseUrl = required(baseUrl, "sso.base-url").replaceAll("/+$", "");
         clientId = required(clientId, "sso.client-id");
@@ -14,6 +14,8 @@ public record SsoProperties(String baseUrl, String clientId, String clientSecret
         connectTimeout = connectTimeout == null ? Duration.ofSeconds(3) : connectTimeout;
         readTimeout = readTimeout == null ? Duration.ofSeconds(5) : readTimeout;
         refreshCookieName = refreshCookieName == null ? "refreshToken" : refreshCookieName;
+        serviceScopes = serviceScopes == null || serviceScopes.isBlank()
+                ? "user.email.read user.profile.read" : serviceScopes;
     }
 
     private static String required(String value, String key) {

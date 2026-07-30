@@ -20,6 +20,11 @@ public class FestivalUserService {
         return repository.findByUserUuid(userUuid).orElseGet(() -> create(userUuid)).getRoles();
     }
 
+    @Transactional(readOnly = true)
+    public Set<FestivalRole> getRoles(UUID userUuid) {
+        return repository.findByUserUuid(userUuid).map(FestivalUser::getRoles).orElseGet(Set::of);
+    }
+
     private FestivalUser create(UUID userUuid) {
         try {
             return repository.saveAndFlush(new FestivalUser(userUuid));
