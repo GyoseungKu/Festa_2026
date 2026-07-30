@@ -1,12 +1,12 @@
 package org.syu_likelion.Feata_2026.auth;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -37,23 +37,31 @@ public class AuthController {
     }
 
     @PostMapping("/signup/email/send")
+    @Operation(summary = "회원가입 이메일 인증번호 발송",
+            description = "회원가입에 사용할 이메일로 SSO 인증번호를 발송합니다.")
     MessageResponse sendSignupEmail(@Valid @RequestBody EmailRequest request) {
         authService.sendSignupEmailCode(request);
         return new MessageResponse("인증번호를 발송했습니다.");
     }
 
     @PostMapping("/signup/email/verify")
+    @Operation(summary = "회원가입 이메일 인증번호 확인",
+            description = "이메일과 인증번호를 SSO에서 검증합니다. 검증 완료 후 회원가입을 진행할 수 있습니다.")
     MessageResponse verifySignupEmail(@Valid @RequestBody EmailCodeRequest request) {
         authService.verifySignupEmailCode(request);
         return new MessageResponse("이메일 인증이 완료되었습니다.");
     }
 
     @PostMapping("/signup")
+    @Operation(summary = "회원가입",
+            description = "SSO 계정을 생성합니다. 아이디, 비밀번호, 이메일은 필수이며 프로필과 학적 정보는 선택입니다.")
     SignupResponse signup(@Valid @RequestBody SignupRequest request) {
         return authService.signup(request);
     }
 
     @PostMapping("/login")
+    @Operation(summary = "로그인",
+            description = "SSO 로그인 후 Access Token을 응답 본문으로 반환하고 Refresh Token은 HttpOnly 쿠키로 설정합니다.")
     ResponseEntity<TokenResponse> login(@Valid @RequestBody LoginRequest request) {
         AuthService.LoginResult result = authService.login(request);
         return ResponseEntity.ok()
@@ -62,7 +70,9 @@ public class AuthController {
     }
 
     @PostMapping("/token/refresh")
-    ResponseEntity<TokenResponse> refresh(HttpServletRequest request) {
+    @Operation(summary = "Access Token 갱신",
+            description = "HttpOnly Refresh Token 쿠키를 사용해 새 Access Token을 발급합니다. Swagger UI에서는 로그인 후 쿠키가 자동으로 사용됩니다.")
+    ResponseEntity<TokenResponse> refresh(@Parameter(hidden = true) HttpServletRequest request) {
         String currentRefreshToken = cookies.readRefreshToken(request);
         SsoResult<TokenResponse> result = refreshCoordinator.refresh(currentRefreshToken);
         ResponseEntity.BodyBuilder response = ResponseEntity.ok();
@@ -73,8 +83,11 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    @Operation(security = @SecurityRequirement(name = "bearerAuth"))
-    ResponseEntity<Void> logout(@RequestHeader(value = "Authorization", required = false) String authorization) {
+    @Operation(summary = "로그아웃",
+            description = "SSO 토큰을 폐기하고 축제 홈페이지의 Refresh Token 쿠키를 삭제합니다.",
+            security = @SecurityRequirement(name = "bearerAuth"))
+    ResponseEntity<Void> logout(
+            @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization) {
         if (authorization != null && authorization.startsWith("Bearer ") && authorization.length() > 7) {
             authService.logout(BearerTokens.require(authorization));
         }
