@@ -45,7 +45,14 @@ DB_PASSWORD=...
 
 주요 선택값과 기본값은 [env.properties.example](src/main/resources/env.properties.example)를 참고하세요. 실제 `env.properties`는 Git에서 제외됩니다.
 
-SSO 측에는 별도로 OAuth Client를 등록해야 합니다: `authorization_code,refresh_token`, `openid,email,profile`, active 상태를 권장합니다. Client Secret은 백엔드 배포 환경에만 둡니다.
+SSO 측 OAuth Client는 active 상태로 등록하고 다음 권한을 모두 허용해야 합니다.
+
+- Grant types: `authorization_code`, `refresh_token`, `client_credentials`
+- Scopes: `openid`, `email`, `profile`, `user.email.read`, `user.profile.read`
+
+`authorization_code`는 사용자 로그인, `refresh_token`은 사용자 Access Token 갱신,
+`client_credentials`는 QR 스캔 등 서버 간 SSO 사용자 조회에 사용합니다.
+Client Secret은 백엔드 배포 환경에만 둡니다.
 
 ## API
 
@@ -77,7 +84,8 @@ userUuid --> SSO client_credentials --> /api/internal/users/profiles/batch
 - `SUPER_ADMIN`: SSO 전체 프로필과 축제 역할
 - `USER`: 스캔 불가
 
-SSO Client에는 `client_credentials` grant와 `user.email.read user.profile.read` scope가 발급되어야 합니다. 서비스 Access Token은 서버 메모리에 만료 시각과 함께 캐싱됩니다.
+SSO Client의 세 grant 중 서버 간 프로필 조회에는 `client_credentials`와
+`user.email.read user.profile.read` scope를 사용합니다. 서비스 Access Token은 서버 메모리에 만료 시각과 함께 캐싱됩니다.
 
 ## Swagger / OpenAPI
 

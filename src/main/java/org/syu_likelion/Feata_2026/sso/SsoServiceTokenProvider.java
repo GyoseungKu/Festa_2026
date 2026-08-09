@@ -57,25 +57,23 @@ public class SsoServiceTokenProvider {
 
     private CachedToken requestToken() {
         String endpoint = "/oauth2/token";
-        String form = "grant_type=client_credentials"
-                + "&scope=" + encode(properties.serviceScopes())
-                + "&client_id=" + encode(properties.clientId())
-                + "&client_secret=" + encode(properties.clientSecret());
+        String tokenUri = properties.baseUrl() + endpoint
+                + "?grant_type=client_credentials&scope=" + encodeScopes(properties.serviceScopes());
         String basic = Base64.getEncoder().encodeToString(
                 (properties.clientId() + ":" + properties.clientSecret()).getBytes(StandardCharsets.UTF_8));
         try {
-            HttpRequest request = HttpRequest.newBuilder(URI.create(properties.baseUrl() + endpoint))
+            HttpRequest request = HttpRequest.newBuilder(URI.create(tokenUri))
                     .timeout(properties.readTimeout())
                     .header("Authorization", "Basic " + basic)
-                    .header("Content-Type", "application/x-www-form-urlencoded")
                     .header("Accept", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(form))
+                    .POST(HttpRequest.BodyPublishers.noBody())
                     .build();
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             log.info("SSO service-token endpoint={} status={} success={}", endpoint, response.statusCode(),
                     response.statusCode() >= 200 && response.statusCode() < 300);
             if (response.statusCode() == 429) throw new SsoException(429, "SSO service token rate limited");
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                log.warn("SSO service-token rejected status={} error={}", response.statusCode(), oauthError(response.body()));
                 throw new SsoException(response.statusCode() >= 500 ? 503 : 502, "SSO service token request failed");
             }
             JsonNode root = mapper.readTree(response.body());
@@ -97,6 +95,24 @@ public class SsoServiceTokenProvider {
 
     private String encode(String value) {
         return URLEncoder.encode(value, StandardCharsets.UTF_8);
+    }
+
+    private String encodeScopes(String value) {
+        String normalized = String.join(" ", value.trim().split("[,\\s]+"));
+        return encode(normalized).replace("+", "%20");
+    }
+
+    private String oauthError(String body) {
+        if (body == null || body.isBlank()) return "empty_response";
+        try {
+            JsonNode root = mapper.readTree(body);
+            String error = text(root, "error", "code");
+            String description = text(root, "error_description", "message");
+            if (error == null) return "unrecognized_response";
+            return description == null || description.isBlank() ? error : error + ": " + description;
+        } catch (JacksonException ignored) {
+            return "non_json_response";
+        }
     }
 
     private String text(JsonNode root, String... names) {
