@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>QR 사용자 조회 | SYU FESTA 2026</title>
+    <link rel="icon" type="image/svg+xml" th:href="@{/images/favicon.svg}" href="/images/favicon.svg">
+    <link rel="stylesheet" th:href="@{/css/admin.css}">
+    <script defer th:src="@{/webjars/jsqr/1.4.0/dist/jsQR.js}"></script>
+    <script defer th:src="@{/js/admin-qr.js}"></script>
+</head>
+<body>
+<header class="admin-header">
+    <a class="admin-logo" th:href="@{/admin}">
+        <img class="brand-logo" th:src="@{/images/Logo.webp}" src="/images/Logo.webp" alt="천보축전 로고">
+    </a>
+    <div class="admin-account">
+        <div>
+            <strong th:text="${adminName}">관리자</strong>
+            <span th:text="${adminRole}">ADMIN</span>
+        </div>
+        <form method="post" th:action="@{/admin/logout}">
+            <button class="button button-ghost button-small" type="submit">로그아웃</button>
+        </form>
+    </div>
+</header>
+
+<main class="admin-main qr-page">
+    <nav class="breadcrumb" aria-label="현재 위치">
+        <a th:href="@{/admin}">관리자 홈</a><span>/</span><strong>QR 사용자 조회</strong>
+    </nav>
+
+    <section class="page-heading">
+        <div>
+            <p class="eyebrow">QR USER LOOKUP</p>
+            <h1>QR 사용자 조회</h1>
+            <p>사용자의 동적 QR을 카메라로 스캔하거나 토큰을 직접 입력하세요.</p>
+        </div>
+        <span class="role-chip"><span class="live-dot"></span><span th:text="${adminRole}">ADMIN</span> 권한</span>
+    </section>
+
+    <div class="alert alert-error" role="alert" th:if="${error}" th:text="${error}"></div>
+
+    <div class="qr-layout">
+        <section class="panel scanner-panel">
+            <div class="panel-heading">
+                <div>
+                    <span class="step-number">01</span>
+                    <h2>카메라 스캔</h2>
+                </div>
+                <span id="camera-status" class="camera-status">대기 중</span>
+            </div>
+
+            <div class="camera-frame" id="camera-frame">
+                <video id="qr-video" playsinline muted aria-label="QR 스캔 카메라 화면"></video>
+                <div class="camera-placeholder" id="camera-placeholder">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h3l1.3-2h7.4L17 5h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Zm8 4a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0 2.2a2.8 2.8 0 1 1 0 5.6 2.8 2.8 0 0 1 0-5.6Z"/></svg>
+                    <strong>카메라를 켜고 QR을 프레임 안에 맞춰주세요.</strong>
+                    <span>카메라는 HTTPS 또는 localhost 환경에서 사용할 수 있습니다.</span>
+                </div>
+                <div class="scan-guide" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+            </div>
+
+            <div class="camera-actions">
+                <button id="camera-start" class="button button-primary" type="button">카메라 시작</button>
+                <button id="camera-stop" class="button button-secondary" type="button" disabled>카메라 중지</button>
+            </div>
+            <p id="camera-message" class="support-copy" aria-live="polite"></p>
+        </section>
+
+        <section class="panel lookup-panel">
+            <div class="panel-heading">
+                <div>
+                    <span class="step-number">02</span>
+                    <h2>토큰 조회</h2>
+                </div>
+            </div>
+            <form id="qr-scan-form" class="token-form" method="post" th:action="@{/admin/qr/scan}">
+                <label for="token">QR 토큰</label>
+                <textarea id="token" name="token" rows="4" maxlength="128" required
+                          placeholder="스캔하면 자동으로 입력됩니다."></textarea>
+                <button class="button button-primary button-full" type="submit">사용자 정보 조회</button>
+            </form>
+            <p class="support-copy">QR 토큰은 기본 60초 동안만 유효합니다. 만료되면 사용자에게 QR을 새로 열어달라고 요청하세요.</p>
+        </section>
+    </div>
+
+    <section class="panel result-panel" th:if="${result != null}">
+        <div class="result-heading">
+            <div>
+                <span class="success-mark">✓</span>
+                <div><p class="eyebrow">VERIFIED USER</p><h2>사용자 조회 완료</h2></div>
+            </div>
+            <span class="role-chip" th:text="${result.viewerRole}">ADMIN</span>
+        </div>
+
+        <dl class="profile-grid">
+            <div th:if="${result.name != null}"><dt>이름</dt><dd th:text="${result.name}"></dd></div>
+            <div th:if="${result.studentNo != null}"><dt>학번</dt><dd th:text="${result.studentNo}"></dd></div>
+            <div th:if="${result.department != null}"><dt>학과</dt><dd th:text="${result.department}"></dd></div>
+            <div th:if="${result.grade != null}"><dt>학년</dt><dd><span th:text="${result.grade}"></span>학년</dd></div>
+            <div th:if="${result.phone != null}"><dt>전화번호</dt><dd th:text="${result.phone}"></dd></div>
+            <div th:if="${result.email != null}"><dt>이메일</dt><dd th:text="${result.email}"></dd></div>
+            <div th:if="${result.userUuid != null}"><dt>사용자 UUID</dt><dd class="mono" th:text="${result.userUuid}"></dd></div>
+            <div th:if="${result.loginId != null}"><dt>로그인 ID</dt><dd th:text="${result.loginId}"></dd></div>
+            <div th:if="${result.status != null}"><dt>계정 상태</dt><dd th:text="${result.status}"></dd></div>
+            <div th:if="${result.enrollment != null}"><dt>재학 상태</dt><dd th:text="${result.enrollment}"></dd></div>
+            <div th:if="${result.birthDate != null}"><dt>생년월일</dt><dd th:text="${result.birthDate}"></dd></div>
+            <div th:if="${result.festivalRoles != null}"><dt>축제 권한</dt><dd th:text="${result.festivalRoles}"></dd></div>
+        </dl>
+    </section>
+</main>
+</body>
+</html>

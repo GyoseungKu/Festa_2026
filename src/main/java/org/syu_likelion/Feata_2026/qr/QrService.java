@@ -52,12 +52,19 @@ public class QrService {
     public AuthorizedResult<QrUserView> scan(String accessToken, String refreshToken, String qrToken) {
         AuthorizedResult<MeResponse> authenticated = users.getMe(accessToken, refreshToken);
         FestivalRole viewerRole = highestViewerRole(authenticated.body().festivalRoles());
+        QrUserView view = scanAs(viewerRole, qrToken);
+        return new AuthorizedResult<>(view, authenticated.newAccessToken(), authenticated.newRefreshToken());
+    }
+
+    public QrUserView scanAs(FestivalRole viewerRole, String qrToken) {
+        if (viewerRole == null || viewerRole == FestivalRole.USER) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "QR_SCAN_FORBIDDEN", "QR 사용자 조회 권한이 없습니다.");
+        }
         UUID targetUserUuid = tokenStore.findUserUuid(qrToken)
                 .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "QR_INVALID_OR_EXPIRED",
                         "QR이 유효하지 않거나 만료되었습니다."));
         InternalUserProfile profile = profiles.getProfile(targetUserUuid);
-        QrUserView view = toView(viewerRole, profile);
-        return new AuthorizedResult<>(view, authenticated.newAccessToken(), authenticated.newRefreshToken());
+        return toView(viewerRole, profile);
     }
 
     private FestivalRole highestViewerRole(Set<FestivalRole> roles) {
