@@ -1,0 +1,42 @@
+package org.syu_likelion.Festa_2026.admin;
+
+import java.util.Set;
+import java.util.UUID;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.syu_likelion.Festa_2026.auth.AuthorizedSsoExecutor.AuthorizedResult;
+import org.syu_likelion.Festa_2026.error.ApiException;
+import org.syu_likelion.Festa_2026.user.FestivalRole;
+import org.syu_likelion.Festa_2026.user.UserDtos.MeResponse;
+import org.syu_likelion.Festa_2026.user.UserService;
+
+@Service
+public class AdminAccessService {
+    private final UserService users;
+
+    public AdminAccessService(UserService users) {
+        this.users = users;
+    }
+
+    public AuthorizedResult<AdminIdentity> authenticate(String accessToken, String refreshToken) {
+        if (accessToken == null || accessToken.isBlank()) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "ADMIN_LOGIN_REQUIRED", "관리자 로그인이 필요합니다.");
+        }
+        AuthorizedResult<MeResponse> authenticated = users.getMe(accessToken, refreshToken);
+        FestivalRole role = highestAdminRole(authenticated.body().festivalRoles());
+        MeResponse me = authenticated.body();
+        String displayName = me.name() == null || me.name().isBlank() ? me.loginId() : me.name();
+        AdminIdentity identity = new AdminIdentity(me.userUuid(), displayName, role);
+        return new AuthorizedResult<>(identity, authenticated.newAccessToken(), authenticated.newRefreshToken());
+    }
+
+    private FestivalRole highestAdminRole(Set<FestivalRole> roles) {
+        if (roles != null && roles.contains(FestivalRole.SUPER_ADMIN)) return FestivalRole.SUPER_ADMIN;
+        if (roles != null && roles.contains(FestivalRole.ADMIN)) return FestivalRole.ADMIN;
+        if (roles != null && roles.contains(FestivalRole.STAFF)) return FestivalRole.STAFF;
+        if (roles != null && roles.contains(FestivalRole.BOOTH_MANAGER)) return FestivalRole.BOOTH_MANAGER;
+        throw new ApiException(HttpStatus.FORBIDDEN, "ADMIN_ROLE_REQUIRED", "관리자 페이지 접근 권한이 없습니다.");
+    }
+
+    public record AdminIdentity(UUID userUuid, String displayName, FestivalRole role) { }
+}

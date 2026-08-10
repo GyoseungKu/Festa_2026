@@ -1,0 +1,133 @@
+package org.syu_likelion.Festa_2026.admin;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.syu_likelion.Festa_2026.admin.AdminAccessService.AdminIdentity;
+import org.syu_likelion.Festa_2026.auth.AuthDtos.LoginRequest;
+import org.syu_likelion.Festa_2026.auth.AuthService;
+import org.syu_likelion.Festa_2026.auth.AuthorizedSsoExecutor.AuthorizedResult;
+import org.syu_likelion.Festa_2026.error.ApiException;
+import org.syu_likelion.Festa_2026.qr.QrService;
+import org.syu_likelion.Festa_2026.sso.SsoException;
+
+@Controller
+public class AdminPageController {
+    private final AuthService auth;
+    private final AdminAccessService adminAccess;
+    private final AdminCookieManager cookies;
+    private final QrService qrService;
+
+    public AdminPageController(AuthService auth, AdminAccessService adminAccess,
+                               AdminCookieManager cookies, QrService qrService) {
+        this.auth = auth;
+        this.adminAccess = adminAccess;
+        this.cookies = cookies;
+        this.qrService = qrService;
+    }
+
+    @GetMapping("/admin/login")
+    String loginPage(HttpServletRequest request, HttpServletResponse response) {
+        if (cookies.readAccessToken(request) == null) return "admin/login";
+        try {
+            requireAdmin(request, response);
+            return "redirect:/admin";
+        } catch (RuntimeException invalidLogin) {
+            cookies.clear(response);
+            return "admin/login";
+        }
+    }
+
+    @PostMapping("/admin/login")
+    String login(@RequestParam String loginId, @RequestParam String password,
+                 HttpServletResponse response, Model model) {
+        if (loginId == null || loginId.isBlank() || password == null || password.isBlank()) {
+            model.addAttribute("error", "아이디와 비밀번호를 입력해 주세요.");
+            model.addAttribute("loginId", loginId);
+            return "admin/login";
+        }
+        try {
+            AuthService.LoginResult login = auth.login(new LoginRequest(loginId, password));
+            adminAccess.authenticate(login.tokens().accessToken(), login.refreshToken());
+            cookies.setLoginCookies(response, login.tokens().accessToken(), login.refreshToken());
+            return "redirect:/admin";
+        } catch (ApiException exception) {
+            model.addAttribute("error", "관리자 페이지 접근 권한이 없습니다.");
+        } catch (SsoException exception) {
+            model.addAttribute("error", "아이디 또는 비밀번호를 확인해 주세요.");
+        }
+        model.addAttribute("loginId", loginId);
+        return "admin/login";
+    }
+
+    @PostMapping("/admin/logout")
+    String logout(HttpServletRequest request, HttpServletResponse response) {
+        String accessToken = cookies.readAccessToken(request);
+        if (accessToken != null && !accessToken.isBlank()) auth.logout(accessToken);
+        cookies.clear(response);
+        return "redirect:/admin/login";
+    }
+
+    @GetMapping("/admin")
+    String dashboard(HttpServletRequest request, HttpServletResponse response, Model model) {
+        AuthorizedResult<AdminIdentity> admin = authenticateOrNull(request, response);
+        if (admin == null) return "redirect:/admin/login";
+        addAdmin(model, admin.body());
+        return "admin/dashboard";
+    }
+
+    @GetMapping("/admin/qr")
+    String qrPage(HttpServletRequest request, HttpServletResponse response, Model model) {
+        AuthorizedResult<AdminIdentity> admin = authenticateOrNull(request, response);
+        if (admin == null) return "redirect:/admin/login";
+        addAdmin(model, admin.body());
+        return "admin/qr-scan";
+    }
+
+    @PostMapping("/admin/qr/scan")
+    String scanQr(@RequestParam String token, HttpServletRequest request,
+                  HttpServletResponse response, Model model) {
+        AuthorizedResult<AdminIdentity> admin = authenticateOrNull(request, response);
+        if (admin == null) return "redirect:/admin/login";
+        addAdmin(model, admin.body());
+        if (token == null || token.isBlank()) {
+            model.addAttribute("error", "QR 토큰을 입력하거나 카메라로 스캔해 주세요.");
+            return "admin/qr-scan";
+        }
+        try {
+            model.addAttribute("result", qrService.scanAs(admin.body().role(), token.trim()));
+        } catch (ApiException exception) {
+            model.addAttribute("error", exception.getMessage());
+        } catch (SsoException exception) {
+            model.addAttribute("error", "SSO 사용자 정보를 조회하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+        }
+        return "admin/qr-scan";
+    }
+
+    private AuthorizedResult<AdminIdentity> authenticateOrNull(HttpServletRequest request,
+                                                               HttpServletResponse response) {
+        try {
+            return requireAdmin(request, response);
+        } catch (RuntimeException invalidLogin) {
+            cookies.clear(response);
+            return null;
+        }
+    }
+
+    private AuthorizedResult<AdminIdentity> requireAdmin(HttpServletRequest request,
+                                                         HttpServletResponse response) {
+        AuthorizedResult<AdminIdentity> result = adminAccess.authenticate(
+                cookies.readAccessToken(request), cookies.readRefreshToken(request));
+        cookies.applyRotation(response, result.newAccessToken(), result.newRefreshToken());
+        return result;
+    }
+
+    private void addAdmin(Model model, AdminIdentity admin) {
+        model.addAttribute("adminName", admin.displayName());
+        model.addAttribute("adminRole", admin.role());
+    }
+}

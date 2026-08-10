@@ -1,0 +1,133 @@
+package org.syu_likelion.Festa_2026.user;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.syu_likelion.Festa_2026.auth.AuthorizedSsoExecutor.AuthorizedResult;
+import org.syu_likelion.Festa_2026.auth.AuthDtos.MessageResponse;
+import org.syu_likelion.Festa_2026.auth.BearerTokens;
+import org.syu_likelion.Festa_2026.auth.TokenCookieManager;
+import org.syu_likelion.Festa_2026.user.UserDtos.EmailCodeRequest;
+import org.syu_likelion.Festa_2026.user.UserDtos.EmailRequest;
+import org.syu_likelion.Festa_2026.user.UserDtos.MeResponse;
+import org.syu_likelion.Festa_2026.user.UserDtos.PasswordChangeRequest;
+import org.syu_likelion.Festa_2026.user.UserDtos.ProfileUpdateRequest;
+
+@RestController
+@RequestMapping("/api/users/me")
+@Tag(name = "User", description = "내 정보와 계정 관리")
+@SecurityRequirement(name = "bearerAuth")
+public class UserController {
+    public static final String REFRESHED_ACCESS_TOKEN = "X-Access-Token";
+    private final UserService userService;
+    private final TokenCookieManager cookies;
+
+    public UserController(UserService userService, TokenCookieManager cookies) {
+        this.userService = userService;
+        this.cookies = cookies;
+    }
+
+    @GetMapping
+    @Operation(summary = "내 정보 조회",
+            description = "SSO에서 현재 사용자 정보를 조회하고 축제 홈페이지 역할을 함께 반환합니다. 프로필과 학적 필드는 null일 수 있습니다.")
+    ResponseEntity<MeResponse> getMe(
+            @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
+            @Parameter(hidden = true) HttpServletRequest request) {
+        return response(userService.getMe(BearerTokens.require(authorization), cookies.readRefreshToken(request)));
+    }
+
+    @PatchMapping("/profile")
+    @Operation(summary = "기본 프로필 수정",
+            description = "SSO의 이름과 전화번호를 수정한 후 갱신된 내 정보를 반환합니다.")
+    ResponseEntity<MeResponse> updateProfile(
+                                             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
+                                             @Parameter(hidden = true) HttpServletRequest servletRequest,
+                                             @Valid @RequestBody ProfileUpdateRequest request) {
+        return response(userService.updateProfile(BearerTokens.require(authorization),
+                cookies.readRefreshToken(servletRequest), request));
+    }
+
+    @PostMapping("/email/verification")
+    @Operation(summary = "새 이메일 인증번호 발송",
+            description = "변경할 새 이메일 주소로 SSO 인증번호를 발송합니다.")
+    ResponseEntity<MessageResponse> sendEmailCode(
+                                                  @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
+                                                  @Parameter(hidden = true) HttpServletRequest servletRequest,
+                                                  @Valid @RequestBody EmailRequest request) {
+        AuthorizedResult<Void> result = userService.sendNewEmailCode(BearerTokens.require(authorization),
+                cookies.readRefreshToken(servletRequest), request);
+        return message(result, "새 이메일로 인증번호를 발송했습니다.");
+    }
+
+    @PostMapping("/email/verification/confirm")
+    @Operation(summary = "새 이메일 인증번호 확인",
+            description = "새 이메일 주소와 인증번호를 SSO에서 검증합니다.")
+    ResponseEntity<MessageResponse> verifyEmailCode(
+                                                    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
+                                                    @Parameter(hidden = true) HttpServletRequest servletRequest,
+                                                    @Valid @RequestBody EmailCodeRequest request) {
+        AuthorizedResult<Void> result = userService.verifyNewEmailCode(BearerTokens.require(authorization),
+                cookies.readRefreshToken(servletRequest), request);
+        return message(result, "새 이메일 인증이 완료되었습니다.");
+    }
+
+    @PatchMapping("/email")
+    @Operation(summary = "이메일 변경 적용",
+            description = "인증이 완료된 새 이메일 주소로 SSO 계정 이메일을 변경합니다.")
+    ResponseEntity<MessageResponse> changeEmail(
+                                                @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
+                                                @Parameter(hidden = true) HttpServletRequest servletRequest,
+                                                @Valid @RequestBody EmailRequest request) {
+        AuthorizedResult<Void> result = userService.changeEmail(BearerTokens.require(authorization),
+                cookies.readRefreshToken(servletRequest), request);
+        return message(result, "이메일이 변경되었습니다.");
+    }
+
+    @PatchMapping("/password")
+    @Operation(summary = "비밀번호 변경",
+            description = "현재 비밀번호를 확인한 뒤 SSO 비밀번호를 변경합니다. 성공하면 기존 토큰과 Refresh Token 쿠키를 폐기합니다.")
+    ResponseEntity<Void> changePassword(
+                                        @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
+                                        @Parameter(hidden = true) HttpServletRequest servletRequest,
+                                        @Valid @RequestBody PasswordChangeRequest request) {
+        userService.changePassword(BearerTokens.require(authorization), cookies.readRefreshToken(servletRequest), request);
+        return ResponseEntity.noContent().header(TokenCookieManager.SET_COOKIE, cookies.clear()).build();
+    }
+
+    @DeleteMapping
+    @Operation(summary = "SSO 계정 탈퇴",
+            description = "SSO 계정 자체를 탈퇴 처리하고 Refresh Token 쿠키를 삭제합니다. 축제 사이트만 탈퇴하는 API가 아닙니다.")
+    ResponseEntity<Void> withdraw(
+                                  @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
+                                  @Parameter(hidden = true) HttpServletRequest servletRequest) {
+        userService.withdraw(BearerTokens.require(authorization), cookies.readRefreshToken(servletRequest));
+        return ResponseEntity.noContent().header(TokenCookieManager.SET_COOKIE, cookies.clear()).build();
+    }
+
+    private <T> ResponseEntity<T> response(AuthorizedResult<T> result) {
+        return headers(result).body(result.body());
+    }
+
+    private ResponseEntity<MessageResponse> message(AuthorizedResult<Void> result, String message) {
+        return headers(result).body(new MessageResponse(message));
+    }
+
+    private ResponseEntity.BodyBuilder headers(AuthorizedResult<?> result) {
+        ResponseEntity.BodyBuilder response = ResponseEntity.ok();
+        if (result.newAccessToken() != null) response.header(REFRESHED_ACCESS_TOKEN, result.newAccessToken());
+        if (result.newRefreshToken() != null) response.header(TokenCookieManager.SET_COOKIE, cookies.create(result.newRefreshToken()));
+        return response;
+    }
+}
