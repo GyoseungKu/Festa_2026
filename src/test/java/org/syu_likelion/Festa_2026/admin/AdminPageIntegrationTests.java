@@ -28,6 +28,7 @@ import org.syu_likelion.Festa_2026.auth.AuthService;
 import org.syu_likelion.Festa_2026.auth.AuthorizedSsoExecutor.AuthorizedResult;
 import org.syu_likelion.Festa_2026.error.ApiException;
 import org.syu_likelion.Festa_2026.performance.PerformanceService;
+import org.syu_likelion.Festa_2026.monitoring.SystemMonitoringService;
 import org.syu_likelion.Festa_2026.qr.QrDtos.QrUserView;
 import org.syu_likelion.Festa_2026.qr.QrService;
 import org.syu_likelion.Festa_2026.user.FestivalRole;
@@ -49,6 +50,7 @@ class AdminPageIntegrationTests {
     @MockitoBean AdminAccessService adminAccess;
     @MockitoBean QrService qrService;
     @MockitoBean PerformanceService performanceService;
+    @MockitoBean SystemMonitoringService systemMonitoringService;
 
     @Test
     void loginPageIsRenderedWithCsrfToken() throws Exception {
@@ -56,6 +58,8 @@ class AdminPageIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(view().name("admin/login"))
                 .andExpect(content().string(containsString("관리자 로그인")))
+                .andExpect(content().string(containsString("멋쟁이사자처럼 삼육대학교 14기")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("010-4953-5080"))))
                 .andExpect(content().string(containsString("name=\"_csrf\"")));
     }
 
@@ -91,6 +95,8 @@ class AdminPageIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(view().name("admin/dashboard"))
                 .andExpect(content().string(containsString("QR 사용자 조회")))
+                .andExpect(content().string(containsString("서버 장애 긴급 연락처")))
+                .andExpect(content().string(containsString("010-4953-5080")))
                 .andExpect(content().string(containsString("STAFF")));
 
         mvc.perform(get("/admin/qr").cookie(new Cookie("festivalAdminAccess", "access-one")))
@@ -126,6 +132,27 @@ class AdminPageIntegrationTests {
                         .cookie(new Cookie("festivalAdminAccess", "access-one")))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/admin"));
+    }
+
+    @Test
+    void onlySuperAdminCanOpenSystemMonitoringPage() throws Exception {
+        when(adminAccess.authenticate("super-access", null))
+                .thenReturn(new AuthorizedResult<>(identity(FestivalRole.SUPER_ADMIN), null, null));
+        when(adminAccess.authenticate("admin-access", null))
+                .thenReturn(new AuthorizedResult<>(identity(FestivalRole.ADMIN), null, null));
+
+        mvc.perform(get("/admin/system").cookie(new Cookie("festivalAdminAccess", "super-access")))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/system"))
+                .andExpect(content().string(containsString("실시간 시스템 모니터링")));
+
+        mvc.perform(get("/admin/system").cookie(new Cookie("festivalAdminAccess", "admin-access")))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin"));
+
+        mvc.perform(get("/admin/system/snapshot")
+                        .cookie(new Cookie("festivalAdminAccess", "admin-access")))
+                .andExpect(status().isForbidden());
     }
 
     @Test

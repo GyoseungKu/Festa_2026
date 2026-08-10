@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>시스템 모니터링 | SYU FESTA 2026</title>
+    <link rel="icon" type="image/svg+xml" th:href="@{/images/favicon.svg}" href="/images/favicon.svg">
+    <link rel="stylesheet" th:href="@{/css/admin.css}">
+    <script defer th:src="@{/js/admin-system.js}" src="/js/admin-system.js"></script>
+</head>
+<body>
+<header class="admin-header">
+    <a class="admin-logo" th:href="@{/admin}"><img class="brand-logo" th:src="@{/images/Logo.webp}" alt="천보축전 로고"></a>
+    <div class="admin-account">
+        <div><strong th:text="${adminName}">최고 관리자</strong><span th:text="${adminRole}">SUPER_ADMIN</span></div>
+        <form method="post" th:action="@{/admin/logout}"><button class="button button-ghost button-small" type="submit">로그아웃</button></form>
+    </div>
+</header>
+
+<main class="admin-main monitor-main">
+    <nav class="breadcrumb"><a th:href="@{/admin}">관리자 홈</a><span>/</span><strong>시스템 모니터링</strong></nav>
+    <section class="monitor-heading">
+        <div><p class="eyebrow">LIVE OPERATIONS</p><h1>실시간 시스템 모니터링</h1><p>최근 1분 지표입니다. 화면은 5초마다 자동 갱신됩니다.</p></div>
+        <div class="monitor-health"><span id="overall-dot" class="health-dot"></span><strong id="overall-status">연결 중</strong><small id="sampled-at">-</small></div>
+    </section>
+
+    <section class="metric-grid" aria-label="주요 시스템 지표">
+        <article class="metric-card"><span>현재 접속 추정</span><strong id="active-sessions">-</strong><small id="presence-note">heartbeat 기준</small></article>
+        <article class="metric-card"><span>프로세스 CPU</span><strong id="process-cpu">-</strong><small id="system-cpu">서버 전체 -</small></article>
+        <article class="metric-card"><span>Heap 사용률</span><strong id="heap-usage">-</strong><small id="heap-bytes">-</small></article>
+        <article class="metric-card"><span>최근 1분 요청</span><strong id="requests-minute">-</strong><small id="requests-second">-</small></article>
+        <article class="metric-card"><span>응답 지연 P95</span><strong id="latency-p95">-</strong><small id="latency-average">평균 -</small></article>
+        <article class="metric-card"><span>오류율</span><strong id="error-rate">-</strong><small id="error-count">-</small></article>
+        <article class="metric-card"><span>DB 연결 풀</span><strong id="pool-active">-</strong><small id="pool-detail">-</small></article>
+        <article class="metric-card"><span>서버 가동 시간</span><strong id="uptime">-</strong><small id="thread-count">스레드 -</small></article>
+    </section>
+
+    <section class="monitor-layout">
+        <article class="monitor-panel monitor-chart-panel">
+            <div class="panel-title"><div><p class="eyebrow">LAST 5 MINUTES</p><h2>CPU · Heap 추이</h2></div><span>브라우저 표시용 임시 이력</span></div>
+            <canvas id="resource-chart" height="240" aria-label="CPU 및 Heap 사용률 차트"></canvas>
+            <div class="chart-legend"><span><i class="legend-cpu"></i>Process CPU</span><span><i class="legend-heap"></i>Heap</span></div>
+        </article>
+
+        <article class="monitor-panel">
+            <div class="panel-title"><div><p class="eyebrow">PRESENCE</p><h2>현재 페이지 분포</h2></div><span id="route-total">0 sessions</span></div>
+            <div class="table-wrap"><table class="monitor-table"><thead><tr><th>React route</th><th>접속 추정</th></tr></thead><tbody id="route-rows"><tr><td colspan="2">heartbeat 대기 중</td></tr></tbody></table></div>
+        </article>
+
+        <article class="monitor-panel">
+            <div class="panel-title"><div><p class="eyebrow">MARIADB</p><h2>데이터베이스 상태</h2></div><span id="db-status" class="status-pill">-</span></div>
+            <dl class="monitor-details">
+                <div><dt>상태 확인 지연</dt><dd id="db-latency">-</dd></div>
+                <div><dt>연결</dt><dd id="db-connections">-</dd></div>
+                <div><dt>실행 스레드</dt><dd id="db-running">-</dd></div>
+                <div><dt>초당 Query</dt><dd id="db-qps">-</dd></div>
+                <div><dt>Buffer Pool Hit</dt><dd id="db-hit-rate">-</dd></div>
+                <div><dt>신규 Slow/Deadlock</dt><dd id="db-incidents">-</dd></div>
+            </dl>
+            <p id="db-limited" class="monitor-notice" hidden>DB 계정 권한상 상세 GLOBAL STATUS는 볼 수 없지만 연결 상태는 정상입니다.</p>
+        </article>
+
+        <article class="monitor-panel">
+            <div class="panel-title"><div><p class="eyebrow">ASYNC PIPELINES</p><h2>비동기 로그 큐</h2></div><span>DB 쓰기 보호</span></div>
+            <div class="queue-list">
+                <div><div><strong>API 요청 로그</strong><span id="api-queue-text">-</span></div><progress id="api-queue" max="100" value="0"></progress><small id="api-dropped">유실 0</small></div>
+                <div><div><strong>프런트 이벤트</strong><span id="event-queue-text">-</span></div><progress id="event-queue" max="100" value="0"></progress><small id="event-dropped">유실 0</small></div>
+            </div>
+            <dl class="monitor-details compact-details">
+                <div><dt>진행 중 HTTP</dt><dd id="in-flight">-</dd></div>
+                <div><dt>디스크 여유</dt><dd id="disk-free">-</dd></div>
+                <div><dt>System load</dt><dd id="system-load">-</dd></div>
+            </dl>
+        </article>
+    </section>
+    <p id="monitor-error" class="alert alert-error monitor-error" hidden>모니터링 정보를 불러오지 못했습니다.</p>
+</main>
+<div th:replace="~{admin/fragments/footer :: footer(true)}"></div>
+</body>
+</html>

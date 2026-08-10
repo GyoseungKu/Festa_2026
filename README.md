@@ -176,6 +176,14 @@ QR 조회 응답 범위:
 
 React Router 연동, 이벤트 종류와 재시도 예제는 [프런트 이벤트 로깅 연동 가이드](docs/frontend-analytics-api.md)를 참고하세요.
 
+### React 접속 현황 heartbeat
+
+| Method | Path | 인증 | 설명 |
+|---|---|---|---|
+| POST | `/api/presence/heartbeat` | 없음 | 익명 브라우저 세션의 현재 route와 마지막 활동 시각 갱신 |
+
+heartbeat는 DB에 저장하지 않고 JVM 메모리에서 기본 150초 TTL로만 유지합니다. 관리자 화면의 접속자 수는 개인정보나 로그인 사용자 목록이 아니라 최근 heartbeat가 있는 활성 탭의 추정치입니다. React 연동 코드는 [접속 현황 heartbeat 가이드](docs/frontend-presence-api.md)를 참고하세요.
+
 ## 관리자 페이지
 
 관리자 페이지는 Thymeleaf로 제공됩니다.
@@ -193,8 +201,21 @@ React Router 연동, 이벤트 종류와 재시도 예제는 [프런트 이벤�
 | GET | `/admin/performances/{id}/edit` | 공연팀 수정 화면 |
 | POST | `/admin/performances/{id}` | 공연팀 수정 |
 | POST | `/admin/performances/{id}/delete` | 공연팀 삭제 |
+| GET | `/admin/system` | `SUPER_ADMIN` 전용 실시간 시스템 모니터링 GUI |
+| GET | `/admin/system/snapshot` | 모니터링 화면용 5초 갱신 JSON |
 
-QR 관리 화면은 `BOOTH_MANAGER` 이상이 사용할 수 있고 공연팀 관리는 `ADMIN`, `SUPER_ADMIN`만 사용할 수 있습니다.
+QR 관리 화면은 `BOOTH_MANAGER` 이상이 사용할 수 있고 공연팀 관리는 `ADMIN`, `SUPER_ADMIN`만 사용할 수 있습니다. 시스템 모니터링은 축제 DB 역할이 정확히 `SUPER_ADMIN`인 사용자만 접근할 수 있습니다.
+
+## 실시간 시스템 모니터링
+
+관리자 GUI는 접속 규모, 최근 1분 HTTP 요청·오류·지연, JVM heap·스레드, CPU·디스크, HikariCP 연결 풀, MariaDB 상태와 비동기 로그 큐를 표시합니다.
+
+- GUI는 5초마다 갱신하지만 MariaDB 상태 조회는 서버 전체에서 기본 15초에 한 번만 실행하고 메모리 캐시를 공유합니다.
+- 모니터링 스냅샷 자체는 MariaDB에 저장하지 않습니다.
+- `SHOW GLOBAL STATUS` 권한이 없으면 DB 연결 상태만 표시하고 상세 항목을 제한 상태로 표시합니다.
+- 최근 5분 그래프 이력은 해당 관리자 브라우저 메모리에만 유지됩니다.
+- Actuator는 기본 `127.0.0.1:9091` 별도 포트에서 `health`, `prometheus`만 노출하며 공개 관리자 포트로 프록시하지 않습니다.
+- 단일 애플리케이션 인스턴스 기준입니다. 다중 인스턴스에서는 Prometheus/Grafana 등 외부 집계가 필요합니다.
 
 ## API 요청 로깅
 

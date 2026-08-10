@@ -71,6 +71,12 @@ public class AsyncFrontendEventWriter {
         return accepted;
     }
 
+    public int queueSize() { return queue.size(); }
+
+    public int queueCapacity() { return properties.queueCapacity(); }
+
+    public long droppedTotal() { return dropped.sum(); }
+
     private void workLoop() {
         List<FrontendEventRecord> batch = new ArrayList<>(properties.batchSize());
         while (running || !queue.isEmpty()) {

@@ -129,8 +129,11 @@ public class AdminPageController {
     private void addAdmin(Model model, AdminIdentity admin) {
         model.addAttribute("adminName", admin.displayName());
         model.addAttribute("adminRole", admin.role());
-        model.addAttribute("canManagePerformances",
-                admin.role() == org.syu_likelion.Festa_2026.user.FestivalRole.ADMIN
-                        || admin.role() == org.syu_likelion.Festa_2026.user.FestivalRole.SUPER_ADMIN);
+        boolean superAdmin = admin.role() == org.syu_likelion.Festa_2026.user.FestivalRole.SUPER_ADMIN;
+        boolean canManagePerformances = admin.role() == org.syu_likelion.Festa_2026.user.FestivalRole.ADMIN
+                || superAdmin;
+        model.addAttribute("canManagePerformances", canManagePerformances);
+        model.addAttribute("canMonitorSystem", superAdmin);
+        model.addAttribute("availableFeatureCount", 1 + (canManagePerformances ? 1 : 0) + (superAdmin ? 1 : 0));
     }
 }

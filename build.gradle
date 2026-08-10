@@ -20,6 +20,7 @@ repositories {
 dependencies {
 	implementation platform('software.amazon.awssdk:bom:2.46.11')
 	implementation 'software.amazon.awssdk:s3'
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-mail'
 	implementation 'org.springframework.boot:spring-boot-starter-security'
@@ -29,6 +30,7 @@ dependencies {
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3'
 	implementation 'org.springframework.security:spring-security-oauth2-jose'
 	implementation 'org.webjars.npm:jsqr:1.4.0'
+	runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
 	compileOnly 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
