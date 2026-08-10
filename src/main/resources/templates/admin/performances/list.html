@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>공연팀 관리 | 천보축전 관리자페이지</title>
+    <link rel="icon" type="image/svg+xml" th:href="@{/images/favicon.svg}" href="/images/favicon.svg">
+    <link rel="stylesheet" th:href="@{/css/admin.css}">
+</head>
+<body>
+<header class="admin-header">
+    <a class="admin-logo" th:href="@{/admin}">
+        <img class="brand-logo" th:src="@{/images/Logo.webp}" src="/images/Logo.webp" alt="천보축전 로고">
+    </a>
+    <div class="admin-account">
+        <div><strong th:text="${adminName}">관리자</strong><span th:text="${adminRole}">ADMIN</span></div>
+        <form method="post" th:action="@{/admin/logout}"><button class="button button-ghost button-small" type="submit">로그아웃</button></form>
+    </div>
+</header>
+
+<main class="admin-main">
+    <nav class="breadcrumb" aria-label="현재 위치">
+        <a th:href="@{/admin}">관리자 홈</a><span>/</span><strong>공연팀 관리</strong>
+    </nav>
+
+    <section class="management-toolbar">
+        <div>
+            <p class="eyebrow">STAGE LINEUP</p>
+            <h1>공연팀 관리</h1>
+            <p>연예인·동아리·개인 공연팀을 필요한 만큼 계속 추가할 수 있습니다.</p>
+        </div>
+        <a class="button button-primary" th:href="@{/admin/performances/new}">공연팀 추가</a>
+    </section>
+
+    <div class="alert alert-success" role="status" th:if="${message}" th:text="${message}"></div>
+
+    <section class="empty-panel" th:if="${#lists.isEmpty(performances)}">
+        <strong>등록된 공연팀이 없습니다.</strong>
+        <p>첫 번째 공연팀을 등록해 무대 라인업을 구성해 주세요.</p>
+        <a class="button button-primary" th:href="@{/admin/performances/new}">첫 공연팀 등록</a>
+    </section>
+
+    <section class="performance-list" th:unless="${#lists.isEmpty(performances)}">
+        <article class="performance-admin-card" th:each="performance : ${performances}">
+            <div class="performance-card-top">
+                <div>
+                    <span class="category-chip" th:text="${performance.categoryLabel}">연예인</span>
+                    <span class="publish-chip" th:classappend="${performance.published} ? ' is-public' : ' is-scheduled'"
+                          th:text="${performance.published} ? '공개 중' : '공개 예정'">공개 예정</span>
+                </div>
+                <span class="media-count" th:text="|이미지 ${#lists.size(performance.images)} · 동영상 ${#lists.size(performance.videos)}|">미디어</span>
+            </div>
+            <h2 th:text="${performance.teamName}">팀 이름</h2>
+            <p class="member-summary" th:text="${#strings.listJoin(performance.memberNames, ', ')}">구성원</p>
+            <dl class="performance-meta">
+                <div><dt>공연 시작</dt><dd th:text="${performance.startsAt}">2026-08-10T10:00:00Z</dd></div>
+                <div><dt>공연 종료</dt><dd th:text="${performance.endsAt}">2026-08-10T11:00:00Z</dd></div>
+                <div><dt>공개 일시</dt><dd th:text="${performance.publishedAt}">2026-08-01T00:00:00Z</dd></div>
+            </dl>
+            <div class="performance-card-actions">
+                <a class="button button-secondary" th:href="@{/admin/performances/{id}/edit(id=${performance.id})}">수정</a>
+                <form method="post" th:action="@{/admin/performances/{id}/delete(id=${performance.id})"
+                      onsubmit="return confirm('이 공연팀과 업로드 파일을 삭제할까요?');">
+                    <button class="button button-danger" type="submit">삭제</button>
+                </form>
+            </div>
+        </article>
+    </section>
+</main>
+</body>
+</html>
