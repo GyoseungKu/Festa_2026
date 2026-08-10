@@ -2,7 +2,6 @@ package org.syu_likelion.Festa_2026.analytics;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -24,7 +23,6 @@ import org.syu_likelion.Festa_2026.user.UserController;
 @RestController
 @RequestMapping("/api/analytics")
 @Tag(name = "Frontend Analytics", description = "React 페이지 방문 및 주요 사용자 행동 이벤트 수집")
-@SecurityRequirement(name = "bearerAuth")
 public class FrontendAnalyticsController {
     private final FrontendAnalyticsService analytics;
     private final TokenCookieManager cookies;
@@ -35,13 +33,15 @@ public class FrontendAnalyticsController {
     }
 
     @PostMapping("/events")
-    @Operation(summary = "프런트 이벤트 일괄 수집",
-            description = "로그인한 React 사용자의 정규화된 페이지 방문 및 주요 행동 이벤트를 최대 20개까지 비동기로 수집합니다. userUuid, 개인정보, 전체 URL 및 쿼리 문자열은 요청으로 받지 않습니다.")
+    @Operation(summary = "프론트 이벤트 일괄 수집",
+            description = "로그인 여부와 관계없이 React 페이지 방문 및 주요 행동 이벤트를 최대 20개까지 비동기로 수집합니다. Bearer Token은 선택이며, 제공하면 검증된 userUuid가 연결됩니다. 개인정보, 전체 URL 및 쿼리 문자열은 요청으로 받지 않습니다.")
     ResponseEntity<EventBatchResponse> events(
             @Valid @RequestBody EventBatchRequest body,
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
             @Parameter(hidden = true) HttpServletRequest request) {
-        AuthorizedResult<EventBatchResponse> result = analytics.ingest(BearerTokens.require(authorization),
+        String accessToken = authorization == null || authorization.isBlank()
+                ? null : BearerTokens.require(authorization);
+        AuthorizedResult<EventBatchResponse> result = analytics.ingest(accessToken,
                 cookies.readRefreshToken(request), body);
         HttpHeaders headers = new HttpHeaders();
         if (result.newAccessToken() != null) {

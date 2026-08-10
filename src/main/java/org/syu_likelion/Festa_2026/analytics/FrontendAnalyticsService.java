@@ -5,6 +5,9 @@ import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -25,6 +28,8 @@ public class FrontendAnalyticsService {
     private final AsyncFrontendEventWriter writer;
     private final UserService users;
     private final Clock clock;
+    private final ConcurrentHashMap<UUID, SessionRateWindow> sessionRates = new ConcurrentHashMap<>();
+    private final AtomicLong nextRateCleanupMillis = new AtomicLong();
 
     public FrontendAnalyticsService(FrontendAnalyticsProperties properties,
                                     AsyncFrontendEventWriter writer, UserService users, Clock clock) {
@@ -39,18 +44,51 @@ public class FrontendAnalyticsService {
         validateBatch(request);
         Instant receivedAt = Instant.now(clock);
         for (FrontendEventRequest event : request.events()) validateEvent(event, receivedAt);
-        AuthorizedResult<MeResponse> authenticated = users.getMe(accessToken, refreshToken);
+        enforceRateLimit(request.sessionId(), request.events().size(), receivedAt);
+        AuthorizedResult<MeResponse> authenticated = accessToken == null
+                ? null : users.getMe(accessToken, refreshToken);
+        UUID userUuid = authenticated == null ? null : authenticated.body().userUuid();
         String requestId = ApiRequestContext.currentRequestId().orElseGet(() -> UUID.randomUUID().toString());
         String appVersion = optionalText(request.appVersion());
         int accepted = 0;
         for (FrontendEventRequest event : request.events()) {
             FrontendEventRecord record = new FrontendEventRecord(event.eventId(), requestId,
-                    authenticated.body().userUuid(), request.sessionId(), event.type(), event.route().trim(),
+                    userUuid, request.sessionId(), event.type(), event.route().trim(),
                     optionalText(event.targetId()), event.durationMs(), event.occurredAt(), receivedAt, appVersion);
             if (writer.publish(record)) accepted++;
         }
         return new AuthorizedResult<>(new EventBatchResponse(accepted),
-                authenticated.newAccessToken(), authenticated.newRefreshToken());
+                authenticated == null ? null : authenticated.newAccessToken(),
+                authenticated == null ? null : authenticated.newRefreshToken());
+    }
+
+    private void enforceRateLimit(UUID sessionId, int eventCount, Instant now) {
+        cleanupRateWindows(now.toEpochMilli());
+        long minute = now.getEpochSecond() / 60;
+        AtomicBoolean allowed = new AtomicBoolean(true);
+        sessionRates.compute(sessionId, (ignored, current) -> {
+            if (current == null && sessionRates.size() >= properties.maxTrackedSessions()) {
+                allowed.set(false);
+                return null;
+            }
+            int existing = current == null || current.minute() != minute ? 0 : current.count();
+            if (existing + eventCount > properties.maxEventsPerMinute()) {
+                allowed.set(false);
+                return current;
+            }
+            return new SessionRateWindow(minute, existing + eventCount, now.toEpochMilli());
+        });
+        if (!allowed.get()) {
+            throw new ApiException(HttpStatus.TOO_MANY_REQUESTS, "FRONTEND_ANALYTICS_RATE_LIMIT",
+                    "프런트 이벤트 전송이 너무 많습니다. 잠시 후 다시 시도해 주세요.");
+        }
+    }
+
+    private void cleanupRateWindows(long nowMillis) {
+        long scheduled = nextRateCleanupMillis.get();
+        if (nowMillis < scheduled || !nextRateCleanupMillis.compareAndSet(scheduled, nowMillis + 60_000)) return;
+        long cutoff = nowMillis - properties.sessionTrackingTtl().toMillis();
+        sessionRates.entrySet().removeIf(entry -> entry.getValue().lastSeenMillis() < cutoff);
     }
 
     private void validateBatch(EventBatchRequest request) {
@@ -114,4 +152,6 @@ public class FrontendAnalyticsService {
     private ApiException invalid(String message) {
         return new ApiException(HttpStatus.BAD_REQUEST, "INVALID_FRONTEND_EVENT", message);
     }
+
+    private record SessionRateWindow(long minute, int count, long lastSeenMillis) { }
 }

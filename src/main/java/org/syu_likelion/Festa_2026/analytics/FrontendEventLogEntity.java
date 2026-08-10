@@ -30,7 +30,7 @@ class FrontendEventLogEntity {
     @Column(name = "request_id", nullable = false, length = 36, updatable = false)
     private String requestId;
 
-    @Column(name = "user_uuid", nullable = false, columnDefinition = "BINARY(16)", updatable = false)
+    @Column(name = "user_uuid", columnDefinition = "BINARY(16)", updatable = false)
     private UUID userUuid;
 
     @Column(name = "session_id", nullable = false, columnDefinition = "BINARY(16)", updatable = false)

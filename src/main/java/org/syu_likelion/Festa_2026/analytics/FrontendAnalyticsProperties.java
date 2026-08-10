@@ -15,7 +15,10 @@ public record FrontendAnalyticsProperties(
         int cleanupMaxBatches,
         Duration maximumPastAge,
         Duration maximumFutureSkew,
-        Duration maximumDuration) {
+        Duration maximumDuration,
+        int maxEventsPerMinute,
+        int maxTrackedSessions,
+        Duration sessionTrackingTtl) {
 
     public FrontendAnalyticsProperties {
         queueCapacity = positive(queueCapacity, 20_000);
@@ -28,6 +31,9 @@ public record FrontendAnalyticsProperties(
         maximumPastAge = positive(maximumPastAge, Duration.ofHours(24));
         maximumFutureSkew = positive(maximumFutureSkew, Duration.ofMinutes(5));
         maximumDuration = positive(maximumDuration, Duration.ofHours(12));
+        maxEventsPerMinute = positive(maxEventsPerMinute, 120);
+        maxTrackedSessions = positive(maxTrackedSessions, 100_000);
+        sessionTrackingTtl = positive(sessionTrackingTtl, Duration.ofMinutes(10));
     }
 
     private static int positive(int value, int fallback) {

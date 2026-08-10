@@ -104,7 +104,8 @@ public class AsyncFrontendEventWriter {
     private void bind(PreparedStatement statement, FrontendEventRecord event) throws java.sql.SQLException {
         statement.setBytes(1, uuidBytes(event.eventId()));
         statement.setString(2, event.requestId());
-        statement.setBytes(3, uuidBytes(event.userUuid()));
+        if (event.userUuid() == null) statement.setNull(3, Types.BINARY);
+        else statement.setBytes(3, uuidBytes(event.userUuid()));
         statement.setBytes(4, uuidBytes(event.sessionId()));
         statement.setString(5, event.eventType().name());
         statement.setString(6, event.route());
