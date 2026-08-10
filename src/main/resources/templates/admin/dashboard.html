@@ -39,7 +39,7 @@
                 <p class="eyebrow">AVAILABLE TOOLS</p>
                 <h2>관리 기능</h2>
             </div>
-            <span class="feature-count">1개 기능 사용 가능</span>
+            <span class="feature-count" th:text="${canManagePerformances ? '2개 기능 사용 가능' : '1개 기능 사용 가능'}">1개 기능 사용 가능</span>
         </div>
 
         <div class="feature-grid">
@@ -55,7 +55,19 @@
                 <span class="feature-arrow" aria-hidden="true">→</span>
             </a>
 
-            <div class="feature-card feature-card-disabled" aria-disabled="true">
+            <a class="feature-card" th:if="${canManagePerformances}" th:href="@{/admin/performances}">
+                <span class="feature-icon feature-icon-stage" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" role="img"><path d="M4 4h16v10H4V4Zm2 2v6h12V6H6Zm-3 9h18v2H3v-2Zm4 3h10l2 3H5l2-3Z"/></svg>
+                </span>
+                <div>
+                    <span class="feature-status">운영 중</span>
+                    <h3>공연팀 관리</h3>
+                    <p>연예인·동아리·개인 공연팀과 공개 일정, 미디어를 등록하고 관리합니다.</p>
+                </div>
+                <span class="feature-arrow" aria-hidden="true">→</span>
+            </a>
+
+            <div class="feature-card feature-card-disabled" aria-disabled="true" th:if="${!canManagePerformances}">
                 <span class="feature-icon feature-icon-muted" aria-hidden="true">+</span>
                 <div>
                     <span class="feature-status feature-status-muted">준비 중</span>
