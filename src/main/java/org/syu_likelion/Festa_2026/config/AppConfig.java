@@ -8,11 +8,14 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.syu_likelion.Festa_2026.qr.QrProperties;
 import org.syu_likelion.Festa_2026.admin.AdminProperties;
 import org.syu_likelion.Festa_2026.performance.R2Properties;
+import org.syu_likelion.Festa_2026.logging.ApiRequestLogProperties;
+import org.syu_likelion.Festa_2026.analytics.FrontendAnalyticsProperties;
 
 @Configuration
 @EnableScheduling
 @EnableConfigurationProperties({SsoProperties.class, AuthProperties.class, QrProperties.class,
-        AdminProperties.class, R2Properties.class})
+        AdminProperties.class, R2Properties.class, ApiRequestLogProperties.class,
+        FrontendAnalyticsProperties.class})
 public class AppConfig {
     @Bean
     Clock clock() {

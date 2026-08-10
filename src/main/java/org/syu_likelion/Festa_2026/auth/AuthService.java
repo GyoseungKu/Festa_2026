@@ -14,6 +14,7 @@ import org.syu_likelion.Festa_2026.sso.SsoException;
 import org.syu_likelion.Festa_2026.sso.SsoResult;
 import org.syu_likelion.Festa_2026.user.UserDtos.MeResponse;
 import org.syu_likelion.Festa_2026.user.FestivalUserService;
+import org.syu_likelion.Festa_2026.logging.ApiRequestContext;
 
 @Service
 public class AuthService {
@@ -44,6 +45,7 @@ public class AuthService {
         }
         MeResponse me = client.getMe(result.body().accessToken());
         festivalUsers.linkAndGetRoles(me.userUuid());
+        ApiRequestContext.markAuthenticatedUser(me.userUuid());
         return new LoginResult(result.body(), result.refreshToken());
     }
 

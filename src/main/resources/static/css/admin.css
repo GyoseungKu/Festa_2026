@@ -448,20 +448,6 @@ body:not(.login-body)::after {
     backdrop-filter: blur(20px) saturate(130%);
 }
 
-.hero-panel::before {
-    position: absolute;
-    top: 34px;
-    left: 50%;
-    color: rgba(255,255,255,.78);
-    content: "MAKE A";
-    font-family: Georgia, "Times New Roman", serif;
-    font-size: clamp(.85rem, 1.6vw, 1.25rem);
-    font-style: italic;
-    letter-spacing: .16em;
-    text-shadow: 0 0 9px #fff, 0 0 24px rgba(255,255,255,.55);
-    transform: translateX(-50%);
-}
-
 .hero-panel::after {
     position: absolute;
     right: 2%;
@@ -619,7 +605,6 @@ select option { color: #15264e; background: #f4eefe; }
 @media (max-width: 600px) {
     body:not(.login-body)::after { top: 95px; right: -120px; width: 250px; opacity: .24; }
     .hero-panel { min-height: 330px; }
-    .hero-panel::before { top: 22px; }
     .hero-panel::after { right: -4%; bottom: 3%; font-size: 6.5rem; }
     .form-actions { bottom: 8px; }
 }

@@ -66,6 +66,10 @@ Client Secret은 백엔드 배포 환경에만 둡니다.
 - `DELETE /api/users/me`
 - `POST /api/qr/tokens` — 내 동적 QR 토큰 발급
 - `POST /api/qr/scan` — 관리자 권한별 QR 사용자 조회
+- `POST /api/analytics/events` — 로그인한 React 사용자의 페이지 방문·주요 행동 이벤트 일괄 수집
+
+React 연동 예제, 이벤트 종류, 배치·재시도·라우트 정규화 규칙은
+[프런트 이벤트 로깅 연동 가이드](docs/frontend-analytics-api.md)를 참고하세요.
 
 ## 동적 사용자 QR
 

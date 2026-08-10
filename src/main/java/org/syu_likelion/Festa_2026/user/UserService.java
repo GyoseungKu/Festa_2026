@@ -9,6 +9,7 @@ import org.syu_likelion.Festa_2026.user.UserDtos.EmailRequest;
 import org.syu_likelion.Festa_2026.user.UserDtos.MeResponse;
 import org.syu_likelion.Festa_2026.user.UserDtos.PasswordChangeRequest;
 import org.syu_likelion.Festa_2026.user.UserDtos.ProfileUpdateRequest;
+import org.syu_likelion.Festa_2026.logging.ApiRequestContext;
 
 @Service
 public class UserService {
@@ -57,6 +58,7 @@ public class UserService {
 
     private AuthorizedResult<MeResponse> withRoles(AuthorizedResult<MeResponse> result) {
         MeResponse me = result.body();
+        ApiRequestContext.markAuthenticatedUser(me.userUuid());
         MeResponse enriched = me.withFestivalRoles(festivalUsers.linkAndGetRoles(me.userUuid()));
         return new AuthorizedResult<>(enriched, result.newAccessToken(), result.newRefreshToken());
     }

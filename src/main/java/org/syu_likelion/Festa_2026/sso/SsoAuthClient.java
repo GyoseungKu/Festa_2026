@@ -26,6 +26,7 @@ import org.syu_likelion.Festa_2026.config.SsoProperties;
 import org.syu_likelion.Festa_2026.user.UserDtos.MeResponse;
 import org.syu_likelion.Festa_2026.user.UserDtos.PasswordChangeRequest;
 import org.syu_likelion.Festa_2026.user.UserDtos.ProfileUpdateRequest;
+import org.syu_likelion.Festa_2026.logging.ApiRequestContext;
 
 @Component
 public class SsoAuthClient {
@@ -111,7 +112,7 @@ public class SsoAuthClient {
 
     private <T> SsoResult<T> send(String method, String path, Object body, String authorization,
                                   String cookie, Class<T> responseType) {
-        String correlationId = UUID.randomUUID().toString();
+        String correlationId = ApiRequestContext.currentRequestId().orElseGet(() -> UUID.randomUUID().toString());
         long started = System.nanoTime();
         try {
             HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create(properties.baseUrl() + path))
