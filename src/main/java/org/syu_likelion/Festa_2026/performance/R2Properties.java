@@ -24,7 +24,7 @@ public record R2Properties(
         bucket = required(bucket, "r2.bucket");
         baseUrl = required(baseUrl, "r2.base-url").replaceAll("/+$", "");
         performancePrefix = performancePrefix == null || performancePrefix.isBlank()
-                ? "performance" : performancePrefix.replaceAll("^/+|/+$", "");
+                ? "festa2026_performance" : performancePrefix.replaceAll("^/+|/+$", "");
         imageMaxSize = imageMaxSize == null ? DataSize.ofMegabytes(10) : imageMaxSize;
         videoMaxSize = videoMaxSize == null ? DataSize.ofMegabytes(200) : videoMaxSize;
     }

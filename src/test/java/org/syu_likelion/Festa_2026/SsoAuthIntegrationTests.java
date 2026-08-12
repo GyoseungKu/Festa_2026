@@ -140,6 +140,78 @@ class SsoAuthIntegrationTests {
     }
 
     @Test
+    void findIdUsesEmailVerificationWithoutBearerAuthentication() throws Exception {
+        enqueue(200, "{\"ok\":true,\"message\":\"sent\"}");
+        mvc.perform(post("/api/auth/email/send").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"find@example.com\",\"purpose\":\"FIND_ID\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value(containsString("인증번호")));
+
+        enqueue(200, "{\"loginId\":\"festival01\"}");
+        mvc.perform(post("/api/auth/email/find-id/verify").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"find@example.com\",\"code\":\"123456\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.loginId").value("festival01"));
+
+        org.assertj.core.api.Assertions.assertThat(REQUESTS).extracting(RecordedRequest::path)
+                .containsExactly("/api/auth/email/send", "/api/auth/email/find-id/verify");
+        org.assertj.core.api.Assertions.assertThat(REQUESTS.getFirst().body())
+                .contains("\"purpose\":\"FIND_ID\"");
+        org.assertj.core.api.Assertions.assertThat(REQUESTS.getFirst().authorization())
+                .startsWith("Basic ");
+    }
+
+    @Test
+    void passwordResetSendsLoginIdAndAppliesCodeAndPasswordInOneRequest() throws Exception {
+        enqueue(200, "{\"ok\":true,\"message\":\"sent\"}");
+        mvc.perform(post("/api/auth/email/send").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"loginId\":\"festival01\",\"email\":\"reset@example.com\","
+                                + "\"purpose\":\"RESET_PASSWORD\"}"))
+                .andExpect(status().isOk());
+
+        enqueue(200, "{\"ok\":true,\"message\":\"reset\"}");
+        mvc.perform(post("/api/auth/email/reset-password/verify")
+                        .cookie(new jakarta.servlet.http.Cookie("festivalRefreshToken", "old-refresh"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"loginId\":\"festival01\",\"email\":\"reset@example.com\","
+                                + "\"code\":\"123456\",\"newPassword\":\"NewPassword123!\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value(containsString("재설정")))
+                .andExpect(header().string("Set-Cookie", containsString("Max-Age=0")));
+
+        org.assertj.core.api.Assertions.assertThat(REQUESTS).extracting(RecordedRequest::path)
+                .containsExactly("/api/auth/email/send", "/api/auth/email/reset-password/verify");
+        org.assertj.core.api.Assertions.assertThat(REQUESTS.get(1).body())
+                .contains("\"loginId\":\"festival01\"", "\"code\":\"123456\"",
+                        "\"newPassword\":\"NewPassword123!\"");
+    }
+
+    @Test
+    void recoverySendHidesAccountExistenceAndValidatesResetInputLocally() throws Exception {
+        enqueue(404, "{\"code\":\"USER_NOT_FOUND\",\"message\":\"user not found\"}");
+        mvc.perform(post("/api/auth/email/send").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"missing@example.com\",\"purpose\":\"FIND_ID\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value(containsString("계정이 있다면")));
+
+        mvc.perform(post("/api/auth/email/send").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"reset@example.com\",\"purpose\":\"RESET_PASSWORD\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("LOGIN_ID_REQUIRED"));
+
+        mvc.perform(post("/api/auth/email/send").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"reset@example.com\",\"purpose\":\"SIGNUP\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+
+        mvc.perform(post("/api/auth/email/reset-password/verify").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"loginId\":\"festival01\",\"email\":\"reset@example.com\","
+                                + "\"code\":\"123\",\"newPassword\":\"short\"}"))
+                .andExpect(status().isBadRequest());
+        org.assertj.core.api.Assertions.assertThat(REQUESTS).hasSize(1);
+    }
+
+    @Test
     void meAllowsNullStudentFieldsAndSeparatesFestivalRole() throws Exception {
         enqueue(200, meJson("ADMIN"));
         mvc.perform(get("/api/users/me").header("Authorization", "Bearer access-one"))
@@ -258,6 +330,8 @@ class SsoAuthIntegrationTests {
                 .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.type").value("http"))
                 .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.scheme").value("bearer"))
                 .andExpect(jsonPath("$.paths['/api/auth/signup'].post.summary").value("회원가입"))
+                .andExpect(jsonPath("$.paths['/api/auth/email/find-id/verify'].post.summary").value("아이디 찾기 인증번호 확인"))
+                .andExpect(jsonPath("$.paths['/api/auth/email/reset-password/verify'].post.summary").value("로그인 전 비밀번호 재설정"))
                 .andExpect(jsonPath("$.paths['/api/users/me'].get.summary").value("내 정보 조회"))
                 .andExpect(jsonPath("$.paths['/api/users/me'].get.security[0].bearerAuth").isArray())
                 .andExpect(jsonPath("$.paths['/api/users/me'].get.parameters").doesNotExist())

@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -32,6 +33,28 @@ public final class AuthDtos {
     public record LoginRequest(
             @NotBlank @Size(max = 100) String loginId,
             @NotBlank @Size(max = 128) String password) { }
+
+    public enum RecoveryPurpose { FIND_ID, RESET_PASSWORD }
+
+    public record RecoveryEmailSendRequest(
+            @NotBlank @Email String email,
+            @NotNull RecoveryPurpose purpose,
+            @Size(max = 100) String loginId) { }
+
+    public record FindIdVerifyRequest(
+            @NotBlank @Email String email,
+            @NotBlank @Pattern(regexp = "^[0-9]{6}$", message = "인증번호는 숫자 6자리여야 합니다.")
+            String code) { }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record FindIdResponse(String loginId) { }
+
+    public record ResetPasswordRequest(
+            @NotBlank @Size(max = 100) String loginId,
+            @NotBlank @Email String email,
+            @NotBlank @Pattern(regexp = "^[0-9]{6}$", message = "인증번호는 숫자 6자리여야 합니다.")
+            String code,
+            @NotBlank @Size(min = 8, max = 128) String newPassword) { }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record TokenResponse(String accessToken) { }

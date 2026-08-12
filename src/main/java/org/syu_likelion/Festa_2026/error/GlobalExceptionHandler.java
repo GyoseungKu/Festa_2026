@@ -3,6 +3,7 @@ package org.syu_likelion.Festa_2026.error;
 import java.util.stream.Collectors;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.syu_likelion.Festa_2026.sso.SsoException;
@@ -41,6 +42,11 @@ public class GlobalExceptionHandler {
                 .map(error -> error.getField() + ": " + error.getDefaultMessage())
                 .distinct().collect(Collectors.joining(", "));
         return ResponseEntity.badRequest().body(ApiError.of("INVALID_REQUEST", message));
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    ResponseEntity<ApiError> handleUnreadableBody(HttpMessageNotReadableException exception) {
+        return ResponseEntity.badRequest().body(ApiError.of("INVALID_REQUEST", "요청 JSON 형식을 확인해 주세요."));
     }
 
     @ExceptionHandler(Exception.class)

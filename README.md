@@ -109,8 +109,13 @@ SSO OAuth Client 권장 설정:
 | POST | `/api/auth/signup/email/verify` | 없음 | 회원가입 이메일 인증번호 확인 |
 | POST | `/api/auth/signup` | 없음 | SSO 회원가입 |
 | POST | `/api/auth/login` | 없음 | 로그인 및 토큰 발급 |
+| POST | `/api/auth/email/send` | 없음 | 아이디 찾기·비밀번호 재설정 인증번호 발송 |
+| POST | `/api/auth/email/find-id/verify` | 없음 | 이메일 인증 후 로그인 아이디 반환 |
+| POST | `/api/auth/email/reset-password/verify` | 없음 | 인증번호 확인과 새 비밀번호 적용 |
 | POST | `/api/auth/token/refresh` | Refresh 쿠키 | Access Token 갱신 |
 | POST | `/api/auth/logout` | 선택 | SSO 로그아웃 및 로컬 Refresh 쿠키 삭제 |
+
+계정 복구 API의 요청 예시와 React 연동 시 주의사항은 [로그인 전 계정 복구 API 가이드](docs/frontend-account-recovery-api.md)를 참고하세요. 비밀번호 재설정은 별도 reset token 없이 인증번호와 새 비밀번호를 한 요청으로 처리합니다.
 
 ### 내 정보와 계정
 
@@ -140,6 +145,8 @@ SSO OAuth Client 권장 설정:
 | DELETE | `/api/performances/{id}` | `ADMIN` 이상 | 공연팀 삭제 |
 
 공연 구분은 `CELEBRITY`, `CLUB`, `INDIVIDUAL`입니다. 링크는 최대 3개이고 이미지와 동영상은 각각 링크와 파일을 합해 최대 3개입니다. 업로드 파일은 Cloudflare R2에 저장하며 기본 제한은 이미지 10MB, 동영상 200MB입니다.
+
+공용 R2 버킷에서 다른 서비스와 경로가 충돌하지 않도록 공연 미디어는 기본적으로 `festa2026_performance/images/`, `festa2026_performance/videos/` prefix 아래에 저장합니다. 운영 환경에서 `R2_PERFORMANCE_PREFIX`를 지정하면 이 값을 덮어쓸 수 있습니다.
 
 ### 동적 QR
 
@@ -236,7 +243,24 @@ QR 관리 화면은 `BOOTH_MANAGER` 이상이 사용할 수 있고 공연팀 관
 - `X-Request-ID`를 응답하고 같은 값을 SSO `X-Correlation-ID`로 사용합니다.
 - 비밀번호, 인증번호, Authorization, Cookie, 토큰, 요청 본문과 쿼리 문자열은 저장하지 않습니다.
 - 로그는 기본 60일 후 작은 배치로 삭제합니다.
-- 프록시 헤더 신뢰는 기본 비활성화입니다. Nginx가 외부 Forwarded 헤더를 제거하고 재설정할 때만 활성화합니다.
+- 프록시 헤더 신뢰는 기본 비활성화입니다. 운영 환경에서는 `API_REQUEST_LOG_TRUST_FORWARDED_HEADERS=true`로 활성화하고, Nginx가 외부 전달 헤더를 제거한 뒤 다시 설정해야 합니다.
+
+실제 클라이언트 IP를 안전하게 기록하기 위한 Nginx 예시:
+
+```nginx
+location / {
+    proxy_pass http://127.0.0.1:8888;
+
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header Forwarded "";
+}
+```
+
+이 서비스는 `X-Forwarded-For`의 첫 번째 주소를 기록하므로 `$proxy_add_x_forwarded_for` 대신 `$remote_addr`로 덮어써야 클라이언트가 임의로 보낸 헤더에 의한 IP 위조를 방지할 수 있습니다. Spring Boot 포트 `8888`도 외부에 직접 공개하지 않고 Nginx 또는 로컬 인터페이스를 통해서만 접근시키는 것을 권장합니다.
 
 API 요청 로그와 React 화면 이벤트 로그는 서로 다른 테이블과 큐를 사용합니다.
 

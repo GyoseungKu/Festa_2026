@@ -22,6 +22,10 @@ import org.syu_likelion.Festa_2026.auth.AuthDtos.LoginRequest;
 import org.syu_likelion.Festa_2026.auth.AuthDtos.SignupRequest;
 import org.syu_likelion.Festa_2026.auth.AuthDtos.SignupResponse;
 import org.syu_likelion.Festa_2026.auth.AuthDtos.TokenResponse;
+import org.syu_likelion.Festa_2026.auth.AuthDtos.RecoveryEmailSendRequest;
+import org.syu_likelion.Festa_2026.auth.AuthDtos.FindIdVerifyRequest;
+import org.syu_likelion.Festa_2026.auth.AuthDtos.FindIdResponse;
+import org.syu_likelion.Festa_2026.auth.AuthDtos.ResetPasswordRequest;
 import org.syu_likelion.Festa_2026.config.SsoProperties;
 import org.syu_likelion.Festa_2026.user.UserDtos.MeResponse;
 import org.syu_likelion.Festa_2026.user.UserDtos.PasswordChangeRequest;
@@ -51,6 +55,20 @@ public class SsoAuthClient {
 
     public void verifySignupEmailCode(EmailCodeRequest request) {
         send("POST", "/api/auth/email/verify", request, basicAuthorization, null, Void.class);
+    }
+
+    public void sendRecoveryEmailCode(RecoveryEmailSendRequest request) {
+        send("POST", "/api/auth/email/send", request, basicAuthorization, null, Void.class);
+    }
+
+    public FindIdResponse verifyFindId(FindIdVerifyRequest request) {
+        return send("POST", "/api/auth/email/find-id/verify", request,
+                basicAuthorization, null, FindIdResponse.class).body();
+    }
+
+    public void resetPassword(ResetPasswordRequest request) {
+        send("POST", "/api/auth/email/reset-password/verify", request,
+                basicAuthorization, null, Void.class);
     }
 
     public SignupResponse register(SignupRequest request) {
