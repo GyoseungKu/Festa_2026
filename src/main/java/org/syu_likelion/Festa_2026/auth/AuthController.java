@@ -83,7 +83,7 @@ public class AuthController {
 
     @PostMapping("/signup")
     @Operation(summary = "회원가입",
-            description = "SSO 계정을 생성합니다. 아이디, 비밀번호, 이메일은 필수이며 프로필과 학적 정보는 선택입니다.")
+            description = "SSO 계정을 생성합니다. 아이디, 이메일, 비밀번호, 이름, 학과, 학번은 필수이고 전화번호는 선택입니다. 학년, 재학 상태, 생년월일은 nullable입니다.")
     SignupResponse signup(@Valid @RequestBody SignupRequest request) {
         return authService.signup(request);
     }

@@ -73,14 +73,13 @@ class SsoAuthIntegrationTests {
     static void stopServer() { SSO.stop(0); }
 
     @Test
-    void signupRequiresSsoEmailVerificationAndDoesNotSendStudentFields() throws Exception {
+    void signupRequiresSsoEmailVerification() throws Exception {
         enqueue(400, "{}");
         mvc.perform(post("/api/auth/signup").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"loginId\":\"festival01\",\"password\":\"password123\",\"email\":\"student@example.com\"}"))
+                        .content("{\"loginId\":\"festival01\",\"password\":\"password123\","
+                                + "\"email\":\"student@example.com\",\"name\":\"홍길동\","
+                                + "\"studentNo\":\"20260001\",\"department\":\"컴퓨터공학과\"}"))
                 .andExpect(status().isBadRequest());
-        org.assertj.core.api.Assertions.assertThat(REQUESTS.getFirst().body())
-                .contains("\"name\":null", "\"phone\":null", "\"studentNo\":null", "\"department\":null",
-                        "\"grade\":null", "\"enrollment\":null", "\"birthDate\":null");
 
         enqueue(204, "");
         mvc.perform(post("/api/auth/signup/email/verify").contentType(MediaType.APPLICATION_JSON)
@@ -89,10 +88,25 @@ class SsoAuthIntegrationTests {
     }
 
     @Test
+    void signupRejectsMissingRequiredProfileBeforeCallingSso() throws Exception {
+        mvc.perform(post("/api/auth/signup").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"loginId\":\"festival01\",\"password\":\"password123\","
+                                + "\"email\":\"student@example.com\",\"phone\":\"01012345678\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
+                .andExpect(jsonPath("$.message", containsString("name")))
+                .andExpect(jsonPath("$.message", containsString("studentNo")))
+                .andExpect(jsonPath("$.message", containsString("department")));
+        org.assertj.core.api.Assertions.assertThat(REQUESTS).isEmpty();
+    }
+
+    @Test
     void signupSuccessLinksOnlyUserUuid() throws Exception {
         enqueue(201, "{\"userUuid\":\"" + UUID + "\"}");
         mvc.perform(post("/api/auth/signup").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"loginId\":\"festival01\",\"password\":\"password123\",\"email\":\"student@example.com\"}"))
+                        .content("{\"loginId\":\"festival01\",\"password\":\"password123\","
+                                + "\"email\":\"student@example.com\",\"name\":\"홍길동\","
+                                + "\"studentNo\":\"20260001\",\"department\":\"컴퓨터공학과\"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.userUuid").value(UUID));
         org.assertj.core.api.Assertions.assertThat(users.findAll()).singleElement()
                 .satisfies(user -> org.assertj.core.api.Assertions.assertThat(user.getUserUuid().toString()).isEqualTo(UUID));
@@ -284,8 +298,28 @@ class SsoAuthIntegrationTests {
                         .contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isBadRequest());
         enqueue(204, "");
         mvc.perform(patch("/api/users/me/password").header("Authorization", "Bearer access-one")
+                        .cookie(new jakarta.servlet.http.Cookie("festivalRefreshToken", "refresh-one"))
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isNoContent()).andExpect(header().string("Set-Cookie", containsString("Max-Age=0")));
+        org.assertj.core.api.Assertions.assertThat(REQUESTS).extracting(RecordedRequest::path)
+                .containsExactly("/api/users/me/password", "/api/users/me/password");
+        org.assertj.core.api.Assertions.assertThat(REQUESTS.get(1).authorization()).isEqualTo("Bearer access-one");
+        org.assertj.core.api.Assertions.assertThat(REQUESTS.get(1).body())
+                .contains("\"currentPassword\":\"wrong-password\"", "\"newPassword\":\"new-password123\"");
+    }
+
+    @Test
+    void passwordChangeRequiresLoginAndValidNewPasswordBeforeSsoCall() throws Exception {
+        mvc.perform(patch("/api/users/me/password").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"currentPassword\":\"current-password\",\"newPassword\":\"new-password123\"}"))
+                .andExpect(status().isUnauthorized());
+
+        mvc.perform(patch("/api/users/me/password").header("Authorization", "Bearer access-one")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"currentPassword\":\"current-password\",\"newPassword\":\"short\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+        org.assertj.core.api.Assertions.assertThat(REQUESTS).isEmpty();
     }
 
     @Test

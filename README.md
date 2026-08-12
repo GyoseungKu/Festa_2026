@@ -54,26 +54,26 @@ SSO의 `ssoRole`을 축제 운영 권한으로 사용하지 않습니다. 축제
 
 최초 로그인 사용자는 `festival_users`에 `userUuid`로 연결되고 기본 `USER` 역할을 받습니다.
 
-## 회원가입과 nullable 프로필
+## 회원가입 필수 정보와 nullable 프로필
 
-회원가입에서 `loginId`, `password`, `email`은 필수이고 다음 프로필 필드는 모두 선택입니다.
+회원가입에서 `loginId`, `email`, `password`, `name`, `department`, `studentNo`는 필수입니다. `phone`은 선택이며, 현재 회원가입 화면에서 받지 않는 `grade`, `enrollment`, `birthDate`도 nullable입니다.
 
 ```json
 {
   "loginId": "festival01",
   "password": "password123",
   "email": "student@example.com",
-  "name": null,
+  "name": "홍길동",
   "phone": null,
-  "studentNo": null,
-  "department": null,
+  "studentNo": "20260001",
+  "department": "컴퓨터공학과",
   "grade": null,
   "enrollment": null,
   "birthDate": null
 }
 ```
 
-`name`, `phone`, `studentNo`, `department`, `grade`, `enrollment`, `birthDate`는 모든 DTO와 화면에서 `null`일 수 있습니다. `userUuid`, `createdAt`, `updatedAt`은 클라이언트가 입력하지 않습니다. 학교 학생 인증 연동은 아직 구현하지 않았습니다.
+회원가입 요청에서는 `name`, `studentNo`, `department`가 필수지만, 기존 SSO 계정이나 SSO 조회 응답에서는 해당 값이 여전히 `null`일 수 있습니다. 따라서 내 정보 응답 DTO와 조회 화면은 기존 방침대로 nullable을 허용합니다. `phone`, `grade`, `enrollment`, `birthDate`도 nullable이며 `userUuid`, `createdAt`, `updatedAt`은 클라이언트가 입력하지 않습니다. 학교 학생 인증 연동은 아직 구현하지 않았습니다.
 
 ## 환경변수
 
@@ -130,6 +130,8 @@ SSO OAuth Client 권장 설정:
 | DELETE | `/api/users/me` | 축제 사용자만 삭제하는 것이 아니라 SSO 계정 자체 탈퇴 |
 
 모든 API는 Bearer 인증이 필요합니다.
+
+로그인 사용자의 비밀번호 변경은 현재 비밀번호와 Bearer Access Token을 함께 검증합니다. 성공 시 Refresh 쿠키를 삭제하므로 React는 메모리 Access Token과 사용자 캐시를 비운 뒤 로그인 화면으로 이동해야 합니다. 자세한 예시는 [로그인 사용자 비밀번호 변경 가이드](docs/frontend-password-change-api.md)를 참고하세요.
 
 ### 공연팀
 

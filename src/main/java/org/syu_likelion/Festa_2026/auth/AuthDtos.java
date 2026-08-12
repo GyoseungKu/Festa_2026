@@ -22,10 +22,10 @@ public final class AuthDtos {
             @NotBlank @Size(max = 100) String loginId,
             @NotBlank @Size(min = 8, max = 128) String password,
             @NotBlank @Email String email,
-            @Size(max = 100) String name,
+            @NotBlank @Size(max = 100) String name,
             @Pattern(regexp = "^$|^[0-9]{10,11}$", message = "전화번호는 숫자 10~11자리여야 합니다.") String phone,
-            @Size(max = 50) String studentNo,
-            @Size(max = 100) String department,
+            @NotBlank @Size(max = 50) String studentNo,
+            @NotBlank @Size(max = 100) String department,
             Integer grade,
             @Size(max = 50) String enrollment,
             LocalDate birthDate) { }

@@ -97,7 +97,7 @@ public class UserController {
 
     @PatchMapping("/password")
     @Operation(summary = "비밀번호 변경",
-            description = "현재 비밀번호를 확인한 뒤 SSO 비밀번호를 변경합니다. 성공하면 기존 토큰과 Refresh Token 쿠키를 폐기합니다.")
+            description = "로그인 사용자의 Bearer Access Token과 현재 비밀번호를 확인한 뒤 SSO 비밀번호를 변경합니다. 성공하면 204를 반환하고 Festa Refresh Token 쿠키를 삭제합니다. 프런트는 메모리의 Access Token을 즉시 버리고 로그인 화면으로 이동해야 합니다.")
     ResponseEntity<Void> changePassword(
                                         @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
                                         @Parameter(hidden = true) HttpServletRequest servletRequest,
