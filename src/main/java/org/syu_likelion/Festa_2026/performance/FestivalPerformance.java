@@ -2,6 +2,7 @@ package org.syu_likelion.Festa_2026.performance;
 
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -48,9 +49,11 @@ public class FestivalPerformance {
     private List<String> memberNames = new ArrayList<>();
 
     @Column(name = "starts_at", nullable = false)
+    @Convert(converter = KstInstantAttributeConverter.class)
     private Instant startsAt;
 
     @Column(name = "ends_at", nullable = false)
+    @Convert(converter = KstInstantAttributeConverter.class)
     private Instant endsAt;
 
     @Lob
@@ -70,6 +73,7 @@ public class FestivalPerformance {
     private List<PerformanceMedia> media = new ArrayList<>();
 
     @Column(name = "published_at", nullable = false)
+    @Convert(converter = KstInstantAttributeConverter.class)
     private Instant publishedAt;
 
     @Column(name = "created_by", nullable = false, updatable = false, columnDefinition = "BINARY(16)")
@@ -79,9 +83,11 @@ public class FestivalPerformance {
     private UUID updatedBy;
 
     @Column(name = "created_at", nullable = false, updatable = false)
+    @Convert(converter = KstInstantAttributeConverter.class)
     private Instant createdAt;
 
     @Column(name = "updated_at", nullable = false)
+    @Convert(converter = KstInstantAttributeConverter.class)
     private Instant updatedAt;
 
     protected FestivalPerformance() { }

@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<footer class="admin-footer" th:fragment="footer(showEmergency)">
+    <p class="footer-line">
+        <strong>멋쟁이사자처럼 삼육대학교 14기</strong><span>대표자: 구교승</span><span>주소: 서울특별시 노원구 화랑로 815, 삼육대학교 학생회관 304호</span><span>연락처: <a href="mailto:sahmyook.univ@likelion.org">sahmyook.univ@likelion.org</a></span><span><a href="https://syu-likelion.org" target="_blank" rel="noopener noreferrer">syu-likelion.org</a></span>
+    </p>
+    <p class="footer-line footer-meta">
+        <span>이용약관 (추후 추가 예정)</span><span>개인정보 처리방침 (추후 추가 예정)</span><span>호스팅 서비스 제공: Oracle Cloud Infrastructure (OCI)</span>
+    </p>
+    <p class="footer-line footer-emergency" th:if="${showEmergency}">
+        <strong>서버 장애 긴급 연락처</strong><span>구교승</span><span><a href="tel:+821049535080">010-4953-5080</a></span><span><a href="mailto:gyoseung@syu-likelion.org">gyoseung@syu-likelion.org</a></span><span>서울특별시 노원구 화랑로 815, 삼육대학교 제1실습관 206호</span>
+    </p>
+</footer>
+</body>
+</html>

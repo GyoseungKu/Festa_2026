@@ -4,6 +4,7 @@ import java.util.stream.Collectors;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.syu_likelion.Festa_2026.sso.SsoException;
@@ -47,6 +48,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     ResponseEntity<ApiError> handleUnreadableBody(HttpMessageNotReadableException exception) {
         return ResponseEntity.badRequest().body(ApiError.of("INVALID_REQUEST", "요청 JSON 형식을 확인해 주세요."));
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    ResponseEntity<ApiError> handleMissingResource(NoResourceFoundException exception) {
+        return ResponseEntity.status(404).body(ApiError.of("NOT_FOUND", "요청한 리소스를 찾을 수 없습니다."));
     }
 
     @ExceptionHandler(Exception.class)

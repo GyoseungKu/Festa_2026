@@ -92,6 +92,14 @@ MAIL_USERNAME=...
 MAIL_PASSWORD=...
 ```
 
+MySQL `caching_sha2_password` 계정을 MariaDB Connector/J로 TLS 없이 연결하면서 서버 RSA 키 파일을 별도로 배포하지 않는 경우 JDBC URL에 `allowPublicKeyRetrieval=true`가 필요합니다.
+
+```properties
+DB_URL=jdbc:mariadb://DB_HOST:3306/Likelion_SYU_festa2026?allowPublicKeyRetrieval=true
+```
+
+이 옵션은 접속 시 서버에서 공개키를 받아오므로 네트워크 중간자 공격 방지를 위해 운영 환경에서는 DB TLS(`sslMode=verify-full`) 또는 신뢰한 `serverRsaPublicKeyFile` 설정을 우선 권장합니다.
+
 SSO OAuth Client 권장 설정:
 
 - Grant types: `authorization_code`, `refresh_token`, `client_credentials`

@@ -2,6 +2,7 @@ package org.syu_likelion.Festa_2026.admin;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.time.ZoneId;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,6 +22,8 @@ import org.syu_likelion.Festa_2026.user.FestivalRole;
 @Controller
 @RequestMapping("/admin/performances")
 public class AdminPerformancePageController {
+    private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
+
     private final AdminAccessService adminAccess;
     private final AdminCookieManager cookies;
     private final PerformanceService performances;
@@ -133,5 +136,6 @@ public class AdminPerformancePageController {
         model.addAttribute("adminName", admin.displayName());
         model.addAttribute("adminRole", admin.role());
         model.addAttribute("categories", PerformanceCategory.values());
+        model.addAttribute("seoulZone", SEOUL);
     }
 }

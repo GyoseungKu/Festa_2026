@@ -53,13 +53,13 @@
             <h2 th:text="${performance.teamName}">팀 이름</h2>
             <p class="member-summary" th:text="${#strings.listJoin(performance.memberNames, ', ')}">구성원</p>
             <dl class="performance-meta">
-                <div><dt>공연 시작</dt><dd th:text="${performance.startsAt}">2026-08-10T10:00:00Z</dd></div>
-                <div><dt>공연 종료</dt><dd th:text="${performance.endsAt}">2026-08-10T11:00:00Z</dd></div>
-                <div><dt>공개 일시</dt><dd th:text="${performance.publishedAt}">2026-08-01T00:00:00Z</dd></div>
+                <div><dt>공연 시작</dt><dd th:text="${#temporals.format(performance.startsAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm')} + ' KST'">2026-08-10 19:00 KST</dd></div>
+                <div><dt>공연 종료</dt><dd th:text="${#temporals.format(performance.endsAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm')} + ' KST'">2026-08-10 20:00 KST</dd></div>
+                <div><dt>공개 일시</dt><dd th:text="${#temporals.format(performance.publishedAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm')} + ' KST'">2026-08-01 09:00 KST</dd></div>
             </dl>
             <div class="performance-card-actions">
                 <a class="button button-secondary" th:href="@{/admin/performances/{id}/edit(id=${performance.id})}">수정</a>
-                <form method="post" th:action="@{/admin/performances/{id}/delete(id=${performance.id})"
+                <form method="post" th:action="@{/admin/performances/{id}/delete(id=${performance.id})}"
                       onsubmit="return confirm('이 공연팀과 업로드 파일을 삭제할까요?');">
                     <button class="button button-danger" type="submit">삭제</button>
                 </form>

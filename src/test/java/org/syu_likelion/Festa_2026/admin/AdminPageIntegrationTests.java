@@ -28,6 +28,8 @@ import org.syu_likelion.Festa_2026.auth.AuthService;
 import org.syu_likelion.Festa_2026.auth.AuthorizedSsoExecutor.AuthorizedResult;
 import org.syu_likelion.Festa_2026.error.ApiException;
 import org.syu_likelion.Festa_2026.performance.PerformanceService;
+import org.syu_likelion.Festa_2026.performance.PerformanceCategory;
+import org.syu_likelion.Festa_2026.performance.PerformanceDtos.PerformanceResponse;
 import org.syu_likelion.Festa_2026.monitoring.SystemMonitoringService;
 import org.syu_likelion.Festa_2026.qr.QrDtos.QrUserView;
 import org.syu_likelion.Festa_2026.qr.QrService;
@@ -121,6 +123,33 @@ class AdminPageIntegrationTests {
                 .andExpect(content().string(containsString("새 공연팀 등록")))
                 .andExpect(content().string(containsString("name=\"_csrf\"")))
                 .andExpect(content().string(containsString("name=\"links[0]\"")));
+    }
+
+    @Test
+    void performanceListWithItemsRendersEditAndDeleteUrls() throws Exception {
+        when(adminAccess.authenticate("access-one", null))
+                .thenReturn(new AuthorizedResult<>(identity(FestivalRole.ADMIN), null, null));
+        java.time.Instant startsAt = java.time.Instant.parse("2026-10-06T10:00:00Z");
+        when(performanceService.listAll()).thenReturn(java.util.List.of(new PerformanceResponse(
+                17L, PerformanceCategory.CELEBRITY, "연예인", "초청 공연팀",
+                java.util.List.of("홍길동"), startsAt, startsAt.plusSeconds(3600),
+                "공연 설명", java.util.List.of(), java.util.List.of(), java.util.List.of(),
+                startsAt.minusSeconds(86400), true, startsAt.minusSeconds(172800), startsAt.minusSeconds(86400))));
+
+        mvc.perform(get("/admin/performances")
+                        .cookie(new Cookie("festivalAdminAccess", "access-one")))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/performances/list"))
+                .andExpect(content().string(containsString("/admin/performances/17/edit")))
+                .andExpect(content().string(containsString("/admin/performances/17/delete")))
+                .andExpect(content().string(containsString("2026-10-06 19:00 KST")));
+    }
+
+    @Test
+    void legacyFaviconPathRedirectsToSvg() throws Exception {
+        mvc.perform(get("/favicon.ico"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/images/favicon.svg"));
     }
 
     @Test
