@@ -133,7 +133,9 @@ public class AdminPageController {
         boolean canManagePerformances = admin.role() == org.syu_likelion.Festa_2026.user.FestivalRole.ADMIN
                 || superAdmin;
         model.addAttribute("canManagePerformances", canManagePerformances);
+        model.addAttribute("canManageLostItems", admin.role() == org.syu_likelion.Festa_2026.user.FestivalRole.STAFF
+                || canManagePerformances);
         model.addAttribute("canMonitorSystem", superAdmin);
-        model.addAttribute("availableFeatureCount", 1 + (canManagePerformances ? 1 : 0) + (superAdmin ? 1 : 0));
+        model.addAttribute("availableFeatureCount", 2 + (canManagePerformances ? 1 : 0) + (superAdmin ? 1 : 0));
     }
 }

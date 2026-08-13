@@ -6,8 +6,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
@@ -20,6 +22,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.syu_likelion.Festa_2026.admin.AdminAccessService.AdminIdentity;
@@ -31,6 +35,12 @@ import org.syu_likelion.Festa_2026.performance.PerformanceService;
 import org.syu_likelion.Festa_2026.performance.PerformanceCategory;
 import org.syu_likelion.Festa_2026.performance.PerformanceDtos.PerformanceResponse;
 import org.syu_likelion.Festa_2026.monitoring.SystemMonitoringService;
+import org.syu_likelion.Festa_2026.lostitem.LostItemService;
+import org.syu_likelion.Festa_2026.lostitem.LostItemApiService;
+import org.syu_likelion.Festa_2026.lostitem.LostItemDtos.LostItemPageResponse;
+import org.syu_likelion.Festa_2026.lostitem.LostItemDtos.LostItemResponse;
+import org.syu_likelion.Festa_2026.lostitem.LostItemStatus;
+import org.syu_likelion.Festa_2026.lostitem.LostItemSort;
 import org.syu_likelion.Festa_2026.qr.QrDtos.QrUserView;
 import org.syu_likelion.Festa_2026.qr.QrService;
 import org.syu_likelion.Festa_2026.user.FestivalRole;
@@ -52,6 +62,8 @@ class AdminPageIntegrationTests {
     @MockitoBean AdminAccessService adminAccess;
     @MockitoBean QrService qrService;
     @MockitoBean PerformanceService performanceService;
+    @MockitoBean LostItemService lostItemService;
+    @MockitoBean LostItemApiService lostItemApiService;
     @MockitoBean SystemMonitoringService systemMonitoringService;
 
     @Test
@@ -161,6 +173,106 @@ class AdminPageIntegrationTests {
                         .cookie(new Cookie("festivalAdminAccess", "access-one")))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/admin"));
+    }
+
+    @Test
+    void staffCanOpenLostItemManagementAndBoothManagerCannot() throws Exception {
+        when(adminAccess.authenticate("staff-access", null))
+                .thenReturn(new AuthorizedResult<>(identity(FestivalRole.STAFF), null, null));
+        when(adminAccess.authenticate("booth-access", null))
+                .thenReturn(new AuthorizedResult<>(identity(FestivalRole.BOOTH_MANAGER), null, null));
+        when(lostItemService.listAdmin(null, LostItemSort.NEWEST)).thenReturn(java.util.List.of());
+
+        mvc.perform(get("/admin/lost-items")
+                        .cookie(new Cookie("festivalAdminAccess", "staff-access")))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/lost-items/list"))
+                .andExpect(content().string(containsString("분실물 공지 관리")));
+
+        mvc.perform(get("/admin/lost-items/new")
+                        .cookie(new Cookie("festivalAdminAccess", "staff-access")))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/lost-items/form"))
+                .andExpect(content().string(containsString("새 분실물 공지 작성")))
+                .andExpect(content().string(containsString("_csrf")))
+                .andExpect(content().string(containsString("imageFiles")));
+        mvc.perform(get("/admin/lost-items")
+                        .cookie(new Cookie("festivalAdminAccess", "booth-access")))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin"));
+    }
+
+    @Test
+    void lostItemPublicApisDoNotRequireLoginAndExposeViewCount() throws Exception {
+        java.time.Instant createdAt = java.time.Instant.parse("2026-08-13T03:00:00Z");
+        LostItemResponse notice = new LostItemResponse(7L, "검은색 지갑", "학생회관 앞에서 발견",
+                LostItemStatus.HOLDING, "보관 중", true, 13L, java.util.List.of(),
+                "축제 스태프", createdAt, createdAt);
+        when(lostItemService.listPublic(null, LostItemSort.NEWEST, 0, 20))
+                .thenReturn(new LostItemPageResponse(java.util.List.of(notice), 0, 20, 1, 1));
+        when(lostItemService.getPublic(7L)).thenReturn(notice);
+
+        mvc.perform(get("/api/lost-items"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].title").value("검은색 지갑"))
+                .andExpect(jsonPath("$.items[0].viewCount").value(13));
+
+        mvc.perform(get("/api/lost-items/7"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.authorName").value("축제 스태프"))
+                .andExpect(jsonPath("$.status").value("HOLDING"));
+    }
+
+    @Test
+    void lostItemFiltersArePassedToPublicApiAndAdminPage() throws Exception {
+        when(lostItemService.listPublic(LostItemStatus.RETURNED, LostItemSort.OLDEST, 0, 20))
+                .thenReturn(new LostItemPageResponse(java.util.List.of(), 0, 20, 0, 0));
+        when(adminAccess.authenticate("staff-access", null))
+                .thenReturn(new AuthorizedResult<>(identity(FestivalRole.STAFF), null, null));
+        when(lostItemService.listAdmin(LostItemStatus.HOLDING, LostItemSort.OLDEST))
+                .thenReturn(java.util.List.of());
+
+        mvc.perform(get("/api/lost-items")
+                        .param("status", "RETURNED").param("sort", "OLDEST"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(0));
+
+        mvc.perform(get("/admin/lost-items")
+                        .param("status", "HOLDING").param("sort", "OLDEST")
+                        .cookie(new Cookie("festivalAdminAccess", "staff-access")))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("필터 적용")))
+                .andExpect(content().string(containsString("오래된순")));
+    }
+
+    @Test
+    void lostItemCreateRestApiAcceptsMultipartAndAppearsInOpenApi() throws Exception {
+        java.time.Instant createdAt = java.time.Instant.parse("2026-08-13T03:00:00Z");
+        LostItemResponse notice = new LostItemResponse(7L, "검은색 지갑", "학생회관 앞에서 발견",
+                LostItemStatus.HOLDING, "보관 중", false, 0L, java.util.List.of(),
+                "축제 스태프", createdAt, createdAt);
+        when(lostItemApiService.create(
+                org.mockito.ArgumentMatchers.eq("staff-token"),
+                org.mockito.ArgumentMatchers.isNull(), any(), any()))
+                .thenReturn(new AuthorizedResult<>(notice, null, null));
+        MockMultipartFile data = new MockMultipartFile("data", "", MediaType.APPLICATION_JSON_VALUE,
+                "{\"title\":\"검은색 지갑\",\"content\":\"학생회관 앞에서 발견\",\"status\":\"HOLDING\",\"pinned\":false}"
+                        .getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        MockMultipartFile image = new MockMultipartFile("images", "wallet.webp", "image/webp", new byte[]{1});
+
+        mvc.perform(multipart("/api/lost-items").file(data).file(image)
+                        .header("Authorization", "Bearer staff-token"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(7))
+                .andExpect(jsonPath("$.status").value("HOLDING"));
+
+        mvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.paths['/api/lost-items'].post").exists())
+                .andExpect(jsonPath("$.paths['/api/lost-items/{id}'].patch").exists())
+                .andExpect(jsonPath("$.paths['/api/lost-items/{id}'].delete").exists())
+                .andExpect(jsonPath("$.paths['/api/lost-items/{id}/status'].patch").exists())
+                .andExpect(jsonPath("$.paths['/api/lost-items/{id}/pin'].patch").exists());
     }
 
     @Test

@@ -13,6 +13,7 @@ public record R2Properties(
         String bucket,
         String baseUrl,
         String performancePrefix,
+        String lostItemPrefix,
         DataSize imageMaxSize,
         DataSize videoMaxSize) {
 
@@ -25,6 +26,8 @@ public record R2Properties(
         baseUrl = required(baseUrl, "r2.base-url").replaceAll("/+$", "");
         performancePrefix = performancePrefix == null || performancePrefix.isBlank()
                 ? "festa2026_performance" : performancePrefix.replaceAll("^/+|/+$", "");
+        lostItemPrefix = lostItemPrefix == null || lostItemPrefix.isBlank()
+                ? "festa2026_lost_items" : lostItemPrefix.replaceAll("^/+|/+$", "");
         imageMaxSize = imageMaxSize == null ? DataSize.ofMegabytes(10) : imageMaxSize;
         videoMaxSize = videoMaxSize == null ? DataSize.ofMegabytes(200) : videoMaxSize;
     }

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${editing ? '분실물 공지 수정' : '분실물 공지 작성'} + ' | 천보축전 관리자'">분실물 공지 작성</title>
+    <link rel="icon" type="image/svg+xml" th:href="@{/images/favicon.svg}">
+    <link rel="stylesheet" th:href="@{/css/admin.css}">
+</head>
+<body>
+<header class="admin-header">
+    <a class="admin-logo" th:href="@{/admin}"><img class="brand-logo" th:src="@{/images/Logo.webp}" alt="천보축전 로고"></a>
+    <div class="admin-account">
+        <div><strong th:text="${adminName}">관리자</strong><span th:text="${adminRole}">STAFF</span></div>
+        <form method="post" th:action="@{/admin/logout}"><button class="button button-ghost button-small" type="submit">로그아웃</button></form>
+    </div>
+</header>
+
+<main class="admin-main performance-form-page">
+    <nav class="breadcrumb" aria-label="현재 위치"><a th:href="@{/admin}">관리자 홈</a><span>/</span><a th:href="@{/admin/lost-items}">분실물 공지 관리</a><span>/</span><strong th:text="${editing ? '수정' : '작성'}">작성</strong></nav>
+    <section class="page-heading"><div><p class="eyebrow">LOST ITEM EDITOR</p><h1 th:text="${editing ? '분실물 공지 수정' : '새 분실물 공지 작성'}">새 분실물 공지 작성</h1><p>공개 즉시 로그인하지 않은 사용자도 공지를 볼 수 있습니다.</p></div></section>
+    <div class="alert alert-error" role="alert" th:if="${error}" th:text="${error}"></div>
+
+    <form class="performance-form" method="post" enctype="multipart/form-data" th:object="${form}"
+          th:action="${editing} ? @{/admin/lost-items/{id}(id=${notice.id})} : @{/admin/lost-items}">
+        <section class="form-section">
+            <div class="form-section-heading"><span>01</span><div><h2>공지 내용</h2><p>분실물을 알아볼 수 있도록 정확하게 작성해 주세요.</p></div></div>
+            <div class="form-grid">
+                <label class="field-group field-full"><span>제목 <b>*</b></span><input type="text" th:field="*{title}" maxlength="150" placeholder="예: 학생회관 앞에서 발견된 검은색 지갑" required></label>
+                <label class="field-group field-full"><span>내용 <b>*</b></span><textarea th:field="*{content}" rows="9" maxlength="5000" placeholder="발견 장소, 시간, 특징과 수령 안내를 입력해 주세요." required></textarea></label>
+            </div>
+        </section>
+
+        <section class="form-section">
+            <div class="form-section-heading"><span>02</span><div><h2>상태 및 노출</h2><p>반환 상태와 상단 고정 여부를 지정합니다.</p></div></div>
+            <div class="form-grid">
+                <label class="field-group"><span>반환 상태 <b>*</b></span><select th:field="*{status}" required><option th:each="item : ${statuses}" th:value="${item}" th:text="${item.label}">보관 중</option></select></label>
+                <label class="field-group checkbox-field"><input type="checkbox" th:field="*{pinned}"><span>목록 상단에 고정</span></label>
+            </div>
+        </section>
+
+        <section class="form-section">
+            <div class="form-section-heading"><span>03</span><div><h2>사진</h2><p>JPG, PNG, WebP 파일을 최대 5장, 장당 10MB까지 등록할 수 있습니다.</p></div></div>
+            <input class="file-input" type="file" th:field="*{imageFiles}" accept="image/jpeg,image/png,image/webp" multiple>
+            <div class="existing-media" th:if="${editing and !#lists.isEmpty(notice.images)}">
+                <h3>현재 사진</h3>
+                <div class="media-preview-grid">
+                    <div class="media-preview" th:each="image : ${notice.images}">
+                        <img th:src="${image.url}" alt="등록된 분실물 사진">
+                        <label><input type="checkbox" name="removeImageIds" th:value="${image.id}"> 삭제</label>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="form-actions">
+            <a class="button button-secondary" th:href="@{/admin/lost-items}">취소</a>
+            <button class="button button-primary" type="submit" th:text="${editing ? '수정 내용 저장' : '분실물 공지 등록'}">분실물 공지 등록</button>
+        </div>
+    </form>
+</main>
+<div th:replace="~{admin/fragments/footer :: footer(true)}"></div>
+</body>
+</html>

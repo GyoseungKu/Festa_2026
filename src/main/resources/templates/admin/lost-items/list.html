@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>분실물 공지 관리 | 천보축전 관리자</title>
+    <link rel="icon" type="image/svg+xml" th:href="@{/images/favicon.svg}">
+    <link rel="stylesheet" th:href="@{/css/admin.css}">
+</head>
+<body>
+<header class="admin-header">
+    <a class="admin-logo" th:href="@{/admin}"><img class="brand-logo" th:src="@{/images/Logo.webp}" alt="천보축전 로고"></a>
+    <div class="admin-account">
+        <div><strong th:text="${adminName}">관리자</strong><span th:text="${adminRole}">STAFF</span></div>
+        <form method="post" th:action="@{/admin/logout}"><button class="button button-ghost button-small" type="submit">로그아웃</button></form>
+    </div>
+</header>
+
+<main class="admin-main">
+    <nav class="breadcrumb" aria-label="현재 위치"><a th:href="@{/admin}">관리자 홈</a><span>/</span><strong>분실물 공지 관리</strong></nav>
+    <section class="management-toolbar">
+        <div><p class="eyebrow">LOST &amp; FOUND</p><h1>분실물 공지 관리</h1><p>접수된 분실물과 반환 상태, 상단 고정을 관리합니다.</p></div>
+        <a class="button button-primary" th:href="@{/admin/lost-items/new}">분실물 공지 작성</a>
+    </section>
+    <div class="alert alert-success" role="status" th:if="${message}" th:text="${message}"></div>
+
+    <form class="lost-item-filter" method="get" th:action="@{/admin/lost-items}">
+        <label class="field-group">
+            <span>반환 상태</span>
+            <select name="status">
+                <option value="" th:selected="${selectedStatus == null}">전체</option>
+                <option th:each="item : ${statuses}" th:value="${item}" th:text="${item.label}"
+                        th:selected="${selectedStatus == item}">보관 중</option>
+            </select>
+        </label>
+        <label class="field-group">
+            <span>정렬</span>
+            <select name="sort">
+                <option th:each="item : ${sortOptions}" th:value="${item}" th:text="${item.label}"
+                        th:selected="${selectedSort == item}">최신순</option>
+            </select>
+        </label>
+        <button class="button button-primary" type="submit">필터 적용</button>
+        <a class="button button-secondary" th:href="@{/admin/lost-items}">초기화</a>
+    </form>
+
+    <section class="empty-panel" th:if="${#lists.isEmpty(notices)}">
+        <strong>등록된 분실물 공지가 없습니다.</strong><p>첫 번째 분실물 공지를 작성해 주세요.</p>
+        <a class="button button-primary" th:href="@{/admin/lost-items/new}">공지 작성</a>
+    </section>
+
+    <section class="lost-item-list" th:unless="${#lists.isEmpty(notices)}">
+        <article class="lost-item-admin-card" th:each="notice : ${notices}">
+            <img class="lost-item-thumb" th:if="${!#lists.isEmpty(notice.images)}" th:src="${notice.images[0].url}" alt="분실물 사진">
+            <div class="lost-item-thumb lost-item-thumb-empty" th:if="${#lists.isEmpty(notice.images)}" aria-label="사진 없음">사진 없음</div>
+            <div class="lost-item-card-body">
+                <div class="lost-item-card-flags">
+                    <span class="category-chip" th:classappend="${notice.status.name() == 'RETURNED'} ? ' is-returned'" th:text="${notice.statusLabel}">보관 중</span>
+                    <span class="publish-chip is-public" th:if="${notice.pinned}">상단 고정</span>
+                    <span class="media-count" th:text="|사진 ${#lists.size(notice.images)}장 · 조회 ${notice.viewCount}|">사진 0장 · 조회 0</span>
+                </div>
+                <h2 th:text="${notice.title}">분실물 제목</h2>
+                <p class="member-summary lost-item-summary" th:text="${notice.content}">내용</p>
+                <dl class="performance-meta">
+                    <div><dt>작성자</dt><dd th:text="${notice.authorName}">관리자</dd></div>
+                    <div><dt>작성</dt><dd th:text="${#temporals.format(notice.createdAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm')} + ' KST'">2026-08-13 12:00 KST</dd></div>
+                    <div><dt>수정</dt><dd th:text="${#temporals.format(notice.updatedAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm')} + ' KST'">2026-08-13 12:00 KST</dd></div>
+                </dl>
+                <div class="lost-item-quick-actions">
+                    <form method="post" th:action="@{/admin/lost-items/{id}/status(id=${notice.id})}">
+                        <input type="hidden" name="status" th:value="${notice.status.name() == 'HOLDING' ? 'RETURNED' : 'HOLDING'}">
+                        <button class="button button-secondary" type="submit" th:text="${notice.status.name() == 'HOLDING' ? '반환 완료 처리' : '보관 중으로 변경'}">상태 변경</button>
+                    </form>
+                    <form method="post" th:action="@{/admin/lost-items/{id}/pin(id=${notice.id})}">
+                        <input type="hidden" name="pinned" th:value="${!notice.pinned}">
+                        <button class="button button-secondary" type="submit" th:text="${notice.pinned ? '고정 해제' : '상단 고정'}">상단 고정</button>
+                    </form>
+                    <a class="button button-secondary" th:href="@{/admin/lost-items/{id}/edit(id=${notice.id})}">수정</a>
+                    <form method="post" th:action="@{/admin/lost-items/{id}/delete(id=${notice.id})}" onsubmit="return confirm('이 공지와 등록된 사진을 삭제할까요?');">
+                        <button class="button button-danger" type="submit">삭제</button>
+                    </form>
+                </div>
+            </div>
+        </article>
+    </section>
+</main>
+<div th:replace="~{admin/fragments/footer :: footer(true)}"></div>
+</body>
+</html>
