@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>생일축하 쪽지 관리 | 천보축전 관리자</title>
+    <link rel="icon" type="image/svg+xml" th:href="@{/images/favicon.svg}">
+    <link rel="stylesheet" th:href="@{/css/admin.css}">
+</head>
+<body>
+<header class="admin-header">
+    <a class="admin-logo" th:href="@{/admin}"><img class="brand-logo" th:src="@{/images/Logo.webp}" alt="천보축전 로고"></a>
+    <div class="admin-account"><div><strong th:text="${adminName}">관리자</strong><span th:text="${adminRole}">STAFF</span></div>
+        <form method="post" th:action="@{/admin/logout}"><button class="button button-ghost button-small" type="submit">로그아웃</button></form></div>
+</header>
+<main class="admin-main">
+    <nav class="breadcrumb"><a th:href="@{/admin}">관리자 홈</a><span>/</span><strong>생일축하 쪽지 관리</strong></nav>
+    <section class="management-toolbar"><div><p class="eyebrow">BIRTHDAY MESSAGE WALL</p><h1>생일축하 쪽지 관리</h1><p>쪽지를 선택하면 작성자 상세 정보와 하트 사용자를 확인할 수 있습니다.</p></div></section>
+    <div class="alert alert-success" role="status" th:if="${message}" th:text="${message}"></div>
+    <form class="lost-item-filter" method="get" th:action="@{/admin/birthday-messages}">
+        <label class="field-group"><span>정렬</span><select name="sort">
+            <option th:each="item : ${sortOptions}" th:value="${item}" th:text="${item.label}" th:selected="${selectedSort == item}">최신순</option>
+        </select></label><button class="button button-primary" type="submit">정렬 적용</button>
+    </form>
+
+    <section class="empty-panel" th:if="${#lists.isEmpty(result.items)}"><strong>등록된 생일축하 쪽지가 없습니다.</strong></section>
+    <section class="birthday-admin-grid" th:unless="${#lists.isEmpty(result.items)}">
+        <article class="birthday-admin-card" th:each="item : ${result.items}">
+            <a class="birthday-card-link" th:href="@{/admin/birthday-messages/{id}(id=${item.id})}" th:aria-label="|${item.author.name ?: '프로필 없음'} 작성 쪽지 상세 보기|">
+                <div class="birthday-note-content" th:text="${item.content}">생일 축하해!</div>
+                <div class="birthday-card-flags"><span>♥ <b th:text="${item.heartCount}">0</b></span>
+                    <time th:text="${#temporals.format(item.createdAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm')} + ' KST'">작성일</time></div>
+                <div class="birthday-list-author"><span>작성자</span><strong th:text="${item.author.name ?: '프로필 없음'}">홍길동</strong></div>
+            </a>
+        </article>
+    </section>
+    <nav class="birthday-pagination" th:if="${result.totalPages > 1}">
+        <a class="button button-secondary" th:if="${result.page > 0}" th:href="@{/admin/birthday-messages(sort=${selectedSort},page=${result.page - 1})}">이전</a>
+        <span th:text="|${result.page + 1} / ${result.totalPages}|">1 / 1</span>
+        <a class="button button-secondary" th:if="${result.page + 1 < result.totalPages}" th:href="@{/admin/birthday-messages(sort=${selectedSort},page=${result.page + 1})}">다음</a>
+    </nav>
+</main>
+<div th:replace="~{admin/fragments/footer :: footer(true)}"></div>
+</body></html>

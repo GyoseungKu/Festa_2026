@@ -91,6 +91,16 @@
                 <span class="feature-arrow" aria-hidden="true">→</span>
             </a>
 
+            <a class="feature-card" th:if="${canManageBirthdayMessages}" th:href="@{/admin/birthday-messages}">
+                <span class="feature-icon feature-icon-birthday" aria-hidden="true">♥</span>
+                <div>
+                    <span class="feature-status">STAFF 이상</span>
+                    <h3>생일축하 쪽지 관리</h3>
+                    <p>수야·수호 생일축하 쪽지와 작성자, 하트를 누른 사용자를 확인하고 관리합니다.</p>
+                </div>
+                <span class="feature-arrow" aria-hidden="true">→</span>
+            </a>
+
             <div class="feature-card feature-card-disabled" aria-disabled="true" th:if="${!canManagePerformances}">
                 <span class="feature-icon feature-icon-muted" aria-hidden="true">+</span>
                 <div>

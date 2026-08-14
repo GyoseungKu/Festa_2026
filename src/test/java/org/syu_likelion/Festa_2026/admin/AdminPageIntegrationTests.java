@@ -41,6 +41,16 @@ import org.syu_likelion.Festa_2026.lostitem.LostItemDtos.LostItemPageResponse;
 import org.syu_likelion.Festa_2026.lostitem.LostItemDtos.LostItemResponse;
 import org.syu_likelion.Festa_2026.lostitem.LostItemStatus;
 import org.syu_likelion.Festa_2026.lostitem.LostItemSort;
+import org.syu_likelion.Festa_2026.birthday.BirthdayMessageService;
+import org.syu_likelion.Festa_2026.birthday.BirthdayMessageApiService;
+import org.syu_likelion.Festa_2026.birthday.BirthdayMessageAdminService;
+import org.syu_likelion.Festa_2026.birthday.BirthdayMessageSort;
+import org.syu_likelion.Festa_2026.birthday.BirthdayMessageDtos.BirthdayMessagePageResponse;
+import org.syu_likelion.Festa_2026.birthday.BirthdayMessageDtos.BirthdayMessageResponse;
+import org.syu_likelion.Festa_2026.birthday.BirthdayMessageDtos.PublicAuthor;
+import org.syu_likelion.Festa_2026.birthday.BirthdayMessageDtos.AdminBirthdayMessagePageResponse;
+import org.syu_likelion.Festa_2026.birthday.BirthdayMessageDtos.AdminBirthdayMessageResponse;
+import org.syu_likelion.Festa_2026.birthday.BirthdayMessageDtos.AdminUserView;
 import org.syu_likelion.Festa_2026.qr.QrDtos.QrUserView;
 import org.syu_likelion.Festa_2026.qr.QrService;
 import org.syu_likelion.Festa_2026.user.FestivalRole;
@@ -64,6 +74,9 @@ class AdminPageIntegrationTests {
     @MockitoBean PerformanceService performanceService;
     @MockitoBean LostItemService lostItemService;
     @MockitoBean LostItemApiService lostItemApiService;
+    @MockitoBean BirthdayMessageService birthdayMessageService;
+    @MockitoBean BirthdayMessageApiService birthdayMessageApiService;
+    @MockitoBean BirthdayMessageAdminService birthdayMessageAdminService;
     @MockitoBean SystemMonitoringService systemMonitoringService;
 
     @Test
@@ -273,6 +286,75 @@ class AdminPageIntegrationTests {
                 .andExpect(jsonPath("$.paths['/api/lost-items/{id}'].delete").exists())
                 .andExpect(jsonPath("$.paths['/api/lost-items/{id}/status'].patch").exists())
                 .andExpect(jsonPath("$.paths['/api/lost-items/{id}/pin'].patch").exists());
+    }
+
+    @Test
+    void birthdayBoardIsPublicAndCreateAndAdminHeartRoutesAppearInOpenApi() throws Exception {
+        java.time.Instant createdAt = java.time.Instant.parse("2026-08-14T03:00:00Z");
+        BirthdayMessageResponse message = new BirthdayMessageResponse(11L, "수야 수호 생일 축하해!",
+                new PublicAuthor("컴퓨터공학부", "2024******", "홍*동"),
+                3L, false, false, createdAt);
+        when(birthdayMessageService.list(null, BirthdayMessageSort.LATEST, 0, 30))
+                .thenReturn(new BirthdayMessagePageResponse(java.util.List.of(message), 0, 30, 1, 1));
+        when(birthdayMessageApiService.create(
+                org.mockito.ArgumentMatchers.eq("user-token"),
+                org.mockito.ArgumentMatchers.isNull(), any()))
+                .thenReturn(new AuthorizedResult<>(message, null, null));
+
+        mvc.perform(get("/api/birthday-messages"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].content").value("수야 수호 생일 축하해!"))
+                .andExpect(jsonPath("$.items[0].author.maskedStudentNo").value("2024******"));
+
+        mvc.perform(post("/api/birthday-messages")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", "Bearer user-token")
+                        .content("{\"content\":\"수야 수호 생일 축하해!\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(11));
+
+        mvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.paths['/api/birthday-messages'].get").exists())
+                .andExpect(jsonPath("$.paths['/api/birthday-messages'].post").exists())
+                .andExpect(jsonPath("$.paths['/api/birthday-messages/{id}/heart'].put").exists())
+                .andExpect(jsonPath("$.paths['/api/admin/birthday-messages/{id}/hearts'].get").exists())
+                .andExpect(jsonPath("$.paths['/api/admin/birthday-messages/{id}'].delete").exists());
+    }
+
+    @Test
+    void staffCanOpenBirthdayMessageManagementPage() throws Exception {
+        when(adminAccess.authenticate("staff-access", null))
+                .thenReturn(new AuthorizedResult<>(identity(FestivalRole.STAFF), null, null));
+        AdminUserView author = new AdminUserView(FestivalRole.STAFF, null, null, null, null, null,
+                "홍길동", null, "2024100920", "컴퓨터공학부", 3,
+                null, null, null, null, null);
+        java.time.Instant createdAt = java.time.Instant.parse("2026-08-14T03:00:00Z");
+        when(birthdayMessageAdminService.listAs(Set.of(FestivalRole.STAFF),
+                BirthdayMessageSort.LATEST, 0, 30))
+                .thenReturn(new AdminBirthdayMessagePageResponse(java.util.List.of(
+                        new AdminBirthdayMessageResponse(11L, "생일 축하해!", 2L, createdAt, author)),
+                        0, 30, 1, 1));
+
+        mvc.perform(get("/admin/birthday-messages")
+                        .cookie(new Cookie("festivalAdminAccess", "staff-access")))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/birthday-messages/list"))
+                .andExpect(content().string(containsString("생일축하 쪽지 관리")))
+                .andExpect(content().string(containsString("홍길동")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("2024100920"))))
+                .andExpect(content().string(containsString("/admin/birthday-messages/11")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("user@example.com"))));
+
+        when(birthdayMessageAdminService.detailAs(11L, Set.of(FestivalRole.STAFF)))
+                .thenReturn(new AdminBirthdayMessageResponse(11L, "생일 축하해!", 2L, createdAt, author));
+        mvc.perform(get("/admin/birthday-messages/11")
+                        .cookie(new Cookie("festivalAdminAccess", "staff-access")))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/birthday-messages/detail"))
+                .andExpect(content().string(containsString("생일축하 쪽지 상세")))
+                .andExpect(content().string(containsString("2024100920")))
+                .andExpect(content().string(containsString("하트 사용자 2명")));
     }
 
     @Test

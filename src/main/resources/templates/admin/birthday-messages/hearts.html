@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>하트 사용자 조회 | 천보축전 관리자</title>
+    <link rel="icon" type="image/svg+xml" th:href="@{/images/favicon.svg}"><link rel="stylesheet" th:href="@{/css/admin.css}">
+</head>
+<body>
+<header class="admin-header"><a class="admin-logo" th:href="@{/admin}"><img class="brand-logo" th:src="@{/images/Logo.webp}" alt="천보축전 로고"></a>
+    <div class="admin-account"><div><strong th:text="${adminName}">관리자</strong><span th:text="${adminRole}">STAFF</span></div>
+        <form method="post" th:action="@{/admin/logout}"><button class="button button-ghost button-small" type="submit">로그아웃</button></form></div></header>
+<main class="admin-main">
+    <nav class="breadcrumb"><a th:href="@{/admin}">관리자 홈</a><span>/</span><a th:href="@{/admin/birthday-messages}">생일축하 쪽지</a><span>/</span><strong>하트 사용자</strong></nav>
+    <section class="management-toolbar"><div><p class="eyebrow">HEARTED USERS</p><h1 th:text="|하트 사용자 ${result.heartCount}명|">하트 사용자</h1><p>현재 하트를 유지하고 있는 사용자만 표시됩니다.</p></div></section>
+    <section class="empty-panel" th:if="${#lists.isEmpty(result.items)}"><strong>아직 하트를 누른 사용자가 없습니다.</strong></section>
+    <section class="birthday-heart-list" th:unless="${#lists.isEmpty(result.items)}">
+        <article class="birthday-heart-user" th:each="item : ${result.items}">
+            <div><strong th:text="${item.user.name ?: '프로필 없음'}">사용자</strong><span th:text="${#temporals.format(item.heartedAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm')} + ' KST'">하트 일시</span></div>
+            <dl class="birthday-user-grid">
+                <div th:if="${item.user.studentNo != null}"><dt>학번</dt><dd th:text="${item.user.studentNo}"></dd></div>
+                <div th:if="${item.user.department != null}"><dt>학과</dt><dd th:text="${item.user.department}"></dd></div>
+                <div th:if="${item.user.grade != null}"><dt>학년</dt><dd th:text="${item.user.grade}"></dd></div>
+                <div th:if="${item.user.phone != null}"><dt>전화번호</dt><dd th:text="${item.user.phone}"></dd></div>
+                <div th:if="${item.user.email != null}"><dt>이메일</dt><dd th:text="${item.user.email}"></dd></div>
+                <div th:if="${item.user.userUuid != null}"><dt>UUID</dt><dd class="mono" th:text="${item.user.userUuid}"></dd></div>
+                <div th:if="${item.user.loginId != null}"><dt>로그인 ID</dt><dd th:text="${item.user.loginId}"></dd></div>
+                <div th:if="${item.user.ssoRole != null}"><dt>SSO 역할</dt><dd th:text="${item.user.ssoRole}"></dd></div>
+                <div th:if="${item.user.status != null}"><dt>계정 상태</dt><dd th:text="${item.user.status}"></dd></div>
+                <div th:if="${item.user.enrollment != null}"><dt>재학 상태</dt><dd th:text="${item.user.enrollment}"></dd></div>
+                <div th:if="${item.user.birthDate != null}"><dt>생년월일</dt><dd th:text="${item.user.birthDate}"></dd></div>
+                <div th:if="${item.user.createdAt != null}"><dt>계정 생성</dt><dd th:text="${item.user.createdAt}"></dd></div>
+                <div th:if="${item.user.updatedAt != null}"><dt>계정 수정</dt><dd th:text="${item.user.updatedAt}"></dd></div>
+                <div th:if="${item.user.festivalRoles != null}"><dt>축제 권한</dt><dd th:text="${item.user.festivalRoles}"></dd></div>
+            </dl>
+        </article>
+    </section>
+</main><div th:replace="~{admin/fragments/footer :: footer(true)}"></div>
+</body></html>
