@@ -34,14 +34,14 @@
         <div>
             <p class="eyebrow">QR USER LOOKUP</p>
             <h1>QR 사용자 조회</h1>
-            <p>사용자의 동적 QR을 카메라로 스캔하거나 토큰을 직접 입력하세요.</p>
+            <p>사용자의 동적 QR을 카메라로 스캔하면 정보가 자동으로 조회됩니다.</p>
         </div>
         <span class="role-chip"><span class="live-dot"></span><span th:text="${adminRole}">ADMIN</span> 권한</span>
     </section>
 
     <div class="alert alert-error" role="alert" th:if="${error}" th:text="${error}"></div>
 
-    <div class="qr-layout">
+    <div class="qr-layout qr-camera-only">
         <section class="panel scanner-panel">
             <div class="panel-heading">
                 <div>
@@ -65,23 +65,11 @@
                 <button id="camera-start" class="button button-primary" type="button">카메라 시작</button>
                 <button id="camera-stop" class="button button-secondary" type="button" disabled>카메라 중지</button>
             </div>
+            <p class="support-copy">QR은 기본 60초 동안만 유효합니다. 만료되면 사용자에게 QR을 새로 열어달라고 요청하세요.</p>
             <p id="camera-message" class="support-copy" aria-live="polite"></p>
-        </section>
-
-        <section class="panel lookup-panel">
-            <div class="panel-heading">
-                <div>
-                    <span class="step-number">02</span>
-                    <h2>토큰 조회</h2>
-                </div>
-            </div>
-            <form id="qr-scan-form" class="token-form" method="post" th:action="@{/admin/qr/scan}">
-                <label for="token">QR 토큰</label>
-                <textarea id="token" name="token" rows="4" maxlength="128" required
-                          placeholder="스캔하면 자동으로 입력됩니다."></textarea>
-                <button class="button button-primary button-full" type="submit">사용자 정보 조회</button>
+            <form id="qr-scan-form" method="post" th:action="@{/admin/qr/scan}" hidden>
+                <input id="token" type="hidden" name="token">
             </form>
-            <p class="support-copy">QR 토큰은 기본 60초 동안만 유효합니다. 만료되면 사용자에게 QR을 새로 열어달라고 요청하세요.</p>
         </section>
     </div>
 

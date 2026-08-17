@@ -26,7 +26,7 @@ public class AdminAccessService {
         FestivalRole role = highestAdminRole(authenticated.body().festivalRoles());
         MeResponse me = authenticated.body();
         String displayName = me.name() == null || me.name().isBlank() ? me.loginId() : me.name();
-        AdminIdentity identity = new AdminIdentity(me.userUuid(), displayName, role);
+        AdminIdentity identity = new AdminIdentity(me.userUuid(), displayName, role, me.festivalRoles());
         return new AuthorizedResult<>(identity, authenticated.newAccessToken(), authenticated.newRefreshToken());
     }
 
@@ -38,5 +38,17 @@ public class AdminAccessService {
         throw new ApiException(HttpStatus.FORBIDDEN, "ADMIN_ROLE_REQUIRED", "관리자 페이지 접근 권한이 없습니다.");
     }
 
-    public record AdminIdentity(UUID userUuid, String displayName, FestivalRole role) { }
+    public record AdminIdentity(UUID userUuid, String displayName, FestivalRole role, Set<FestivalRole> roles) {
+        public AdminIdentity(UUID userUuid, String displayName, FestivalRole role) {
+            this(userUuid, displayName, role, Set.of(role));
+        }
+
+        public AdminIdentity {
+            roles = roles == null ? Set.of(role) : Set.copyOf(roles);
+        }
+
+        public boolean hasRole(FestivalRole required) {
+            return roles.contains(required);
+        }
+    }
 }

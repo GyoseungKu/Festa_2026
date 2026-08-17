@@ -60,11 +60,19 @@ public class QrService {
         if (viewerRole == null || viewerRole == FestivalRole.USER) {
             throw new ApiException(HttpStatus.FORBIDDEN, "QR_SCAN_FORBIDDEN", "QR 사용자 조회 권한이 없습니다.");
         }
-        UUID targetUserUuid = tokenStore.findUserUuid(qrToken)
-                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "QR_INVALID_OR_EXPIRED",
-                        "QR이 유효하지 않거나 만료되었습니다."));
+        UUID targetUserUuid = resolveUserUuid(qrToken);
         InternalUserProfile profile = profiles.getProfile(targetUserUuid);
         return toView(viewerRole, profile);
+    }
+
+    public UUID resolveUserUuid(String qrToken) {
+        if (qrToken == null || qrToken.isBlank()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "QR_INVALID_OR_EXPIRED",
+                    "QR이 유효하지 않거나 만료되었습니다.");
+        }
+        return tokenStore.findUserUuid(qrToken.trim())
+                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "QR_INVALID_OR_EXPIRED",
+                        "QR이 유효하지 않거나 만료되었습니다."));
     }
 
     private FestivalRole highestViewerRole(Set<FestivalRole> roles) {
@@ -95,7 +103,7 @@ public class QrService {
         };
     }
 
-    static String maskName(String name) {
+    public static String maskName(String name) {
         if (name == null || name.isBlank()) return name;
         int[] codePoints = name.codePoints().toArray();
         if (codePoints.length == 1) return "*";
@@ -105,7 +113,7 @@ public class QrService {
         return first + "*".repeat(codePoints.length - 2) + last;
     }
 
-    static String maskStudentNo(String studentNo) {
+    public static String maskStudentNo(String studentNo) {
         if (studentNo == null || studentNo.isBlank()) return studentNo;
         int visible = Math.min(4, studentNo.length());
         return studentNo.substring(0, visible) + "*".repeat(studentNo.length() - visible);

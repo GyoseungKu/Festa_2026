@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.mock;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -54,6 +55,10 @@ import org.syu_likelion.Festa_2026.birthday.BirthdayMessageDtos.AdminUserView;
 import org.syu_likelion.Festa_2026.qr.QrDtos.QrUserView;
 import org.syu_likelion.Festa_2026.qr.QrService;
 import org.syu_likelion.Festa_2026.user.FestivalRole;
+import org.syu_likelion.Festa_2026.stamp.StampService;
+import org.syu_likelion.Festa_2026.stamp.StampDtos.BoothStampAdminResponse;
+import org.syu_likelion.Festa_2026.booth.BoothManagerDirectory;
+import org.syu_likelion.Festa_2026.booth.FestivalBooth;
 
 @SpringBootTest(properties = {
         "sso.client-id=test-client", "sso.client-secret=test-secret",
@@ -78,6 +83,8 @@ class AdminPageIntegrationTests {
     @MockitoBean BirthdayMessageApiService birthdayMessageApiService;
     @MockitoBean BirthdayMessageAdminService birthdayMessageAdminService;
     @MockitoBean SystemMonitoringService systemMonitoringService;
+    @MockitoBean StampService stampService;
+    @MockitoBean BoothManagerDirectory boothManagerDirectory;
 
     @Test
     void loginPageIsRenderedWithCsrfToken() throws Exception {
@@ -129,7 +136,10 @@ class AdminPageIntegrationTests {
         mvc.perform(get("/admin/qr").cookie(new Cookie("festivalAdminAccess", "access-one")))
                 .andExpect(status().isOk())
                 .andExpect(view().name("admin/qr-scan"))
-                .andExpect(content().string(containsString("카메라 시작")));
+                .andExpect(content().string(containsString("카메라 시작")))
+                .andExpect(content().string(containsString("정보가 자동으로 조회됩니다")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("토큰 조회"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("사용자 정보 조회</button>"))));
     }
 
     @Test
@@ -403,6 +413,79 @@ class AdminPageIntegrationTests {
                 .andExpect(content().string(containsString("01012345678")))
                 .andExpect(content().string(containsString("target@example.com")))
                 .andExpect(content().string(org.hamcrest.Matchers.not(containsString("사용자 UUID"))));
+    }
+
+    @Test
+    void boothManagerStampPageOnlyShowsAssignedBoothsAndQrFlow() throws Exception {
+        FestivalBooth booth = mock(FestivalBooth.class);
+        when(booth.getId()).thenReturn(7L);
+        when(booth.getName()).thenReturn("담당 부스");
+        when(booth.getOperator()).thenReturn("운영팀");
+        when(adminAccess.authenticate("manager-access", null))
+                .thenReturn(new AuthorizedResult<>(identity(FestivalRole.BOOTH_MANAGER), null, null));
+        when(stampService.availableBoothsAs(ADMIN_UUID, FestivalRole.BOOTH_MANAGER)).thenReturn(java.util.List.of(booth));
+        when(stampService.historyAs(ADMIN_UUID, FestivalRole.BOOTH_MANAGER, 7L))
+                .thenReturn(new BoothStampAdminResponse(7L, "담당 부스",
+                        java.util.List.of(new org.syu_likelion.Festa_2026.stamp.StampDtos.CurrentStampResponse(
+                                null, "홍*동", "2026******", java.time.Instant.parse("2026-08-17T03:00:00Z"),
+                                null, org.syu_likelion.Festa_2026.stamp.StampMethod.QR)), java.util.List.of()));
+
+        mvc.perform(get("/admin/stamps").cookie(new Cookie("festivalAdminAccess", "manager-access")))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/stamps"))
+                .andExpect(content().string(containsString("담당 부스")))
+                .andExpect(content().string(containsString("사용자 정보가 자동으로 조회됩니다")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("QR 사용자 확인"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("QR 토큰으로 조회"))))
+                .andExpect(content().string(containsString("마스킹된 기록")))
+                .andExpect(content().string(containsString("홍*동")))
+                .andExpect(content().string(containsString("2026******")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("사용자 검색 임의 처리"))));
+    }
+
+    @Test
+    void adminStampPageShowsEveryBoothSearchAndHistory() throws Exception {
+        FestivalBooth booth = mock(FestivalBooth.class);
+        when(booth.getId()).thenReturn(8L);
+        when(booth.getName()).thenReturn("전체 관리 부스");
+        when(booth.getOperator()).thenReturn("운영팀");
+        FestivalBooth otherBooth = mock(FestivalBooth.class);
+        when(otherBooth.getId()).thenReturn(9L);
+        when(otherBooth.getName()).thenReturn("다른 부스");
+        when(otherBooth.getOperator()).thenReturn("다른 운영팀");
+        AdminIdentity adminAndManager = new AdminIdentity(ADMIN_UUID, "축제 관리자", FestivalRole.ADMIN,
+                Set.of(FestivalRole.ADMIN, FestivalRole.BOOTH_MANAGER, FestivalRole.USER));
+        when(adminAccess.authenticate("admin-stamp-access", null))
+                .thenReturn(new AuthorizedResult<>(adminAndManager, null, null));
+        when(stampService.availableBoothsAs(ADMIN_UUID, FestivalRole.ADMIN))
+                .thenReturn(java.util.List.of(booth, otherBooth));
+        when(stampService.historyAs(ADMIN_UUID, FestivalRole.ADMIN, 8L))
+                .thenReturn(new BoothStampAdminResponse(8L, "전체 관리 부스",
+                        java.util.List.of(new org.syu_likelion.Festa_2026.stamp.StampDtos.CurrentStampResponse(
+                                ADMIN_UUID, "스탬프 사용자", "2026000001", java.time.Instant.parse("2026-08-17T03:00:00Z"),
+                                ADMIN_UUID, org.syu_likelion.Festa_2026.stamp.StampMethod.QR)),
+                        java.util.List.of(new org.syu_likelion.Festa_2026.stamp.StampDtos.StampHistoryResponse(
+                                1L, org.syu_likelion.Festa_2026.stamp.StampAction.GRANT,
+                                org.syu_likelion.Festa_2026.stamp.StampMethod.QR, ADMIN_UUID, "스탬프 사용자",
+                                ADMIN_UUID, "축제 관리자", java.time.Instant.parse("2026-08-17T03:00:00Z")))));
+        when(boothManagerDirectory.candidates()).thenReturn(java.util.List.of());
+
+        mvc.perform(get("/admin/stamps").cookie(new Cookie("festivalAdminAccess", "admin-stamp-access")))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("전체 관리 부스")))
+                .andExpect(content().string(containsString("다른 부스")))
+                .andExpect(content().string(containsString("사용자 검색 임의 처리")))
+                .andExpect(content().string(containsString("지급·회수 감사 이력")))
+                .andExpect(content().string(containsString("2026-08-17 12:00:00 KST")));
+    }
+
+    @Test
+    void staffCannotOpenStampPage() throws Exception {
+        when(adminAccess.authenticate("staff-stamp-access", null))
+                .thenReturn(new AuthorizedResult<>(identity(FestivalRole.STAFF), null, null));
+        mvc.perform(get("/admin/stamps").cookie(new Cookie("festivalAdminAccess", "staff-stamp-access")))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin"));
     }
 
     private AdminIdentity identity(FestivalRole role) {

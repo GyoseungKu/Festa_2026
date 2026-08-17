@@ -129,16 +129,19 @@ public class AdminPageController {
     private void addAdmin(Model model, AdminIdentity admin) {
         model.addAttribute("adminName", admin.displayName());
         model.addAttribute("adminRole", admin.role());
-        boolean superAdmin = admin.role() == org.syu_likelion.Festa_2026.user.FestivalRole.SUPER_ADMIN;
-        boolean canManagePerformances = admin.role() == org.syu_likelion.Festa_2026.user.FestivalRole.ADMIN
+        boolean superAdmin = admin.hasRole(org.syu_likelion.Festa_2026.user.FestivalRole.SUPER_ADMIN);
+        boolean canManagePerformances = admin.hasRole(org.syu_likelion.Festa_2026.user.FestivalRole.ADMIN)
                 || superAdmin;
         model.addAttribute("canManagePerformances", canManagePerformances);
-        boolean canManageStaffFeatures = admin.role() == org.syu_likelion.Festa_2026.user.FestivalRole.STAFF
+        boolean canManageStamps = canManagePerformances
+                || admin.hasRole(org.syu_likelion.Festa_2026.user.FestivalRole.BOOTH_MANAGER);
+        model.addAttribute("canManageStamps", canManageStamps);
+        boolean canManageStaffFeatures = admin.hasRole(org.syu_likelion.Festa_2026.user.FestivalRole.STAFF)
                 || canManagePerformances;
         model.addAttribute("canManageLostItems", canManageStaffFeatures);
         model.addAttribute("canManageBirthdayMessages", canManageStaffFeatures);
         model.addAttribute("canMonitorSystem", superAdmin);
         model.addAttribute("availableFeatureCount", 1 + (canManageStaffFeatures ? 2 : 0)
-                + (canManagePerformances ? 1 : 0) + (superAdmin ? 1 : 0));
+                + (canManagePerformances ? 2 : 0) + (canManageStamps ? 1 : 0) + (superAdmin ? 1 : 0));
     }
 }

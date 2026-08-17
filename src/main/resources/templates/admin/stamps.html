@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>스탬프 지급 관리 | 천보축전 관리자페이지</title>
+    <link rel="icon" type="image/svg+xml" th:href="@{/images/favicon.svg}">
+    <link rel="stylesheet" th:href="@{/css/admin.css}">
+    <script defer th:src="@{/webjars/jsqr/1.4.0/dist/jsQR.js}"></script>
+    <script defer th:src="@{/js/admin-qr.js}"></script>
+</head>
+<body>
+<header class="admin-header">
+    <a class="admin-logo" th:href="@{/admin}"><img class="brand-logo" th:src="@{/images/Logo.webp}" alt="천보축전 로고"></a>
+    <div class="admin-account"><div><strong th:text="${adminName}">관리자</strong><span th:text="${adminRole}">BOOTH_MANAGER</span></div>
+        <form method="post" th:action="@{/admin/logout}"><button class="button button-ghost button-small" type="submit">로그아웃</button></form></div>
+</header>
+<main class="admin-main qr-page">
+    <nav class="breadcrumb"><a th:href="@{/admin}">관리자 홈</a><span>/</span><strong>스탬프 지급 관리</strong></nav>
+    <section class="page-heading"><div><p class="eyebrow">STAMP DESK</p><h1>스탬프 지급 관리</h1>
+        <p th:text="${canAdminOverride ? 'QR 또는 사용자 검색으로 스탬프를 지급·회수하고 전체 이력을 확인합니다.' : '담당 부스에서 QR로 스탬프를 처리하고 마스킹된 지급 이력을 확인합니다.'}">스탬프 관리</p></div>
+        <span class="role-chip"><span class="live-dot"></span><span th:text="${adminRole}">BOOTH_MANAGER</span> 권한</span>
+    </section>
+
+    <div class="alert alert-error" th:if="${error}" th:text="${error}"></div>
+    <div class="alert alert-success" th:if="${message}" th:text="${message}"></div>
+    <section class="empty-panel" th:if="${#lists.isEmpty(booths)}"><strong>담당 부스가 없습니다.</strong><p>ADMIN에게 부스 관리자 지정을 요청해 주세요.</p></section>
+
+    <div th:unless="${#lists.isEmpty(booths)}">
+        <section class="panel stamp-booth-selector">
+            <label class="field-group" for="boothSelect"><span>스탬프를 처리할 부스</span>
+                <select id="boothSelect" onchange="window.location.href='/admin/stamps?boothId='+encodeURIComponent(this.value)">
+                    <option th:each="booth : ${booths}" th:value="${booth.id}" th:text="|${booth.name} · ${booth.operator}|"
+                            th:selected="${booth.id.equals(selectedBoothId)}">부스</option>
+                </select>
+            </label>
+            <small th:text="${canAdminOverride ? 'ADMIN 이상은 모든 부스를 선택할 수 있습니다.' : '본인이 관리자로 지정된 부스만 표시됩니다.'}">권한 안내</small>
+        </section>
+
+        <div class="qr-layout stamp-qr-layout">
+            <section class="panel scanner-panel">
+                <div class="panel-heading"><div><span class="step-number">01</span><h2>사용자 QR 스캔</h2></div>
+                    <span id="camera-status" class="camera-status">대기 중</span></div>
+                <div class="camera-frame" id="camera-frame">
+                    <video id="qr-video" playsinline muted aria-label="QR 스캔 카메라 화면"></video>
+                    <div class="camera-placeholder"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h3l1.3-2h7.4L17 5h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Zm8 4a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0 2.2a2.8 2.8 0 1 1 0 5.6 2.8 2.8 0 0 1 0-5.6Z"/></svg>
+                        <strong>카메라를 켜고 사용자 QR을 맞춰주세요.</strong><span>QR 토큰은 기본 60초 동안 유효합니다.</span></div>
+                    <div class="scan-guide" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+                </div>
+                <div class="camera-actions"><button id="camera-start" class="button button-primary" type="button">카메라 시작</button>
+                    <button id="camera-stop" class="button button-secondary" type="button" disabled>카메라 중지</button></div>
+                <p class="support-copy">카메라로 QR을 인식하면 사용자 정보가 자동으로 조회됩니다.</p>
+                <p id="camera-message" class="support-copy" aria-live="polite"></p>
+                <form id="qr-scan-form" method="post" th:action="@{/admin/stamps/qr/lookup}" hidden>
+                    <input type="hidden" name="boothId" th:value="${selectedBoothId}">
+                    <input id="token" type="hidden" name="token">
+                </form>
+            </section>
+        </div>
+
+        <section class="panel result-panel stamp-target-panel" th:if="${stampTarget != null}">
+            <div class="result-heading"><div><span class="success-mark">✓</span><div><p class="eyebrow">STAMP TARGET</p><h2>사용자 확인 완료</h2></div></div>
+                <span class="stamp-state" th:classappend="${stampTarget.stamped ? ' is-granted' : ' is-empty'}"
+                      th:text="${stampTarget.stamped ? '지급 완료' : '미지급'}">미지급</span></div>
+            <dl class="profile-grid">
+                <div><dt>이름</dt><dd th:text="${stampTarget.name}">사용자</dd></div>
+                <div><dt>학번</dt><dd th:text="${stampTarget.studentNo}">학번</dd></div>
+                <div><dt>학과</dt><dd th:text="${stampTarget.department}">학과</dd></div>
+                <div th:if="${stampTarget.grantedAt != null}"><dt>지급 시각</dt><dd th:text="${#temporals.format(stampTarget.grantedAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm:ss')} + ' KST'">시각</dd></div>
+            </dl>
+            <form class="stamp-action-form" method="post" th:action="@{/admin/stamps/qr/action}">
+                <input type="hidden" name="boothId" th:value="${selectedBoothId}"><input type="hidden" name="token" th:value="${qrToken}">
+                <button th:unless="${stampTarget.stamped}" class="button button-primary" type="submit" name="action" value="GRANT">스탬프 지급</button>
+                <button th:if="${stampTarget.stamped}" class="button button-danger" type="submit" name="action" value="REVOKE"
+                        onclick="return confirm('이 사용자의 스탬프를 회수할까요?');">스탬프 회수</button>
+            </form>
+        </section>
+
+        <section class="form-section stamp-admin-section" th:if="${canAdminOverride}">
+            <div class="form-section-heading"><span>02</span><div><h2>사용자 검색 임의 처리</h2><p>ADMIN 이상만 QR 없이 사용자를 검색해 지급하거나 회수할 수 있습니다.</p></div></div>
+            <div class="manager-search-row"><input id="stampUserSearch" type="search" placeholder="이름, 아이디, 학번, 학과 또는 UUID">
+                <button id="stampUserSearchButton" class="button button-primary" type="button">검색</button></div>
+            <p class="support-copy">검색 버튼을 누르거나 Enter 키를 누르세요.</p>
+            <div id="stampUserResults" class="stamp-user-results" hidden>
+                <article class="stamp-user-row" th:each="candidate : ${userCandidates}"
+                         th:attr="data-search=${candidate.searchableText}">
+                    <div><strong th:text="${candidate.displayName}">사용자</strong>
+                        <small th:text="|${candidate.studentNo ?: '-'} · ${candidate.department ?: '-'} · ${candidate.loginId ?: candidate.userUuid}|">사용자 정보</small></div>
+                    <form method="post" th:action="@{/admin/stamps/user/action}">
+                        <input type="hidden" name="boothId" th:value="${selectedBoothId}"><input type="hidden" name="userUuid" th:value="${candidate.userUuid}">
+                        <button th:unless="${stampedUserIds.contains(candidate.userUuid)}" class="button button-primary button-small" name="action" value="GRANT">지급</button>
+                        <button th:if="${stampedUserIds.contains(candidate.userUuid)}" class="button button-danger button-small" name="action" value="REVOKE"
+                                onclick="return confirm('선택한 사용자의 스탬프를 회수할까요?');">회수</button>
+                    </form>
+                </article>
+            </div>
+            <p id="stampUserSearchStatus" class="support-copy">검색 전입니다.</p>
+        </section>
+
+        <section class="form-section stamp-history-section" th:if="${stampAdmin != null}">
+            <div class="form-section-heading"><span th:text="${canAdminOverride ? '03' : '02'}">02</span><div><h2>현재 지급 현황과 처리 이력</h2>
+                <p th:text="${canAdminOverride ? stampAdmin.boothName + ' 부스의 전체 기록입니다.' : stampAdmin.boothName + ' 부스의 마스킹된 기록입니다.'}">이력</p></div></div>
+            <h3>현재 스탬프 보유자 <span th:text="|${#lists.size(stampAdmin.currentStamps)}명|">0명</span></h3>
+            <div class="stamp-table-wrap"><table class="stamp-table"><thead><tr><th>사용자</th><th>학번</th><th>지급 방식</th><th>지급 시각</th></tr></thead>
+                <tbody><tr th:each="item : ${stampAdmin.currentStamps}"><td th:text="${item.name}">사용자</td><td th:text="${item.studentNo}">학번</td>
+                    <td th:text="${item.method}">QR</td><td th:text="${#temporals.format(item.grantedAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm:ss')} + ' KST'">시각</td></tr>
+                <tr th:if="${#lists.isEmpty(stampAdmin.currentStamps)}"><td colspan="4">현재 지급된 스탬프가 없습니다.</td></tr></tbody></table></div>
+            <h3 class="stamp-history-title">지급·회수 감사 이력</h3>
+            <div class="stamp-table-wrap"><table class="stamp-table"><thead><tr><th>처리</th><th>대상 사용자</th><th>처리 관리자</th><th>방식</th><th>시각</th></tr></thead>
+                <tbody><tr th:each="item : ${stampAdmin.history}"><td th:text="${item.action}">GRANT</td><td th:text="${item.targetName}">대상</td>
+                    <td th:text="${item.actorName}">관리자</td><td th:text="${item.method}">QR</td><td th:text="${#temporals.format(item.occurredAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm:ss')} + ' KST'">시각</td></tr>
+                <tr th:if="${#lists.isEmpty(stampAdmin.history)}"><td colspan="5">처리 이력이 없습니다.</td></tr></tbody></table></div>
+        </section>
+    </div>
+</main>
+<div th:replace="~{admin/fragments/footer :: footer(true)}"></div>
+<script>
+const stampSearch = document.getElementById('stampUserSearch');
+const stampSearchButton = document.getElementById('stampUserSearchButton');
+const stampResults = document.getElementById('stampUserResults');
+const stampRows = [...document.querySelectorAll('.stamp-user-row')];
+const stampStatus = document.getElementById('stampUserSearchStatus');
+function searchStampUsers() {
+    const query = stampSearch.value.trim().toLocaleLowerCase();
+    let visible = 0;
+    stampRows.forEach(row => {
+        const match = !query || row.dataset.search.toLocaleLowerCase().includes(query);
+        row.hidden = !match;
+        if (match) visible++;
+    });
+    stampResults.hidden = false;
+    stampStatus.textContent = query ? `${visible}명을 찾았습니다.` : `전체 ${visible}명`;
+}
+if (stampSearchButton) stampSearchButton.addEventListener('click', searchStampUsers);
+if (stampSearch) stampSearch.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); searchStampUsers(); } });
+</script>
+</body>
+</html>

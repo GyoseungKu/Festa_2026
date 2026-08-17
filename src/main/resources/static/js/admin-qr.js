@@ -9,6 +9,7 @@
     const message = document.getElementById("camera-message");
     const tokenInput = document.getElementById("token");
     const form = document.getElementById("qr-scan-form");
+    const manualEntryAvailable = tokenInput?.type !== "hidden";
 
     if (!startButton || !video || !form) return;
 
@@ -58,7 +59,9 @@
                 return;
             }
         } catch (error) {
-            setMessage("화면을 분석하는 중 문제가 발생했습니다. 다시 시도하거나 토큰을 직접 입력해 주세요.");
+            setMessage(manualEntryAvailable
+                ? "화면을 분석하는 중 문제가 발생했습니다. 다시 시도하거나 토큰을 직접 입력해 주세요."
+                : "화면을 분석하는 중 문제가 발생했습니다. 다시 시도해 주세요.");
         }
         timer = window.setTimeout(scanFrame, 180);
     };
@@ -67,7 +70,9 @@
         submitted = false;
         setMessage("");
         if (typeof window.jsQR !== "function" || !context) {
-            setMessage("QR 판독기를 불러오지 못했습니다. 페이지를 새로고침하거나 토큰을 직접 입력해 주세요.");
+            setMessage(manualEntryAvailable
+                ? "QR 판독기를 불러오지 못했습니다. 페이지를 새로고침하거나 토큰을 직접 입력해 주세요."
+                : "QR 판독기를 불러오지 못했습니다. 페이지를 새로고침해 주세요.");
             return;
         }
         if (!navigator.mediaDevices?.getUserMedia) {

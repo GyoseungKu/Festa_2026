@@ -42,7 +42,7 @@ Thymeleaf 관리자 페이지
 
 ## 축제 역할
 
-SSO의 `ssoRole`을 축제 운영 권한으로 사용하지 않습니다. 축제 역할은 `festival_roles`에서 별도로 관리합니다.
+SSO의 `ssoRole`을 축제 운영 권한으로 사용하지 않습니다. 축제 운영 권한은 `festival_users.management_role`에서 별도로 관리합니다. 부스 관리자 여부는 `festival_users.booth_manager`와 담당 부스 배정으로 관리됩니다.
 
 | 역할 | 용도 |
 |---|---|
@@ -95,7 +95,9 @@ MAIL_PASSWORD=...
 MySQL `caching_sha2_password` 계정을 MariaDB Connector/J로 TLS 없이 연결하면서 서버 RSA 키 파일을 별도로 배포하지 않는 경우 JDBC URL에 `allowPublicKeyRetrieval=true`가 필요합니다.
 
 ```properties
-DB_URL=jdbc:mariadb://DB_HOST:3306/Likelion_SYU_festa2026?allowPublicKeyRetrieval=true
+DB_URL=jdbc:mysql://DB_HOST:3306/Likelion_SYU_festa2026?allowPublicKeyRetrieval=true
+DB_DRIVER=com.mysql.cj.jdbc.Driver
+DB_DIALECT=org.hibernate.dialect.MySQLDialect
 ```
 
 이 옵션은 접속 시 서버에서 공개키를 받아오므로 네트워크 중간자 공격 방지를 위해 운영 환경에서는 DB TLS(`sslMode=verify-full`) 또는 신뢰한 `serverRsaPublicKeyFile` 설정을 우선 권장합니다.
@@ -278,7 +280,7 @@ API 요청 로그와 React 화면 이벤트 로그는 서로 다른 테이블과
 
 ```text
 festival_users
-festival_roles
+festival_booth_managers
 festival_qr_tokens
 festival_performances
 festival_performance_members
@@ -289,6 +291,7 @@ frontend_event_logs
 ```
 
 Hibernate `ddl-auto=update` 설정으로 필요한 테이블과 인덱스를 생성합니다.
+`festival_users.management_role`은 `SUPER_ADMIN`, `ADMIN`, `STAFF`, `USER` 값을 갖는 ENUM 컬럼입니다.
 
 ## Swagger / OpenAPI
 

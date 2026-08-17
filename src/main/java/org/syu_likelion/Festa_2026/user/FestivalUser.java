@@ -1,21 +1,17 @@
 package org.syu_likelion.Festa_2026.user;
 
-import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import java.time.Instant;
-import java.util.HashSet;
+import java.util.EnumSet;
 import java.util.Set;
 import java.util.UUID;
 
@@ -29,11 +25,13 @@ public class FestivalUser {
     @Column(name = "user_uuid", nullable = false, unique = true, updatable = false, columnDefinition = "BINARY(16)")
     private UUID userUuid;
 
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "festival_roles", joinColumns = @JoinColumn(name = "festival_user_id"))
-    @Column(name = "role", nullable = false)
+    @Column(name = "management_role", nullable = false,
+            columnDefinition = "enum('SUPER_ADMIN','ADMIN','STAFF','USER') default 'USER'")
     @Enumerated(EnumType.STRING)
-    private Set<FestivalRole> roles = new HashSet<>();
+    private FestivalRole managementRole = FestivalRole.USER;
+
+    @Column(name = "booth_manager", nullable = false, columnDefinition = "boolean default false")
+    private boolean boothManager;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -45,7 +43,6 @@ public class FestivalUser {
 
     public FestivalUser(UUID userUuid) {
         this.userUuid = userUuid;
-        this.roles.add(FestivalRole.USER);
     }
 
     @PrePersist
@@ -59,5 +56,20 @@ public class FestivalUser {
     void preUpdate() { updatedAt = Instant.now(); }
 
     public UUID getUserUuid() { return userUuid; }
-    public Set<FestivalRole> getRoles() { return Set.copyOf(roles); }
+    public Set<FestivalRole> getRoles() {
+        EnumSet<FestivalRole> roles = EnumSet.of(managementRole);
+        if (boothManager) roles.add(FestivalRole.BOOTH_MANAGER);
+        return Set.copyOf(roles);
+    }
+    public Long getId() { return id; }
+
+    public void addRole(FestivalRole role) {
+        if (role == FestivalRole.BOOTH_MANAGER) boothManager = true;
+        else managementRole = role;
+    }
+
+    public void removeRole(FestivalRole role) {
+        if (role == FestivalRole.BOOTH_MANAGER) boothManager = false;
+        else if (managementRole == role) managementRole = FestivalRole.USER;
+    }
 }
