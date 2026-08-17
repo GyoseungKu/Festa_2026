@@ -16,6 +16,9 @@ import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.syu_likelion.Festa_2026.auth.AuthorizedSsoExecutor.AuthorizedResult;
 import org.syu_likelion.Festa_2026.booth.FestivalBooth;
 import org.syu_likelion.Festa_2026.booth.FestivalBoothRepository;
@@ -140,7 +143,8 @@ class StampServiceTests {
         StampEvent event = new StampEvent(booth, TARGET, ACTOR, StampAction.GRANT, StampMethod.QR, NOW);
         when(booths.existsByIdAndManagersUserUuid(1L, ACTOR)).thenReturn(true);
         when(stamps.findAllByBoothIdOrderByGrantedAtDesc(1L)).thenReturn(List.of(current));
-        when(events.findAllByBoothIdOrderByOccurredAtDesc(1L)).thenReturn(List.of(event));
+        when(events.findAllByBoothId(org.mockito.ArgumentMatchers.eq(1L), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(event)));
         when(profiles.getProfiles(any())).thenReturn(List.of(
                 profile(TARGET, "홍길동", "2026000001"), profile(ACTOR, "김관리", "2026000002")));
 
@@ -154,6 +158,29 @@ class StampServiceTests {
         assertThat(result.history().getFirst().targetName()).isEqualTo("홍*동");
         assertThat(result.history().getFirst().actorUuid()).isNull();
         assertThat(result.history().getFirst().actorName()).isEqualTo("김*리");
+    }
+
+    @Test void historyIsPagedNewestFirstAndSizeIsCapped() {
+        StampEvent event = new StampEvent(booth, TARGET, ACTOR, StampAction.GRANT, StampMethod.QR, NOW);
+        when(events.findAllByBoothId(org.mockito.ArgumentMatchers.eq(1L), any(Pageable.class)))
+                .thenAnswer(invocation -> new PageImpl<>(java.util.Collections.nCopies(50, event),
+                        invocation.getArgument(1), 250));
+        when(profiles.getProfiles(any())).thenReturn(List.of(
+                profile(TARGET, "홍길동", "2026000001"), profile(ACTOR, "김관리", "2026000002")));
+
+        var result = service.historyAs(ACTOR, FestivalRole.ADMIN, 1L, 2, 500);
+
+        ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
+        verify(events).findAllByBoothId(org.mockito.ArgumentMatchers.eq(1L), pageable.capture());
+        assertThat(pageable.getValue().getPageNumber()).isEqualTo(2);
+        assertThat(pageable.getValue().getPageSize()).isEqualTo(100);
+        assertThat(pageable.getValue().getSort().toList())
+                .extracting(org.springframework.data.domain.Sort.Order::getProperty)
+                .containsExactly("occurredAt", "id");
+        assertThat(result.historyPage()).isEqualTo(2);
+        assertThat(result.historySize()).isEqualTo(100);
+        assertThat(result.historyTotalElements()).isEqualTo(250);
+        assertThat(result.historyTotalPages()).isEqualTo(3);
     }
 
     @Test void boothManagerCannotSeeHistoryForUnassignedBooth() {

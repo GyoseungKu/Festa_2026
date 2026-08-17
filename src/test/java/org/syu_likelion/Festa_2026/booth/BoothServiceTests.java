@@ -18,12 +18,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
 import org.syu_likelion.Festa_2026.auth.AuthorizedSsoExecutor.AuthorizedResult;
 import org.syu_likelion.Festa_2026.booth.BoothDtos.BoothMutationRequest;
+import org.syu_likelion.Festa_2026.booth.BoothDtos.BoothMediaOrderRequest;
 import org.syu_likelion.Festa_2026.error.ApiException;
 import org.syu_likelion.Festa_2026.user.FestivalRole;
 import org.syu_likelion.Festa_2026.user.FestivalUser;
 import org.syu_likelion.Festa_2026.user.FestivalUserRepository;
 import org.syu_likelion.Festa_2026.user.UserDtos.MeResponse;
 import org.syu_likelion.Festa_2026.user.UserService;
+import org.springframework.test.util.ReflectionTestUtils;
 
 class BoothServiceTests {
     private static final UUID USER_ID = UUID.fromString("123e4567-e89b-12d3-a456-426614174001");
@@ -94,6 +96,24 @@ class BoothServiceTests {
                 "부스", "운영자", "설명", LocalTime.NOON, LocalTime.NOON, true, List.of());
         assertThatThrownBy(() -> service.createAs(USER_ID, invalid, List.of(), List.of()))
                 .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code()).isEqualTo("INVALID_BOOTH_HOURS"));
+    }
+
+    @Test void mediaOrderUsesLockedBoothAndPersistsIntegratedOrderAndRepresentative() {
+        FestivalBooth booth = entity(Set.of());
+        BoothMedia first = new BoothMedia(BoothMediaKind.IMAGE, "https://cdn/1", "one", "1.jpg");
+        BoothMedia second = new BoothMedia(BoothMediaKind.VIDEO, "https://cdn/2", "two", "2.mp4");
+        ReflectionTestUtils.setField(first, "id", 1L);
+        ReflectionTestUtils.setField(second, "id", 2L);
+        booth.addMedia(first);
+        booth.addMedia(second);
+        when(booths.findByIdForUpdate(7L)).thenReturn(java.util.Optional.of(booth));
+        when(booths.saveAndFlush(booth)).thenReturn(booth);
+
+        var result = service.orderMediaAs(7L, new BoothMediaOrderRequest(List.of(2L, 1L), 2L));
+
+        verify(booths).findByIdForUpdate(7L);
+        assertThat(result.booth().media()).extracting(item -> item.id()).containsExactly(2L, 1L);
+        assertThat(result.booth().representativeMedia().id()).isEqualTo(2L);
     }
 
     private BoothMutationRequest request(List<UUID> managers) {

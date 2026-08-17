@@ -9,6 +9,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +36,8 @@ import org.syu_likelion.Festa_2026.user.UserService;
 
 @Service
 public class StampService {
+    private static final int DEFAULT_HISTORY_SIZE = 30;
+    private static final int MAX_HISTORY_SIZE = 100;
     private final BoothStampRepository stamps;
     private final StampEventRepository events;
     private final FestivalBoothRepository booths;
@@ -86,9 +91,15 @@ public class StampService {
 
     @Transactional(readOnly = true)
     public AuthorizedResult<BoothStampAdminResponse> adminHistory(Long boothId, String access, String refresh) {
+        return adminHistory(boothId, 0, DEFAULT_HISTORY_SIZE, access, refresh);
+    }
+
+    @Transactional(readOnly = true)
+    public AuthorizedResult<BoothStampAdminResponse> adminHistory(Long boothId, int page, int size,
+                                                                  String access, String refresh) {
         AuthorizedResult<MeResponse> auth = users.getMe(access, refresh);
         FestivalRole role = stampRole(auth.body().festivalRoles());
-        return rotated(auth, historyAs(auth.body().userUuid(), role, boothId));
+        return rotated(auth, historyAs(auth.body().userUuid(), role, boothId, page, size));
     }
 
     @Transactional(readOnly = true)
@@ -149,10 +160,20 @@ public class StampService {
 
     @Transactional(readOnly = true)
     public BoothStampAdminResponse historyAs(UUID actor, FestivalRole role, Long boothId) {
+        return historyAs(actor, role, boothId, 0, DEFAULT_HISTORY_SIZE);
+    }
+
+    @Transactional(readOnly = true)
+    public BoothStampAdminResponse historyAs(UUID actor, FestivalRole role, Long boothId, int page, int size) {
         FestivalBooth booth = accessibleBooth(actor, role, boothId);
         boolean fullProfile = isAdmin(role);
+        int safePage = Math.max(0, page);
+        int safeSize = Math.max(1, Math.min(size, MAX_HISTORY_SIZE));
         List<BoothStamp> current = stamps.findAllByBoothIdOrderByGrantedAtDesc(boothId);
-        List<StampEvent> history = events.findAllByBoothIdOrderByOccurredAtDesc(boothId);
+        Page<StampEvent> historyPage = events.findAllByBoothId(boothId,
+                PageRequest.of(safePage, safeSize, Sort.by(
+                        Sort.Order.desc("occurredAt"), Sort.Order.desc("id"))));
+        List<StampEvent> history = historyPage.getContent();
         Set<UUID> ids = new LinkedHashSet<>();
         current.forEach(stamp -> ids.add(stamp.getUser().getUserUuid()));
         history.forEach(event -> { ids.add(event.getTargetUserUuid()); ids.add(event.getActorUuid()); });
@@ -171,7 +192,9 @@ public class StampService {
                         fullProfile ? event.getActorUuid() : null,
                         visibleName(profileMap.get(event.getActorUuid()), event.getActorUuid(), fullProfile),
                         event.getOccurredAt())).toList();
-        return new BoothStampAdminResponse(boothId, booth.getName(), currentResponses, historyResponses);
+        return new BoothStampAdminResponse(boothId, booth.getName(), currentResponses, historyResponses,
+                historyPage.getNumber(), historyPage.getSize(), historyPage.getTotalElements(),
+                historyPage.getTotalPages());
     }
 
     private void grant(FestivalBooth booth, UUID targetUuid, UUID actor, StampMethod method) {

@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.syu_likelion.Festa_2026.auth.AuthorizedSsoExecutor.AuthorizedResult;
 import org.syu_likelion.Festa_2026.error.ApiException;
+import org.syu_likelion.Festa_2026.storage.TransactionalFileActions;
 import org.syu_likelion.Festa_2026.performance.MediaStorage.StoredFile;
 import org.syu_likelion.Festa_2026.performance.PerformanceDtos.MediaResponse;
 import org.syu_likelion.Festa_2026.performance.PerformanceDtos.PerformanceMutationRequest;
@@ -128,12 +129,13 @@ public class PerformanceService {
         addLinkedMedia(performance, PerformanceMediaKind.IMAGE, data.imageUrls());
         addLinkedMedia(performance, PerformanceMediaKind.VIDEO, data.videoUrls());
         List<StoredFile> uploaded = new ArrayList<>();
+        boolean rollbackCleanup = TransactionalFileActions.deleteOnRollback(() -> deleteStored(uploaded));
         try {
             addUploadedMedia(performance, PerformanceMediaKind.IMAGE, images, uploaded);
             addUploadedMedia(performance, PerformanceMediaKind.VIDEO, videos, uploaded);
             return toResponse(repository.saveAndFlush(performance));
         } catch (RuntimeException failure) {
-            uploaded.forEach(file -> storage.delete(file.storageKey()));
+            if (!rollbackCleanup) deleteStored(uploaded);
             throw failure;
         }
     }
@@ -164,15 +166,17 @@ public class PerformanceService {
         addLinkedMedia(performance, PerformanceMediaKind.VIDEO, data.videoUrls());
 
         List<StoredFile> uploaded = new ArrayList<>();
+        boolean rollbackCleanup = TransactionalFileActions.deleteOnRollback(() -> deleteStored(uploaded));
         try {
             addUploadedMedia(performance, PerformanceMediaKind.IMAGE, images, uploaded);
             addUploadedMedia(performance, PerformanceMediaKind.VIDEO, videos, uploaded);
             PerformanceResponse response = toResponse(repository.saveAndFlush(performance));
-            removed.stream().filter(item -> item.getSource() == PerformanceMediaSource.UPLOAD)
-                    .forEach(item -> storage.delete(item.getStorageKey()));
+            TransactionalFileActions.deleteAfterCommit(() -> removed.stream()
+                    .filter(item -> item.getSource() == PerformanceMediaSource.UPLOAD)
+                    .forEach(item -> storage.delete(item.getStorageKey())));
             return response;
         } catch (RuntimeException failure) {
-            uploaded.forEach(file -> storage.delete(file.storageKey()));
+            if (!rollbackCleanup) deleteStored(uploaded);
             throw failure;
         }
     }
@@ -188,6 +192,7 @@ public class PerformanceService {
         long current = performance.getMedia().stream().filter(item -> item.getKind() == kind).count();
         requireAttachmentLimit((int) current + uploads.size(), kind);
         List<StoredFile> stored = new ArrayList<>();
+        boolean rollbackCleanup = TransactionalFileActions.deleteOnRollback(() -> deleteStored(stored));
         try {
             addUploadedMedia(performance, kind, uploads, stored);
             performance.updateDetails(performance.getCategory(), performance.getTeamName(),
@@ -195,7 +200,7 @@ public class PerformanceService {
                     performance.getDescription(), performance.getLinks(), performance.getPublishedAt(), actorUuid);
             return toResponse(repository.saveAndFlush(performance));
         } catch (RuntimeException failure) {
-            stored.forEach(file -> storage.delete(file.storageKey()));
+            if (!rollbackCleanup) deleteStored(stored);
             throw failure;
         }
     }
@@ -212,8 +217,9 @@ public class PerformanceService {
                 performance.getMemberNames(), performance.getStartsAt(), performance.getEndsAt(),
                 performance.getDescription(), performance.getLinks(), performance.getPublishedAt(), actorUuid);
         PerformanceResponse response = toResponse(repository.saveAndFlush(performance));
-        removed.stream().filter(item -> item.getSource() == PerformanceMediaSource.UPLOAD)
-                .forEach(item -> storage.delete(item.getStorageKey()));
+        TransactionalFileActions.deleteAfterCommit(() -> removed.stream()
+                .filter(item -> item.getSource() == PerformanceMediaSource.UPLOAD)
+                .forEach(item -> storage.delete(item.getStorageKey())));
         return response;
     }
 
@@ -225,7 +231,7 @@ public class PerformanceService {
                 .map(PerformanceMedia::getStorageKey).toList();
         repository.delete(performance);
         repository.flush();
-        storageKeys.forEach(storage::delete);
+        TransactionalFileActions.deleteAfterCommit(() -> storageKeys.forEach(storage::delete));
     }
 
     private FestivalPerformance find(Long id) {
@@ -332,6 +338,10 @@ public class PerformanceService {
             performance.addMedia(PerformanceMedia.uploaded(kind, stored.url(), stored.storageKey(),
                     stored.originalFilename()));
         }
+    }
+
+    private void deleteStored(List<StoredFile> stored) {
+        stored.forEach(file -> storage.delete(file.storageKey()));
     }
 
     private void validateRemovalIds(FestivalPerformance performance, Set<Long> removals) {

@@ -1,6 +1,10 @@
 package org.syu_likelion.Festa_2026.user;
 
+import jakarta.servlet.http.HttpServletRequest;
+import java.util.Objects;
 import org.springframework.stereotype.Service;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.syu_likelion.Festa_2026.auth.AuthorizedSsoExecutor;
 import org.syu_likelion.Festa_2026.auth.AuthorizedSsoExecutor.AuthorizedResult;
 import org.syu_likelion.Festa_2026.sso.SsoAuthClient;
@@ -13,6 +17,7 @@ import org.syu_likelion.Festa_2026.logging.ApiRequestContext;
 
 @Service
 public class UserService {
+    private static final String AUTH_CACHE = UserService.class.getName() + ".authenticatedUser";
     private final SsoAuthClient client;
     private final AuthorizedSsoExecutor executor;
     private final FestivalUserService festivalUsers;
@@ -24,8 +29,20 @@ public class UserService {
     }
 
     public AuthorizedResult<MeResponse> getMe(String access, String refresh) {
+        CachedAuthentication cached = cachedAuthentication();
+        if (cached != null && Objects.equals(cached.access(), access)
+                && Objects.equals(cached.refresh(), refresh)) return cached.result();
         AuthorizedResult<MeResponse> result = executor.execute(access, refresh, client::getMe);
-        return withRoles(result);
+        AuthorizedResult<MeResponse> enriched = withRoles(result);
+        cacheAuthentication(new CachedAuthentication(access, refresh, enriched));
+        return enriched;
+    }
+
+    public AuthorizedResult<MeResponse> authenticateEarly(HttpServletRequest request,
+                                                           String access, String refresh) {
+        AuthorizedResult<MeResponse> result = getMe(access, refresh);
+        request.setAttribute(AUTH_CACHE, new CachedAuthentication(access, refresh, result));
+        return result;
     }
 
     public AuthorizedResult<MeResponse> updateProfile(String access, String refresh, ProfileUpdateRequest request) {
@@ -62,4 +79,23 @@ public class UserService {
         MeResponse enriched = me.withFestivalRoles(festivalUsers.linkAndGetRoles(me.userUuid()));
         return new AuthorizedResult<>(enriched, result.newAccessToken(), result.newRefreshToken());
     }
+
+    private CachedAuthentication cachedAuthentication() {
+        ServletRequestAttributes attributes = requestAttributes();
+        return attributes == null ? null
+                : (CachedAuthentication) attributes.getRequest().getAttribute(AUTH_CACHE);
+    }
+
+    private void cacheAuthentication(CachedAuthentication authentication) {
+        ServletRequestAttributes attributes = requestAttributes();
+        if (attributes != null) attributes.getRequest().setAttribute(AUTH_CACHE, authentication);
+    }
+
+    private ServletRequestAttributes requestAttributes() {
+        return RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes servlet
+                ? servlet : null;
+    }
+
+    private record CachedAuthentication(String access, String refresh,
+                                        AuthorizedResult<MeResponse> result) { }
 }

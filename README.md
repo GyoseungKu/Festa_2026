@@ -1,115 +1,134 @@
 # Festa_2026 Backend
 
-삼육대학교 2026 천보축전 홈페이지 백엔드입니다. 사용자 인증과 개인정보 원본은 기존 SSO에 위임하고, 이 서비스는 `userUuid` 연결, 축제 전용 역할과 축제 도메인 데이터만 관리합니다.
+삼육대학교 2026 천보축전 서비스의 Spring Boot 백엔드입니다.
+
+사용자 인증과 개인정보 원본은 기존 SSO에 위임합니다. 이 애플리케이션은 SSO의 `userUuid`를 기준으로 축제 전용 권한, 부스·스탬프·공연·분실물·생일축하 쪽지와 운영 로그를 관리합니다.
+
+## 주요 기능
+
+- SSO 회원가입·로그인·토큰 갱신·계정 관리 중계
+- 위도·경도 기반 부스 지도, 상세 정보, 찜
+- 부스 이미지 최대 5개, 동영상 최대 3개, 통합 정렬 및 대표 미디어 설정
+- 담당 부스 기반 QR 스탬프 지급·회수와 감사 이력
+- 공연팀과 공개 일정, 링크·이미지·동영상 관리
+- 분실물 공지, 사진, 반환 상태, 상단 고정과 조회수
+- 생일축하 쪽지, 하트와 권한별 작성자 조회
+- Thymeleaf 관리자 페이지와 실시간 운영 모니터링
+- API 요청 로그, 프런트 이벤트 로그와 익명 접속 heartbeat
 
 ## 기술 구성
 
-- Java 21, Spring Boot 4.1
-- Spring MVC, Validation, Security, Thymeleaf
-- Spring Data JPA, MariaDB
-- AWS SDK S3를 이용한 Cloudflare R2 업로드
-- Springdoc Swagger UI
-- React 사용자 페이지용 REST API
-- Thymeleaf 관리자 페이지
+- Java 21
+- Spring Boot 4.1, Spring MVC, Security, Validation, Thymeleaf
+- Spring Data JPA, MySQL/MariaDB
+- Cloudflare R2 및 AWS SDK for Java 2.x
+- Springdoc OpenAPI 3
+- Micrometer, Actuator, Prometheus
+- Embedded Tomcat 11.0.24
+- Gradle Wrapper
 
-기본 실행 포트는 `8888`입니다.
+애플리케이션 기본 포트는 `8888`, 로컬 전용 Actuator 포트는 `9091`입니다.
 
 ## 인증 구조
 
 ```text
 React 사용자 페이지
-    → Authorization: Bearer {SSO Access Token}
-    → Festa Backend
-    → SSO
+  -> Authorization: Bearer {SSO Access Token}
+  -> Festa Backend
+  -> SSO
 
 Thymeleaf 관리자 페이지
-    → /admin 전용 HttpOnly Access/Refresh 쿠키
-    → Festa Backend
-    → SSO
+  -> /admin 전용 HttpOnly Access/Refresh 쿠키
+  -> Festa Backend
+  -> SSO
 ```
 
-- React는 축제 백엔드의 `/api/**`만 호출합니다.
-- 로그인 성공 시 Access Token은 JSON으로 반환되며 프런트 메모리에만 보관합니다. `localStorage`에 저장하지 않습니다.
-- Refresh Token은 `festivalRefreshToken` HttpOnly/Secure/SameSite 쿠키로 중계합니다.
-- 보호 API는 `Authorization: Bearer <accessToken>`을 사용합니다.
-- Access Token 만료 시 백엔드가 Refresh Token으로 한 번 자동 갱신하고 요청을 재시도합니다.
-- 새 Access Token은 `X-Access-Token` 응답 헤더로 반환됩니다.
-- React 요청은 Refresh Token 쿠키 전달을 위해 `credentials: "include"`를 사용합니다.
-- 비밀번호, Access/Refresh Token과 개인정보 원본은 축제 DB에 저장하지 않습니다.
-- 사용자는 `loginId`가 아니라 SSO의 `userUuid`로 연결합니다.
+- 로그인 응답의 Access Token은 JSON으로 반환합니다. 프런트에서는 메모리에 보관하고 `localStorage`에는 저장하지 않는 방식을 권장합니다.
+- 사용자 Refresh Token은 `festivalRefreshToken` HttpOnly 쿠키로 중계합니다.
+- 보호된 REST API는 `Authorization: Bearer <accessToken>`을 사용합니다.
+- Access Token 만료 시 백엔드가 Refresh Token으로 한 번 갱신하여 요청을 재시도할 수 있습니다.
+- 갱신된 Access Token은 `X-Access-Token` 응답 헤더에 담깁니다.
+- 쿠키를 사용하는 React 요청은 `credentials: "include"`가 필요합니다.
+- 관리자 페이지는 `festivalAdminAccess`, `festivalAdminRefresh` HttpOnly 쿠키를 사용하며 서버 세션은 사용하지 않습니다.
+- 비밀번호, Access/Refresh Token과 SSO 개인정보 원본은 축제 DB에 저장하지 않습니다.
 
-관리자 페이지는 React와 별도로 `/admin` 경로 전용 HttpOnly 쿠키를 사용합니다. 서버 세션 저장소는 사용하지 않습니다.
+`/api/**`는 Bearer 인증을 사용하므로 CSRF 검사에서 제외됩니다. `/admin/**` 폼 요청은 CSRF 보호를 적용합니다.
 
-## 축제 역할
+## 축제 권한
 
-SSO의 `ssoRole`을 축제 운영 권한으로 사용하지 않습니다. 축제 운영 권한은 `festival_users.management_role`에서 별도로 관리합니다. 부스 관리자 여부는 `festival_users.booth_manager`와 담당 부스 배정으로 관리됩니다.
+SSO의 `ssoRole`과 축제 운영 권한은 별개입니다.
 
-| 역할 | 용도 |
+`festival_users.management_role`은 다음 값 중 하나를 갖는 ENUM입니다.
+
+| 역할 | 주요 권한 |
 |---|---|
-| `SUPER_ADMIN` | 최고 관리자 |
-| `ADMIN` | 총학생회 관리자, 공연팀 관리 가능 |
-| `STAFF` | 총학생회 운영진 |
-| `BOOTH_MANAGER` | 부스 운영자 |
-| `USER` | 일반 이용자 |
+| `SUPER_ADMIN` | 전체 관리 및 시스템 모니터링 |
+| `ADMIN` | 부스·스탬프·공연·분실물·생일축하 관리 |
+| `STAFF` | 분실물·생일축하 관리 및 일반 QR 사용자 조회 |
+| `USER` | 일반 사용자 기능 |
 
-최초 로그인 사용자는 `festival_users`에 `userUuid`로 연결되고 기본 `USER` 역할을 받습니다.
+부스 관리자 여부는 별도 `festival_users.booth_manager` boolean과 `festival_booth_managers` 담당 부스 관계로 관리합니다. 따라서 한 사용자가 `ADMIN`이면서 동시에 특정 부스의 `BOOTH_MANAGER`일 수 있습니다. 관리 권한 판정에서는 `SUPER_ADMIN`, `ADMIN`을 우선합니다.
 
-## 회원가입 필수 정보와 nullable 프로필
+처음 연결된 사용자는 기본 `USER`로 생성됩니다. 담당 부스에 지정되면 `booth_manager=true`가 되고, 더 이상 담당 부스가 없으면 자동 해제됩니다.
 
-회원가입에서 `loginId`, `email`, `password`, `name`, `department`, `studentNo`는 필수입니다. `phone`은 선택이며, 현재 회원가입 화면에서 받지 않는 `grade`, `enrollment`, `birthDate`도 nullable입니다.
+## 로컬 실행
 
-```json
-{
-  "loginId": "festival01",
-  "password": "password123",
-  "email": "student@example.com",
-  "name": "홍길동",
-  "phone": null,
-  "studentNo": "20260001",
-  "department": "컴퓨터공학과",
-  "grade": null,
-  "enrollment": null,
-  "birthDate": null
-}
+### 요구사항
+
+- JDK 21
+- MySQL 8 또는 MariaDB
+- 사용 가능한 SSO OAuth Client
+- Cloudflare R2 버킷
+
+### 환경설정
+
+[env.properties.example](src/main/resources/env.properties.example)을 복사하여 `src/main/resources/env.properties`를 만듭니다.
+
+```powershell
+Copy-Item src\main\resources\env.properties.example src\main\resources\env.properties
 ```
 
-회원가입 요청에서는 `name`, `studentNo`, `department`가 필수지만, 기존 SSO 계정이나 SSO 조회 응답에서는 해당 값이 여전히 `null`일 수 있습니다. 따라서 내 정보 응답 DTO와 조회 화면은 기존 방침대로 nullable을 허용합니다. `phone`, `grade`, `enrollment`, `birthDate`도 nullable이며 `userUuid`, `createdAt`, `updatedAt`은 클라이언트가 입력하지 않습니다. 학교 학생 인증 연동은 아직 구현하지 않았습니다.
+`env.properties`는 Git에서 제외됩니다. 운영 환경에서는 JAR 내부 파일보다 서버 환경변수나 Secret Manager 사용을 권장합니다.
 
-## 환경변수
+필수값은 DB 계정, SSO Client, R2 자격증명과 메일 계정입니다. `DB_URL`도 배포 환경에 맞게 명시적으로 설정하십시오.
 
-로컬 개발 시 [env.properties.example](src/main/resources/env.properties.example)을 복사해 `src/main/resources/env.properties`를 만들 수 있습니다. 실제 `env.properties`는 Git에서 제외되지만 classpath 리소스이므로 운영 비밀값은 가능하면 서버 환경변수나 외부 Secret으로 주입합니다.
+MySQL `caching_sha2_password` 계정을 TLS 없이 사용하는 개발 환경에서는 JDBC URL에 `allowPublicKeyRetrieval=true`가 필요할 수 있습니다. 운영 환경에서는 DB TLS 또는 신뢰한 RSA 공개키 파일을 우선 사용합니다.
 
-최소 필수값:
+### 실행
+
+```powershell
+.\gradlew.bat bootRun
+```
+
+빌드된 JAR 실행:
+
+```powershell
+.\gradlew.bat bootJar
+java -jar build\libs\Festa_2026-0.0.1-SNAPSHOT.jar
+```
+
+## CORS
+
+기본 허용 Origin은 다음 두 개입니다.
+
+```text
+http://localhost:5173
+https://festa.syu-likelion.org
+```
+
+환경변수로 덮어쓸 수 있습니다.
 
 ```properties
-DB_USERNAME=...
-DB_PASSWORD=...
-SSO_CLIENT_ID=likelion-syu-festival
-SSO_CLIENT_SECRET=...
-R2_ACCESS_KEY=...
-R2_SECRET_KEY=...
-MAIL_USERNAME=...
-MAIL_PASSWORD=...
+FRONTEND_ORIGINS=http://localhost:5173,https://festa.syu-likelion.org
 ```
 
-MySQL `caching_sha2_password` 계정을 MariaDB Connector/J로 TLS 없이 연결하면서 서버 RSA 키 파일을 별도로 배포하지 않는 경우 JDBC URL에 `allowPublicKeyRetrieval=true`가 필요합니다.
+Origin은 경로나 마지막 `/` 없이 `scheme://host[:port]` 형식으로 입력합니다. Thymeleaf 관리자 페이지와 API가 같은 도메인에서 제공되면 관리자 페이지 요청은 same-origin이므로 별도 관리자용 CORS 설정이 필요하지 않습니다.
 
-```properties
-DB_URL=jdbc:mysql://DB_HOST:3306/Likelion_SYU_festa2026?allowPublicKeyRetrieval=true
-DB_DRIVER=com.mysql.cj.jdbc.Driver
-DB_DIALECT=org.hibernate.dialect.MySQLDialect
-```
-
-이 옵션은 접속 시 서버에서 공개키를 받아오므로 네트워크 중간자 공격 방지를 위해 운영 환경에서는 DB TLS(`sslMode=verify-full`) 또는 신뢰한 `serverRsaPublicKeyFile` 설정을 우선 권장합니다.
-
-SSO OAuth Client 권장 설정:
-
-- Grant types: `authorization_code`, `refresh_token`, `client_credentials`
-- Scopes: `openid`, `email`, `profile`, `user.email.read`, `user.profile.read`
-
-현재 사용자 로그인 구현은 축제 백엔드가 SSO의 `/api/auth/login`과 `/api/auth/token/refresh`를 프록시하는 방식이며 OAuth callback 엔드포인트는 없습니다. `client_credentials`는 QR 스캔 등 서버 간 사용자 프로필 조회에 사용합니다.
+허용 메서드는 `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `OPTIONS`이며, 자격증명 요청을 허용합니다.
 
 ## REST API
+
+세부 요청·응답 스키마는 Swagger UI와 `docs/`의 프런트 연동 문서를 기준으로 확인할 수 있습니다.
 
 ### 인증
 
@@ -120,14 +139,16 @@ SSO OAuth Client 권장 설정:
 | POST | `/api/auth/signup` | 없음 | SSO 회원가입 |
 | POST | `/api/auth/login` | 없음 | 로그인 및 토큰 발급 |
 | POST | `/api/auth/email/send` | 없음 | 아이디 찾기·비밀번호 재설정 인증번호 발송 |
-| POST | `/api/auth/email/find-id/verify` | 없음 | 이메일 인증 후 로그인 아이디 반환 |
-| POST | `/api/auth/email/reset-password/verify` | 없음 | 인증번호 확인과 새 비밀번호 적용 |
+| POST | `/api/auth/email/find-id/verify` | 없음 | 아이디 찾기 인증번호 확인 |
+| POST | `/api/auth/email/reset-password/verify` | 없음 | 비밀번호 재설정 |
 | POST | `/api/auth/token/refresh` | Refresh 쿠키 | Access Token 갱신 |
-| POST | `/api/auth/logout` | 선택 | SSO 로그아웃 및 로컬 Refresh 쿠키 삭제 |
+| POST | `/api/auth/logout` | 선택 | SSO 로그아웃 및 Refresh 쿠키 삭제 |
 
-계정 복구 API의 요청 예시와 React 연동 시 주의사항은 [로그인 전 계정 복구 API 가이드](docs/frontend-account-recovery-api.md)를 참고하세요. 비밀번호 재설정은 별도 reset token 없이 인증번호와 새 비밀번호를 한 요청으로 처리합니다.
+회원가입의 `loginId`, `password`, `email`, `name`, `studentNo`, `department`는 필수이고 `phone`, `grade`, `enrollment`, `birthDate`는 nullable입니다. 학교 학생 인증 연동은 현재 포함하지 않습니다.
 
 ### 내 정보와 계정
+
+아래 API는 모두 Bearer 인증이 필요합니다.
 
 | Method | Path | 설명 |
 |---|---|---|
@@ -136,133 +157,213 @@ SSO OAuth Client 권장 설정:
 | POST | `/api/users/me/email/verification` | 새 이메일 인증번호 발송 |
 | POST | `/api/users/me/email/verification/confirm` | 새 이메일 인증번호 확인 |
 | PATCH | `/api/users/me/email` | 인증된 이메일로 변경 |
-| PATCH | `/api/users/me/password` | SSO 비밀번호 변경 후 토큰 제거 |
-| DELETE | `/api/users/me` | 축제 사용자만 삭제하는 것이 아니라 SSO 계정 자체 탈퇴 |
+| PATCH | `/api/users/me/password` | SSO 비밀번호 변경 후 인증 쿠키 제거 |
+| DELETE | `/api/users/me` | SSO 계정 탈퇴 |
 
-모든 API는 Bearer 인증이 필요합니다.
+### 부스 지도와 찜
 
-로그인 사용자의 비밀번호 변경은 현재 비밀번호와 Bearer Access Token을 함께 검증합니다. 성공 시 Refresh 쿠키를 삭제하므로 React는 메모리 Access Token과 사용자 캐시를 비운 뒤 로그인 화면으로 이동해야 합니다. 자세한 예시는 [로그인 사용자 비밀번호 변경 가이드](docs/frontend-password-change-api.md)를 참고하세요.
+| Method | Path | 권한 | 설명 |
+|---|---|---|---|
+| GET | `/api/booths` | 공개 | 지도에 표시할 전체 부스와 로그인 사용자의 찜 여부 |
+| GET | `/api/booths/{id}` | 공개 | 부스 상세와 정렬된 이미지·동영상 |
+| GET | `/api/users/me/favorite-booths` | 로그인 | 내가 찜한 부스 목록 |
+| POST | `/api/booths/{id}/favorite` | 로그인 | 찜 등록 |
+| DELETE | `/api/booths/{id}/favorite` | 로그인 | 찜 해제 |
+| POST | `/api/booths` | `ADMIN` 이상 | 부스 등록 |
+| PATCH | `/api/booths/{id}` | `ADMIN` 이상 | 좌표·운영 정보·스탬프 여부·관리자 수정 |
+| POST | `/api/booths/{id}/images` | `ADMIN` 이상 | 이미지 파일 업로드, 최대 5개 |
+| POST | `/api/booths/{id}/videos` | `ADMIN` 이상 | 동영상 파일 업로드, 최대 3개 |
+| PATCH | `/api/booths/{id}/media/order` | `ADMIN` 이상 | 이미지·동영상 통합 순서와 대표 미디어 설정 |
+| DELETE | `/api/booths/{id}/media/{mediaId}` | `ADMIN` 이상 | 미디어 삭제 |
+| DELETE | `/api/booths/{id}` | `ADMIN` 이상 | 부스와 찜·미디어 삭제 |
+
+부스는 위도·경도, 이름, 운영 주체, 설명, 하루 기준 시작·종료 시각, 스탬프 지급 여부와 여러 명의 담당 관리자를 가집니다. 대표 미디어는 첫 업로드 항목으로 자동 지정되며 이후 정렬 API나 관리자 페이지에서 변경할 수 있습니다.
+
+### 스탬프
+
+| Method | Path | 권한 | 설명 |
+|---|---|---|---|
+| GET | `/api/users/me/stamps` | 로그인 | 내 스탬프판 조회 |
+| POST | `/api/booths/{boothId}/stamps/qr/lookup` | 담당 `BOOTH_MANAGER`, `ADMIN` 이상 | QR 사용자와 현재 지급 상태 조회 |
+| POST | `/api/booths/{boothId}/stamps/qr/grant` | 담당 `BOOTH_MANAGER`, `ADMIN` 이상 | QR로 지급 |
+| POST | `/api/booths/{boothId}/stamps/qr/revoke` | 담당 `BOOTH_MANAGER`, `ADMIN` 이상 | QR로 회수 |
+| POST | `/api/booths/{boothId}/stamps/users/{userUuid}/grant` | `ADMIN` 이상 | 사용자 검색으로 임의 지급 |
+| POST | `/api/booths/{boothId}/stamps/users/{userUuid}/revoke` | `ADMIN` 이상 | 사용자 검색으로 임의 회수 |
+| GET | `/api/booths/{boothId}/stamps/history` | 담당 `BOOTH_MANAGER`, `ADMIN` 이상 | 현재 보유자와 지급·회수 감사 이력 |
+
+- 한 사용자는 한 부스에서 현재 스탬프를 최대 하나만 보유할 수 있습니다.
+- 스탬프판은 축제 기간 중 한 번 참여하며 회차나 초기화 개념이 없습니다.
+- 회수 후 재지급할 수 있고 모든 지급·회수는 감사 이력에 남습니다.
+- `BOOTH_MANAGER`는 배정된 스탬프 지급 부스만 선택할 수 있고 QR 방식만 사용합니다. 사용자 UUID와 이름·학번 등은 제한 또는 마스킹됩니다.
+- `ADMIN`, `SUPER_ADMIN`은 모든 스탬프 지급 부스를 선택하고 QR 또는 사용자 검색으로 처리할 수 있습니다.
+- `STAFF`는 스탬프 관리 권한이 없습니다.
+- 이력 API는 `page=0`, `size=30`이 기본이며 최대 크기는 100입니다. 현재 보유자 목록은 전체, 감사 이력은 최신순 페이지 단위로 반환합니다.
 
 ### 공연팀
 
 | Method | Path | 권한 | 설명 |
 |---|---|---|---|
-| GET | `/api/performances` | `USER` 이상 | 공개 시각이 지난 공연 목록 |
-| GET | `/api/performances/{id}` | `USER` 이상 | 공개된 공연 상세 |
+| GET | `/api/performances` | 로그인 | 공개 시각이 지난 공연 목록 |
+| GET | `/api/performances/{id}` | 로그인 | 공개된 공연 상세 |
 | POST | `/api/performances` | `ADMIN` 이상 | 공연팀과 링크 등록 |
 | PATCH | `/api/performances/{id}` | `ADMIN` 이상 | 공연팀 정보 수정 |
 | POST | `/api/performances/{id}/images` | `ADMIN` 이상 | 이미지 파일 추가 |
 | POST | `/api/performances/{id}/videos` | `ADMIN` 이상 | 동영상 파일 추가 |
-| DELETE | `/api/performances/{id}/media/{mediaId}` | `ADMIN` 이상 | 이미지·동영상 삭제 |
+| DELETE | `/api/performances/{id}/media/{mediaId}` | `ADMIN` 이상 | 미디어 삭제 |
 | DELETE | `/api/performances/{id}` | `ADMIN` 이상 | 공연팀 삭제 |
 
-공연 구분은 `CELEBRITY`, `CLUB`, `INDIVIDUAL`입니다. 링크는 최대 3개이고 이미지와 동영상은 각각 링크와 파일을 합해 최대 3개입니다. 업로드 파일은 Cloudflare R2에 저장하며 기본 제한은 이미지 10MB, 동영상 200MB입니다.
+공연 구분은 `CELEBRITY`, `CLUB`, `INDIVIDUAL`입니다. 일반 링크는 최대 3개이고 이미지와 동영상은 각각 링크와 파일을 합해 최대 3개입니다.
 
-공용 R2 버킷에서 다른 서비스와 경로가 충돌하지 않도록 공연 미디어는 기본적으로 `festa2026_performance/images/`, `festa2026_performance/videos/` prefix 아래에 저장합니다. 운영 환경에서 `R2_PERFORMANCE_PREFIX`를 지정하면 이 값을 덮어쓸 수 있습니다.
-
-### 동적 QR
+### 분실물
 
 | Method | Path | 권한 | 설명 |
 |---|---|---|---|
-| POST | `/api/qr/tokens` | `USER` 이상 | 내 동적 QR 토큰 발급 |
-| POST | `/api/qr/scan` | `BOOTH_MANAGER` 이상 | QR 토큰으로 권한별 사용자 정보 조회 |
+| GET | `/api/lost-items` | 공개 | 목록 조회 및 페이지네이션 |
+| GET | `/api/lost-items/{id}` | 공개 | 상세 조회와 조회수 증가 |
+| POST | `/api/lost-items` | `STAFF` 이상 | multipart 공지·사진 등록 |
+| PATCH | `/api/lost-items/{id}` | `STAFF` 이상 | multipart 내용·사진 수정 |
+| PATCH | `/api/lost-items/{id}/status` | `STAFF` 이상 | `HOLDING`/`RETURNED` 상태 변경 |
+| PATCH | `/api/lost-items/{id}/pin` | `STAFF` 이상 | 상단 고정 변경 |
+| DELETE | `/api/lost-items/{id}` | `STAFF` 이상 | 공지와 사진 삭제 |
 
-QR에는 사용자 정보나 Access Token을 넣지 않습니다. 서버는 256비트 난수 토큰을 생성하고 SHA-256 해시, `userUuid`, 만료 시각만 `festival_qr_tokens`에 저장합니다. 기본 유효시간은 60초이고 기존 QR은 각자의 만료 시각까지 유지됩니다.
+목록은 `page=0`, `size=20`, `sort=NEWEST`가 기본이고 페이지 크기는 최대 100입니다. 사진은 최대 5개입니다.
 
-QR 조회 응답 범위:
+### 생일축하 쪽지
 
-- `BOOTH_MANAGER`: 마스킹된 이름과 학번, 학과, 학년
-- `STAFF`: 이름, 학번, 학과, 학년
-- `ADMIN`: STAFF 정보와 전화번호, 이메일
-- `SUPER_ADMIN`: SSO 전체 프로필과 축제 역할
-- `USER`: 스캔 불가
+| Method | Path | 권한 | 설명 |
+|---|---|---|---|
+| GET | `/api/birthday-messages` | 공개 | 목록 조회 (`LATEST`, `OLDEST`, `MOST_LIKED`) |
+| GET | `/api/birthday-messages/{id}` | 공개 | 상세 조회 |
+| GET | `/api/birthday-messages/me` | 로그인 | 내가 작성한 활성 쪽지 조회 |
+| POST | `/api/birthday-messages` | 로그인 | 쪽지 작성, 사용자당 활성 1개 |
+| DELETE | `/api/birthday-messages/{id}` | 작성자 | 내 쪽지 삭제 |
+| PUT | `/api/birthday-messages/{id}/heart` | 로그인 | 하트 추가 |
+| DELETE | `/api/birthday-messages/{id}/heart` | 로그인 | 하트 취소 |
+| GET | `/api/admin/birthday-messages` | `STAFF` 이상 | 권한별 작성자 정보를 포함한 목록 |
+| GET | `/api/admin/birthday-messages/{id}/hearts` | `STAFF` 이상 | 하트를 누른 사용자 목록 |
+| DELETE | `/api/admin/birthday-messages/{id}` | `STAFF` 이상 | 관리자 삭제 |
 
-타 사용자 개인정보는 SSO `client_credentials`와 `/api/internal/users/profiles/batch`로 조회하며 축제 DB에 복사하지 않습니다.
+공개 목록은 `page=0`, `size=30`이 기본이고 페이지 크기는 최대 100입니다. 공개 작성자 정보와 관리자에게 보이는 개인정보 범위는 조회 권한에 따라 제한됩니다.
 
-### React 프런트 이벤트
+### 동적 QR 사용자 조회
+
+| Method | Path | 권한 | 설명 |
+|---|---|---|---|
+| POST | `/api/qr/tokens` | 로그인 | 내 동적 QR 토큰 발급 |
+| POST | `/api/qr/scan` | `BOOTH_MANAGER`, `STAFF`, `ADMIN`, `SUPER_ADMIN` | 권한별 사용자 정보 조회 |
+
+QR에는 개인정보나 Access Token을 넣지 않습니다. 서버는 256비트 난수 토큰의 SHA-256 해시, `userUuid`, 만료 시각만 저장합니다. 기본 유효시간은 60초입니다.
+
+일반 QR 사용자 조회와 부스 스탬프 처리는 별도 API입니다. 스탬프 지급은 반드시 `/api/booths/{boothId}/stamps/**`를 사용해야 담당 부스와 지급 가능 여부를 검증합니다.
+
+### 프런트 이벤트와 접속 현황
 
 | Method | Path | 인증 | 설명 |
 |---|---|---|---|
-| POST | `/api/analytics/events` | 선택 | 로그인·비로그인 페이지 방문 및 주요 행동 이벤트 최대 20개 일괄 수집 |
+| POST | `/api/analytics/events` | 선택 | 페이지 방문·행동 이벤트 최대 20개 일괄 수집 |
+| POST | `/api/presence/heartbeat` | 없음 | 익명 브라우저 세션의 route와 활동 시각 갱신 |
 
-- 비로그인 요청은 `userUuid = null`로 저장합니다.
-- 정상 Bearer Token이 있으면 SSO에서 검증한 `userUuid`를 연결합니다.
-- 잘못된 Bearer Token은 익명으로 우회하지 않고 `401`을 반환합니다.
-- 이벤트는 메모리 큐를 거쳐 최대 500건씩 JDBC Batch로 저장합니다.
-- 동일 `eventId` 재전송은 중복 저장하지 않습니다.
-- 기본 세션 제한은 분당 120개 이벤트입니다.
-- 전체 URL, 쿼리 문자열, 폼 값과 임의 metadata는 받지 않습니다.
-
-React Router 연동, 이벤트 종류와 재시도 예제는 [프런트 이벤트 로깅 연동 가이드](docs/frontend-analytics-api.md)를 참고하세요.
-
-### React 접속 현황 heartbeat
-
-| Method | Path | 인증 | 설명 |
-|---|---|---|---|
-| POST | `/api/presence/heartbeat` | 없음 | 익명 브라우저 세션의 현재 route와 마지막 활동 시각 갱신 |
-
-heartbeat는 DB에 저장하지 않고 JVM 메모리에서 기본 150초 TTL로만 유지합니다. 관리자 화면의 접속자 수는 개인정보나 로그인 사용자 목록이 아니라 최근 heartbeat가 있는 활성 탭의 추정치입니다. React 연동 코드는 [접속 현황 heartbeat 가이드](docs/frontend-presence-api.md)를 참고하세요.
+이벤트는 비동기 JDBC Batch로 저장하며 중복 `eventId`, 시간 범위와 세션별 rate limit을 검증합니다. Presence는 DB에 저장하지 않고 JVM 메모리에서 기본 150초 후 만료됩니다.
 
 ## 관리자 페이지
 
 관리자 페이지는 Thymeleaf로 제공됩니다.
 
-| Method | Path | 설명 |
+| Path | 권한 | 설명 |
 |---|---|---|
-| GET/POST | `/admin/login` | 관리자 로그인 화면과 로그인 처리 |
-| POST | `/admin/logout` | 관리자 로그아웃 |
-| GET | `/admin` | 관리자 대시보드 |
-| GET | `/admin/qr` | 카메라 QR 스캔 화면 |
-| POST | `/admin/qr/scan` | QR 토큰 조회 |
-| GET | `/admin/performances` | 공연팀 목록 |
-| GET | `/admin/performances/new` | 공연팀 등록 화면 |
-| POST | `/admin/performances` | 공연팀 등록 |
-| GET | `/admin/performances/{id}/edit` | 공연팀 수정 화면 |
-| POST | `/admin/performances/{id}` | 공연팀 수정 |
-| POST | `/admin/performances/{id}/delete` | 공연팀 삭제 |
-| GET | `/admin/system` | `SUPER_ADMIN` 전용 실시간 시스템 모니터링 GUI |
-| GET | `/admin/system/snapshot` | 모니터링 화면용 5초 갱신 JSON |
+| `/admin/login` | 공개 | 관리자 로그인 |
+| `/admin` | `BOOTH_MANAGER` 이상 운영 권한 | 권한별 대시보드 |
+| `/admin/qr` | `BOOTH_MANAGER`, `STAFF`, `ADMIN`, `SUPER_ADMIN` | 일반 QR 사용자 조회 |
+| `/admin/stamps` | 담당 `BOOTH_MANAGER`, `ADMIN` 이상 | 스탬프 지급·회수 및 페이지 이력 |
+| `/admin/booths` | `ADMIN` 이상 | 부스 지도와 미디어·담당자 관리 |
+| `/admin/performances` | `ADMIN` 이상 | 공연팀 관리 |
+| `/admin/lost-items` | `STAFF` 이상 | 분실물 관리 |
+| `/admin/birthday-messages` | `STAFF` 이상 | 생일축하 쪽지·하트 사용자 관리 |
+| `/admin/system` | `SUPER_ADMIN` | 실시간 시스템 모니터링 |
 
-QR 관리 화면은 `BOOTH_MANAGER` 이상이 사용할 수 있고 공연팀 관리는 `ADMIN`, `SUPER_ADMIN`만 사용할 수 있습니다. 시스템 모니터링은 축제 DB 역할이 정확히 `SUPER_ADMIN`인 사용자만 접근할 수 있습니다.
+관리자 부스 담당자와 사용자 검색은 축제 서비스에 연결된 사용자만 대상으로 합니다. 스탬프 페이지에서 `BOOTH_MANAGER`는 담당 부스만, `ADMIN` 이상은 모든 스탬프 지급 부스를 볼 수 있습니다.
 
-## 실시간 시스템 모니터링
+## 미디어와 트랜잭션
 
-관리자 GUI는 접속 규모, 최근 1분 HTTP 요청·오류·지연, JVM heap·스레드, CPU·디스크, HikariCP 연결 풀, MariaDB 상태와 비동기 로그 큐를 표시합니다.
+- R2 기본 제한은 이미지 10MB, 동영상 200MB입니다.
+- 전체 multipart 요청 기본 제한은 650MB입니다.
+- 보호된 multipart API는 본문 파싱 전에 인증과 권한을 먼저 검사합니다.
+- 업로드한 파일은 DB 트랜잭션이 롤백되면 정리합니다.
+- 기존 파일 삭제는 DB 커밋 이후 실행하여 DB가 롤백됐는데 파일만 사라지는 상황을 방지합니다.
+- 부스 미디어 업로드·삭제·정렬은 부스 행 잠금으로 동시 변경을 직렬화합니다.
+- 기본 R2 prefix는 `festa2026_performance`, `festa2026_lost_items`, `festa2026_booths`이며 환경변수로 변경할 수 있습니다.
 
-- GUI는 5초마다 갱신하지만 MariaDB 상태 조회는 서버 전체에서 기본 15초에 한 번만 실행하고 메모리 캐시를 공유합니다.
-- 모니터링 스냅샷 자체는 MariaDB에 저장하지 않습니다.
-- `SHOW GLOBAL STATUS` 권한이 없으면 DB 연결 상태만 표시하고 상세 항목을 제한 상태로 표시합니다.
-- 최근 5분 그래프 이력은 해당 관리자 브라우저 메모리에만 유지됩니다.
-- Actuator는 기본 `127.0.0.1:9091` 별도 포트에서 `health`, `prometheus`만 노출하며 공개 관리자 포트로 프록시하지 않습니다.
-- 단일 애플리케이션 인스턴스 기준입니다. 다중 인스턴스에서는 Prometheus/Grafana 등 외부 집계가 필요합니다.
+## 공통 오류 응답
 
-## API 요청 로깅
+API 오류는 다음 형태로 반환합니다.
 
-`/api/**`, `/admin`, `/admin/**` 요청은 `api_request_logs`에 비동기로 기록됩니다. 정적 파일, Swagger와 `OPTIONS` 요청은 제외됩니다.
+```json
+{
+  "code": "INVALID_REQUEST",
+  "message": "요청 정보를 확인해 주세요.",
+  "timestamp": "2026-08-17T00:00:00Z"
+}
+```
 
-기록 필드:
+주요 공통 매핑:
 
-- `requestId`, 검증된 `userUuid`
-- 클라이언트 IP, HTTP method, 실제 path와 route pattern
-- 응답 상태, 처리 시간, Host, scheme, User-Agent, 기록 시각
+| HTTP | code | 상황 |
+|---|---|---|
+| 400 | `INVALID_REQUEST` | 검증 실패 또는 잘못된 JSON |
+| 400 | `INVALID_PARAMETER` | 잘못된 enum·쿼리 파라미터 |
+| 400 | `INVALID_MULTIPART_REQUEST` | 잘못된 multipart 형식 |
+| 401 | `UNAUTHORIZED` | 인증 필요 또는 만료 |
+| 403 | 도메인별 `*_FORBIDDEN` | 권한 부족 |
+| 405 | `METHOD_NOT_ALLOWED` | 지원하지 않는 HTTP 메서드 |
+| 413 | `UPLOAD_TOO_LARGE` | 업로드 크기 초과 |
+| 415 | `UNSUPPORTED_MEDIA_TYPE` | 지원하지 않는 Content-Type |
+| 500 | `INTERNAL_ERROR` | 예상하지 못한 서버 오류 |
 
-처리 정책:
+예상하지 못한 오류의 상세 내용은 응답에 노출하지 않고 `requestId`와 함께 서버 로그에 기록합니다.
 
-- 요청 스레드는 DB INSERT를 기다리지 않습니다.
-- 기본 큐 10,000건, 최대 250건 JDBC Batch, 250ms flush를 사용합니다.
+## DB 관리
+
+별도 Flyway/Liquibase 마이그레이션은 사용하지 않으며 `spring.jpa.hibernate.ddl-auto=update`로 엔티티 스키마를 반영합니다. 개발 중 스키마를 초기화할 때는 DB를 삭제하고 애플리케이션을 다시 실행할 수 있지만, 운영 데이터가 있는 환경에서는 자동 변경 전에 반드시 백업과 스키마 검토가 필요합니다.
+
+주요 테이블:
+
+```text
+festival_users
+festival_booths
+festival_booth_managers
+festival_booth_media
+festival_booth_favorites
+festival_booth_stamps
+festival_stamp_events
+festival_qr_tokens
+festival_performances
+festival_performance_members
+festival_performance_links
+festival_performance_media
+lost_item_notices
+lost_item_notice_images
+birthday_messages
+birthday_message_hearts
+api_request_logs
+frontend_event_logs
+```
+
+## 로깅과 모니터링
+
+`/api/**`, `/admin`, `/admin/**` 요청은 `api_request_logs`에 비동기로 기록합니다. 정적 파일, Swagger와 `OPTIONS`는 제외합니다.
+
 - 관리자·쓰기·오류·1초 이상 요청은 전부 기록합니다.
 - 정상 `GET /api/**`는 기본 25% 표본 기록합니다.
-- `X-Request-ID`를 응답하고 같은 값을 SSO `X-Correlation-ID`로 사용합니다.
-- 비밀번호, 인증번호, Authorization, Cookie, 토큰, 요청 본문과 쿼리 문자열은 저장하지 않습니다.
-- 로그는 기본 60일 후 작은 배치로 삭제합니다.
-- 프록시 헤더 신뢰는 기본 비활성화입니다. 운영 환경에서는 `API_REQUEST_LOG_TRUST_FORWARDED_HEADERS=true`로 활성화하고, Nginx가 외부 전달 헤더를 제거한 뒤 다시 설정해야 합니다.
+- 비밀번호, 인증번호, Authorization, Cookie, 토큰, 본문과 쿼리 문자열은 저장하지 않습니다.
+- `X-Request-ID`를 응답하고 같은 값을 SSO `X-Correlation-ID`로 전달합니다.
+- 요청 로그와 프런트 이벤트 로그는 기본 60일 후 작은 배치로 삭제합니다.
+- 프록시 헤더 신뢰는 기본 비활성화입니다.
 
-실제 클라이언트 IP를 안전하게 기록하기 위한 Nginx 예시:
+Nginx 뒤에서 실제 클라이언트 IP를 기록하려면 외부가 보낸 전달 헤더를 제거하고 프록시가 다시 설정한 뒤 `API_REQUEST_LOG_TRUST_FORWARDED_HEADERS=true`를 사용해야 합니다.
 
 ```nginx
 location / {
     proxy_pass http://127.0.0.1:8888;
-
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $remote_addr;
@@ -272,26 +373,7 @@ location / {
 }
 ```
 
-이 서비스는 `X-Forwarded-For`의 첫 번째 주소를 기록하므로 `$proxy_add_x_forwarded_for` 대신 `$remote_addr`로 덮어써야 클라이언트가 임의로 보낸 헤더에 의한 IP 위조를 방지할 수 있습니다. Spring Boot 포트 `8888`도 외부에 직접 공개하지 않고 Nginx 또는 로컬 인터페이스를 통해서만 접근시키는 것을 권장합니다.
-
-API 요청 로그와 React 화면 이벤트 로그는 서로 다른 테이블과 큐를 사용합니다.
-
-## 주요 DB 테이블
-
-```text
-festival_users
-festival_booth_managers
-festival_qr_tokens
-festival_performances
-festival_performance_members
-festival_performance_links
-festival_performance_media
-api_request_logs
-frontend_event_logs
-```
-
-Hibernate `ddl-auto=update` 설정으로 필요한 테이블과 인덱스를 생성합니다.
-`festival_users.management_role`은 `SUPER_ADMIN`, `ADMIN`, `STAFF`, `USER` 값을 갖는 ENUM 컬럼입니다.
+Actuator는 기본적으로 `127.0.0.1:9091`에서 `health`, `prometheus`만 노출합니다. `/admin/system`의 최근 5분 그래프는 해당 브라우저 메모리에만 유지되며, 다중 인스턴스 통합 모니터링은 외부 Prometheus/Grafana 구성이 필요합니다.
 
 ## Swagger / OpenAPI
 
@@ -299,25 +381,33 @@ Hibernate `ddl-auto=update` 설정으로 필요한 테이블과 인덱스를 생
 - OpenAPI JSON: `http://localhost:8888/v3/api-docs`
 - OpenAPI YAML: `http://localhost:8888/v3/api-docs.yaml`
 
-Swagger UI의 **Authorize** 버튼에는 SSO Access Token 원문만 입력합니다. `Bearer ` 접두사는 Swagger UI가 자동으로 추가합니다. `/api/analytics/events`는 비로그인 호출도 가능하므로 Swagger에서 Bearer 인증 표시가 없습니다.
+Swagger UI의 **Authorize**에는 SSO Access Token 원문만 입력합니다. `Bearer ` 접두사는 Swagger UI가 추가합니다.
 
-## 실행과 테스트
-
-```powershell
-.\gradlew.bat bootRun
-```
+## 테스트
 
 ```powershell
 .\gradlew.bat test
 ```
 
-대부분의 통합 테스트는 로컬 가짜 SSO와 테스트 DB를 이용해 다음을 검증합니다.
+테스트는 `src/test/resources/application.properties`에서 H2 인메모리 DB와 로컬 실패용 SSO/R2 주소를 강제합니다. 개발·운영 DB나 실제 SSO/R2에 연결하지 않습니다.
 
-- 회원가입, nullable 프로필, 로그인 실패와 토큰 rotation
-- 로그아웃, 이메일·비밀번호 변경, SSO timeout
-- 축제 역할 분리와 QR 권한별 마스킹
-- 공연 공개 시각, ADMIN 쓰기 권한과 미디어 제한
-- API 요청 로그 필터와 JDBC Batch
-- 로그인·비로그인 프런트 이벤트, 중복·시간·rate limit 검증
+주요 검증 범위:
 
-기본 `Festa2026ApplicationTests.contextLoads()`는 현재 설정된 MariaDB에 연결하므로 DB가 실행 중이지 않으면 전체 테스트 명령에서 해당 테스트가 실패할 수 있습니다.
+- SSO 인증, 토큰 rotation과 권한별 개인정보 마스킹
+- 부스·찜·통합 미디어 정렬과 대표 미디어
+- 스탬프 중복 방지, 담당 부스 권한과 감사 이력 페이지네이션
+- 공연·분실물·생일축하 쪽지의 권한과 제한
+- 인증 전 multipart 차단과 미디어 커밋·롤백 정리
+- CORS 허용/차단 Origin 및 공통 예외 응답
+- API 요청 로그, 프런트 이벤트와 heartbeat
+
+## 프런트 연동 문서
+
+- [계정 복구](docs/frontend-account-recovery-api.md)
+- [비밀번호 변경](docs/frontend-password-change-api.md)
+- [부스 지도](docs/frontend-booths-api.md)
+- [스탬프](docs/frontend-stamps-api.md)
+- [분실물](docs/frontend-lost-items-api.md)
+- [생일축하 쪽지](docs/frontend-birthday-messages-api.md)
+- [프런트 이벤트](docs/frontend-analytics-api.md)
+- [접속 현황 heartbeat](docs/frontend-presence-api.md)

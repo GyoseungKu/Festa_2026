@@ -7,6 +7,8 @@ plugins {
 group = 'org.syu-likelion'
 version = '0.0.1-SNAPSHOT'
 
+ext['tomcat.version'] = '11.0.24'
+
 java {
 	toolchain {
 		languageVersion = JavaLanguageVersion.of(21)

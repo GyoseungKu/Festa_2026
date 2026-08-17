@@ -48,10 +48,12 @@ ADMIN, SUPER_ADMIN만 사용할 수 있습니다. 관리자 웹 화면에서는 
 ## 부스별 현황 및 감사 이력
 
 - GET /api/booths/{boothId}/stamps/history
+- 쿼리: `page`(기본 0), `size`(기본 30, 최대 100)
 - BOOTH_MANAGER: 자신에게 배정된 부스만 조회 가능
 - ADMIN, SUPER_ADMIN: 모든 부스 조회 가능
 
-현재 스탬프 보유자와 지급·회수 전체 이력을 반환합니다. 이력에는 대상 사용자, 처리 관리자, 처리 시각 및 QR/ADMIN_SEARCH 처리 방식이 포함됩니다.
+현재 스탬프 보유자는 전체를 반환하고 지급·회수 감사 이력은 최신순 페이지 단위로 반환합니다. 이력에는 대상 사용자, 처리 관리자, 처리 시각 및 QR/ADMIN_SEARCH 처리 방식이 포함됩니다.
+응답에는 `historyPage`, `historySize`, `historyTotalElements`, `historyTotalPages`가 포함됩니다.
 BOOTH_MANAGER 응답에서는 사용자·처리자 UUID가 `null`이며 이름과 학번이 마스킹됩니다. ADMIN 이상은 원본 정보를 조회합니다.
 
 관리자 웹 화면은 /admin/stamps 입니다. 부스 관리자는 담당 부스만 드롭다운에 표시되며 QR 처리만 사용할 수 있고, STAFF는 접근할 수 없습니다.

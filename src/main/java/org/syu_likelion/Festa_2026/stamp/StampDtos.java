@@ -20,5 +20,14 @@ public final class StampDtos {
                                        String actorName, Instant occurredAt) { }
     public record BoothStampAdminResponse(Long boothId, String boothName,
                                           List<CurrentStampResponse> currentStamps,
-                                          List<StampHistoryResponse> history) { }
+                                          List<StampHistoryResponse> history,
+                                          int historyPage, int historySize,
+                                          long historyTotalElements, int historyTotalPages) {
+        public BoothStampAdminResponse(Long boothId, String boothName,
+                                       List<CurrentStampResponse> currentStamps,
+                                       List<StampHistoryResponse> history) {
+            this(boothId, boothName, currentStamps, history, 0,
+                    Math.max(1, history.size()), history.size(), history.isEmpty() ? 0 : 1);
+        }
+    }
 }

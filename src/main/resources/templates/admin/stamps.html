@@ -109,6 +109,13 @@
                 <tbody><tr th:each="item : ${stampAdmin.history}"><td th:text="${item.action}">GRANT</td><td th:text="${item.targetName}">대상</td>
                     <td th:text="${item.actorName}">관리자</td><td th:text="${item.method}">QR</td><td th:text="${#temporals.format(item.occurredAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm:ss')} + ' KST'">시각</td></tr>
                 <tr th:if="${#lists.isEmpty(stampAdmin.history)}"><td colspan="5">처리 이력이 없습니다.</td></tr></tbody></table></div>
+            <nav class="birthday-pagination" th:if="${stampAdmin.historyTotalPages > 1}" aria-label="감사 이력 페이지">
+                <a class="button button-secondary" th:if="${stampAdmin.historyPage > 0}"
+                   th:href="@{/admin/stamps(boothId=${selectedBoothId},page=${stampAdmin.historyPage - 1},size=${stampAdmin.historySize})}">이전</a>
+                <span th:text="|${stampAdmin.historyPage + 1} / ${stampAdmin.historyTotalPages}|">1 / 1</span>
+                <a class="button button-secondary" th:if="${stampAdmin.historyPage + 1 < stampAdmin.historyTotalPages}"
+                   th:href="@{/admin/stamps(boothId=${selectedBoothId},page=${stampAdmin.historyPage + 1},size=${stampAdmin.historySize})}">다음</a>
+            </nav>
         </section>
     </div>
 </main>

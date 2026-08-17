@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.syu_likelion.Festa_2026.auth.AuthorizedSsoExecutor.AuthorizedResult;
 import org.syu_likelion.Festa_2026.auth.BearerTokens;
@@ -68,12 +69,15 @@ public class StampController {
         return ok(stamps.revokeBySearch(boothId, userUuid, BearerTokens.require(authorization), cookies.readRefreshToken(request)));
     }
     @GetMapping("/history")
-    @Operation(summary = "부스별 현재 지급 현황과 전체 지급·회수 이력",
-            description = "BOOTH_MANAGER는 담당 부스만 조회할 수 있으며 사용자 정보가 마스킹됩니다. ADMIN 이상은 전체 부스를 조회합니다.")
+    @Operation(summary = "부스별 현재 지급 현황과 지급·회수 이력",
+            description = "현재 지급 현황과 페이지 단위 감사 이력을 반환합니다. BOOTH_MANAGER는 담당 부스만 조회할 수 있으며 사용자 정보가 마스킹됩니다. ADMIN 이상은 전체 부스를 조회합니다.")
     ResponseEntity<BoothStampAdminResponse> history(@PathVariable Long boothId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "30") int size,
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
             @Parameter(hidden = true) HttpServletRequest request) {
-        return ok(stamps.adminHistory(boothId, BearerTokens.require(authorization), cookies.readRefreshToken(request)));
+        return ok(stamps.adminHistory(boothId, page, size, BearerTokens.require(authorization),
+                cookies.readRefreshToken(request)));
     }
     private <T> ResponseEntity<T> ok(AuthorizedResult<T> result) {
         ResponseEntity.BodyBuilder response = ResponseEntity.ok();

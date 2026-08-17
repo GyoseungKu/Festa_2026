@@ -55,6 +55,8 @@ import org.syu_likelion.Festa_2026.birthday.BirthdayMessageDtos.AdminUserView;
 import org.syu_likelion.Festa_2026.qr.QrDtos.QrUserView;
 import org.syu_likelion.Festa_2026.qr.QrService;
 import org.syu_likelion.Festa_2026.user.FestivalRole;
+import org.syu_likelion.Festa_2026.user.UserDtos.MeResponse;
+import org.syu_likelion.Festa_2026.user.UserService;
 import org.syu_likelion.Festa_2026.stamp.StampService;
 import org.syu_likelion.Festa_2026.stamp.StampDtos.BoothStampAdminResponse;
 import org.syu_likelion.Festa_2026.booth.BoothManagerDirectory;
@@ -85,6 +87,7 @@ class AdminPageIntegrationTests {
     @MockitoBean SystemMonitoringService systemMonitoringService;
     @MockitoBean StampService stampService;
     @MockitoBean BoothManagerDirectory boothManagerDirectory;
+    @MockitoBean UserService userService;
 
     @Test
     void loginPageIsRenderedWithCsrfToken() throws Exception {
@@ -278,6 +281,12 @@ class AdminPageIntegrationTests {
                 org.mockito.ArgumentMatchers.eq("staff-token"),
                 org.mockito.ArgumentMatchers.isNull(), any(), any()))
                 .thenReturn(new AuthorizedResult<>(notice, null, null));
+        MeResponse staff = mock(MeResponse.class);
+        when(staff.festivalRoles()).thenReturn(Set.of(FestivalRole.STAFF));
+        when(userService.authenticateEarly(any(),
+                org.mockito.ArgumentMatchers.eq("staff-token"),
+                org.mockito.ArgumentMatchers.isNull()))
+                .thenReturn(new AuthorizedResult<>(staff, null, null));
         MockMultipartFile data = new MockMultipartFile("data", "", MediaType.APPLICATION_JSON_VALUE,
                 "{\"title\":\"검은색 지갑\",\"content\":\"학생회관 앞에서 발견\",\"status\":\"HOLDING\",\"pinned\":false}"
                         .getBytes(java.nio.charset.StandardCharsets.UTF_8));
@@ -424,7 +433,7 @@ class AdminPageIntegrationTests {
         when(adminAccess.authenticate("manager-access", null))
                 .thenReturn(new AuthorizedResult<>(identity(FestivalRole.BOOTH_MANAGER), null, null));
         when(stampService.availableBoothsAs(ADMIN_UUID, FestivalRole.BOOTH_MANAGER)).thenReturn(java.util.List.of(booth));
-        when(stampService.historyAs(ADMIN_UUID, FestivalRole.BOOTH_MANAGER, 7L))
+        when(stampService.historyAs(ADMIN_UUID, FestivalRole.BOOTH_MANAGER, 7L, 0, 30))
                 .thenReturn(new BoothStampAdminResponse(7L, "담당 부스",
                         java.util.List.of(new org.syu_likelion.Festa_2026.stamp.StampDtos.CurrentStampResponse(
                                 null, "홍*동", "2026******", java.time.Instant.parse("2026-08-17T03:00:00Z"),
@@ -459,7 +468,7 @@ class AdminPageIntegrationTests {
                 .thenReturn(new AuthorizedResult<>(adminAndManager, null, null));
         when(stampService.availableBoothsAs(ADMIN_UUID, FestivalRole.ADMIN))
                 .thenReturn(java.util.List.of(booth, otherBooth));
-        when(stampService.historyAs(ADMIN_UUID, FestivalRole.ADMIN, 8L))
+        when(stampService.historyAs(ADMIN_UUID, FestivalRole.ADMIN, 8L, 0, 30))
                 .thenReturn(new BoothStampAdminResponse(8L, "전체 관리 부스",
                         java.util.List.of(new org.syu_likelion.Festa_2026.stamp.StampDtos.CurrentStampResponse(
                                 ADMIN_UUID, "스탬프 사용자", "2026000001", java.time.Instant.parse("2026-08-17T03:00:00Z"),
@@ -467,7 +476,8 @@ class AdminPageIntegrationTests {
                         java.util.List.of(new org.syu_likelion.Festa_2026.stamp.StampDtos.StampHistoryResponse(
                                 1L, org.syu_likelion.Festa_2026.stamp.StampAction.GRANT,
                                 org.syu_likelion.Festa_2026.stamp.StampMethod.QR, ADMIN_UUID, "스탬프 사용자",
-                                ADMIN_UUID, "축제 관리자", java.time.Instant.parse("2026-08-17T03:00:00Z")))));
+                                ADMIN_UUID, "축제 관리자", java.time.Instant.parse("2026-08-17T03:00:00Z"))),
+                        0, 30, 31, 2));
         when(boothManagerDirectory.candidates()).thenReturn(java.util.List.of());
 
         mvc.perform(get("/admin/stamps").cookie(new Cookie("festivalAdminAccess", "admin-stamp-access")))
@@ -476,6 +486,8 @@ class AdminPageIntegrationTests {
                 .andExpect(content().string(containsString("다른 부스")))
                 .andExpect(content().string(containsString("사용자 검색 임의 처리")))
                 .andExpect(content().string(containsString("지급·회수 감사 이력")))
+                .andExpect(content().string(containsString("1 / 2")))
+                .andExpect(content().string(containsString("page=1")))
                 .andExpect(content().string(containsString("2026-08-17 12:00:00 KST")));
     }
 

@@ -22,6 +22,7 @@ import org.syu_likelion.Festa_2026.booth.BoothDtos.BoothMutationRequest;
 import org.syu_likelion.Festa_2026.booth.BoothDtos.BoothSummaryResponse;
 import org.syu_likelion.Festa_2026.booth.BoothMediaStorage.StoredFile;
 import org.syu_likelion.Festa_2026.error.ApiException;
+import org.syu_likelion.Festa_2026.storage.TransactionalFileActions;
 import org.syu_likelion.Festa_2026.user.FestivalRole;
 import org.syu_likelion.Festa_2026.user.FestivalUser;
 import org.syu_likelion.Festa_2026.user.FestivalUserRepository;
@@ -105,13 +106,14 @@ public class BoothService {
                 n.description(), n.opensAt(), n.closesAt(), n.stampEnabled(), managers, actor);
         managers.forEach(user -> user.addRole(FestivalRole.BOOTH_MANAGER));
         List<StoredFile> stored = new ArrayList<>();
+        boolean rollbackCleanup = TransactionalFileActions.deleteOnRollback(() -> deleteStored(stored));
         try {
             addUploads(booth, BoothMediaKind.IMAGE, images, stored);
             addUploads(booth, BoothMediaKind.VIDEO, videos, stored);
             chooseDefaultRepresentative(booth);
             return admin(booths.saveAndFlush(booth));
         } catch (RuntimeException failure) {
-            stored.forEach(file -> storage.delete(file.storageKey()));
+            if (!rollbackCleanup) deleteStored(stored);
             throw failure;
         }
     }
@@ -148,14 +150,15 @@ public class BoothService {
 
     @Transactional
     public BoothAdminResponse uploadAs(Long id, BoothMediaKind kind, List<MultipartFile> files) {
-        FestivalBooth booth = find(id);
+        FestivalBooth booth = findForUpdate(id);
         List<StoredFile> stored = new ArrayList<>();
+        boolean rollbackCleanup = TransactionalFileActions.deleteOnRollback(() -> deleteStored(stored));
         try {
             addUploads(booth, kind, files, stored);
             chooseDefaultRepresentative(booth);
             return admin(booths.saveAndFlush(booth));
         } catch (RuntimeException failure) {
-            stored.forEach(file -> storage.delete(file.storageKey()));
+            if (!rollbackCleanup) deleteStored(stored);
             throw failure;
         }
     }
@@ -170,13 +173,15 @@ public class BoothService {
 
     @Transactional
     public BoothAdminResponse orderMediaAs(Long id, BoothMediaOrderRequest request) {
-        FestivalBooth booth = find(id);
-        List<Long> ids = request == null ? List.of() : request.mediaIds();
+        FestivalBooth booth = findForUpdate(id);
+        if (request == null || request.mediaIds() == null || request.representativeMediaId() == null)
+            throw invalidMediaOrder();
+        List<Long> ids = request.mediaIds();
         Map<Long, BoothMedia> existing = booth.getMedia().stream()
                 .collect(Collectors.toMap(BoothMedia::getId, Function.identity()));
         if (ids.size() != existing.size() || new HashSet<>(ids).size() != ids.size()
                 || !existing.keySet().equals(new HashSet<>(ids)) || !ids.contains(request.representativeMediaId()))
-            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_BOOTH_MEDIA_ORDER", "미디어 순서 또는 대표 미디어를 확인해 주세요.");
+            throw invalidMediaOrder();
         List<BoothMedia> ordered = ids.stream().map(existing::get).toList();
         ordered.forEach(media -> media.setRepresentative(media.getId().equals(request.representativeMediaId())));
         booth.reorderMedia(ordered);
@@ -192,13 +197,13 @@ public class BoothService {
 
     @Transactional
     public BoothAdminResponse deleteMediaAs(Long id, Long mediaId) {
-        FestivalBooth booth = find(id);
+        FestivalBooth booth = findForUpdate(id);
         BoothMedia media = booth.getMedia().stream().filter(item -> item.getId().equals(mediaId)).findFirst()
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "BOOTH_MEDIA_NOT_FOUND", "부스 미디어를 찾을 수 없습니다."));
         booth.removeMedia(media);
         chooseDefaultRepresentative(booth);
         BoothAdminResponse response = admin(booths.saveAndFlush(booth));
-        storage.delete(media.getStorageKey());
+        TransactionalFileActions.deleteAfterCommit(() -> storage.delete(media.getStorageKey()));
         return response;
     }
 
@@ -212,13 +217,13 @@ public class BoothService {
 
     @Transactional
     public void deleteAs(Long id) {
-        FestivalBooth booth = find(id);
+        FestivalBooth booth = findForUpdate(id);
         Set<FestivalUser> managers = booth.getManagers();
         List<String> keys = booth.getMedia().stream().map(BoothMedia::getStorageKey).toList();
         favorites.deleteAllByBoothId(id);
         booths.delete(booth); booths.flush();
         managers.forEach(this::removeManagerRoleIfUnused);
-        keys.forEach(storage::delete);
+        TransactionalFileActions.deleteAfterCommit(() -> keys.forEach(storage::delete));
     }
 
     @Transactional(readOnly = true) public List<BoothAdminResponse> listAdmin() {
@@ -236,6 +241,12 @@ public class BoothService {
     }
     private FestivalBooth find(Long id) { return booths.findById(id).orElseThrow(() ->
             new ApiException(HttpStatus.NOT_FOUND, "BOOTH_NOT_FOUND", "부스 정보를 찾을 수 없습니다.")); }
+    private FestivalBooth findForUpdate(Long id) { return booths.findByIdForUpdate(id).orElseThrow(() ->
+            new ApiException(HttpStatus.NOT_FOUND, "BOOTH_NOT_FOUND", "부스 정보를 찾을 수 없습니다.")); }
+    private ApiException invalidMediaOrder() {
+        return new ApiException(HttpStatus.BAD_REQUEST, "INVALID_BOOTH_MEDIA_ORDER",
+                "미디어 순서 또는 대표 미디어를 확인해 주세요.");
+    }
 
     private Normalized normalize(BoothMutationRequest r) {
         if (r == null || r.latitude() == null || r.longitude() == null || r.opensAt() == null || r.closesAt() == null)
@@ -281,6 +292,9 @@ public class BoothService {
         List<BoothMedia> media = booth.getMedia();
         if (media.isEmpty()) return;
         if (media.stream().noneMatch(BoothMedia::isRepresentative)) media.getFirst().setRepresentative(true);
+    }
+    private void deleteStored(List<StoredFile> stored) {
+        stored.forEach(file -> storage.delete(file.storageKey()));
     }
     private BoothSummaryResponse summary(FestivalBooth booth, boolean liked) {
         return new BoothSummaryResponse(booth.getId(), booth.getLatitude(), booth.getLongitude(), booth.getName(),

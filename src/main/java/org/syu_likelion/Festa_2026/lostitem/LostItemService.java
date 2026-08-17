@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.syu_likelion.Festa_2026.error.ApiException;
+import org.syu_likelion.Festa_2026.storage.TransactionalFileActions;
 import org.syu_likelion.Festa_2026.lostitem.LostItemDtos.LostItemImageResponse;
 import org.syu_likelion.Festa_2026.lostitem.LostItemDtos.LostItemMutationRequest;
 import org.syu_likelion.Festa_2026.lostitem.LostItemDtos.LostItemPageResponse;
@@ -87,11 +88,12 @@ public class LostItemService {
         LostItemNotice notice = new LostItemNotice(data.title(), data.content(), data.status(), data.pinned(),
                 actorUuid, cleanAuthor, clock.instant());
         List<StoredImage> uploaded = new ArrayList<>();
+        boolean rollbackCleanup = TransactionalFileActions.deleteOnRollback(() -> deleteStored(uploaded));
         try {
             addImages(notice, files, uploaded);
             return toResponse(repository.saveAndFlush(notice));
         } catch (RuntimeException failure) {
-            uploaded.forEach(image -> storage.delete(image.storageKey()));
+            if (!rollbackCleanup) deleteStored(uploaded);
             throw failure;
         }
     }
@@ -116,13 +118,15 @@ public class LostItemService {
         notice.update(data.title(), data.content(), data.status(), data.pinned(), actorUuid, clock.instant());
 
         List<StoredImage> uploaded = new ArrayList<>();
+        boolean rollbackCleanup = TransactionalFileActions.deleteOnRollback(() -> deleteStored(uploaded));
         try {
             addImages(notice, files, uploaded);
             LostItemResponse response = toResponse(repository.saveAndFlush(notice));
-            removed.forEach(image -> storage.delete(image.getStorageKey()));
+            TransactionalFileActions.deleteAfterCommit(() ->
+                    removed.forEach(image -> storage.delete(image.getStorageKey())));
             return response;
         } catch (RuntimeException failure) {
-            uploaded.forEach(image -> storage.delete(image.storageKey()));
+            if (!rollbackCleanup) deleteStored(uploaded);
             throw failure;
         }
     }
@@ -149,7 +153,7 @@ public class LostItemService {
         List<String> keys = notice.getImages().stream().map(LostItemImage::getStorageKey).toList();
         repository.delete(notice);
         repository.flush();
-        keys.forEach(storage::delete);
+        TransactionalFileActions.deleteAfterCommit(() -> keys.forEach(storage::delete));
     }
 
     private LostItemNotice find(Long id) {
@@ -195,6 +199,10 @@ public class LostItemService {
             uploaded.add(image);
             notice.addImage(new LostItemImage(image.url(), image.storageKey(), image.originalFilename()));
         }
+    }
+
+    private void deleteStored(List<StoredImage> uploaded) {
+        uploaded.forEach(image -> storage.delete(image.storageKey()));
     }
 
     private Sort sort(LostItemSort order) {

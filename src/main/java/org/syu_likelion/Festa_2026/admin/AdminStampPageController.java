@@ -38,11 +38,14 @@ public class AdminStampPageController {
     }
 
     @GetMapping
-    String page(@RequestParam(required = false) Long boothId, HttpServletRequest request,
+    String page(@RequestParam(required = false) Long boothId,
+                @RequestParam(defaultValue = "0") int page,
+                @RequestParam(defaultValue = "30") int size,
+                HttpServletRequest request,
                 HttpServletResponse response, Model model) {
         AdminIdentity admin = stampAdminOrNull(request, response);
         if (admin == null) return redirect(request);
-        populate(model, admin, boothId);
+        populate(model, admin, boothId, page, size);
         return "admin/stamps";
     }
 
@@ -51,7 +54,7 @@ public class AdminStampPageController {
                   HttpServletResponse response, Model model) {
         AdminIdentity admin = stampAdminOrNull(request, response);
         if (admin == null) return redirect(request);
-        populate(model, admin, boothId);
+        populate(model, admin, boothId, 0, 30);
         try {
             model.addAttribute("stampTarget", stamps.lookupQrAs(admin.userUuid(), stampRole(admin), boothId, token));
             model.addAttribute("qrToken", token == null ? null : token.trim());
@@ -68,7 +71,7 @@ public class AdminStampPageController {
                     HttpServletRequest request, HttpServletResponse response, Model model) {
         AdminIdentity admin = stampAdminOrNull(request, response);
         if (admin == null) return redirect(request);
-        populate(model, admin, boothId);
+        populate(model, admin, boothId, 0, 30);
         try {
             StampTargetResponse target = "REVOKE".equals(action)
                     ? stamps.revokeQrAs(admin.userUuid(), stampRole(admin), boothId, token)
@@ -76,7 +79,7 @@ public class AdminStampPageController {
             model.addAttribute("stampTarget", target);
             model.addAttribute("qrToken", token.trim());
             model.addAttribute("message", "REVOKE".equals(action) ? "스탬프를 회수했습니다." : "스탬프를 지급했습니다.");
-            refreshHistory(model, admin, boothId);
+            refreshHistory(model, admin, boothId, 0, 30);
         } catch (ApiException exception) {
             model.addAttribute("error", exception.getMessage());
         }
@@ -101,7 +104,7 @@ public class AdminStampPageController {
         return "redirect:/admin/stamps?boothId=" + boothId;
     }
 
-    private void populate(Model model, AdminIdentity admin, Long requestedBoothId) {
+    private void populate(Model model, AdminIdentity admin, Long requestedBoothId, int page, int size) {
         FestivalRole effectiveRole = stampRole(admin);
         List<FestivalBooth> available = stamps.availableBoothsAs(admin.userUuid(), effectiveRole);
         Long selected = requestedBoothId;
@@ -118,12 +121,12 @@ public class AdminStampPageController {
         if (isAdmin(admin)) {
             model.addAttribute("userCandidates", users.candidates());
         }
-        refreshHistory(model, admin, selectedId);
+        refreshHistory(model, admin, selectedId, page, size);
     }
 
-    private void refreshHistory(Model model, AdminIdentity admin, Long boothId) {
+    private void refreshHistory(Model model, AdminIdentity admin, Long boothId, int page, int size) {
         if (boothId == null) return;
-        BoothStampAdminResponse history = stamps.historyAs(admin.userUuid(), stampRole(admin), boothId);
+        BoothStampAdminResponse history = stamps.historyAs(admin.userUuid(), stampRole(admin), boothId, page, size);
         model.addAttribute("stampAdmin", history);
         if (isAdmin(admin)) {
             Set<UUID> stamped = new HashSet<>(history.currentStamps().stream().map(item -> item.userUuid()).toList());
