@@ -275,7 +275,7 @@ Origin은 경로나 마지막 `/` 없이 `scheme://host[:port]` 형식으로 입
 
 | Method | Path | 권한 | 설명 |
 |---|---|---|---|
-| POST | `/api/qr/search` | `STAFF` 이상 | 원본 정보로 사용자 검색 후 권한별 마스킹 결과 반환 |
+| POST | `/api/qr/search` | `STAFF` 이상 | 원본 정보로 사용자 검색 후 권한별 마스킹 결과를 기본 20명씩 페이지 반환 |
 | PATCH | `/api/qr/users/{userUuid}/role` | `ADMIN` 이상 | 사용자 관리 권한 변경 |
 | POST | `/api/qr/tokens` | 로그인 | 내 동적 QR 토큰 발급 |
 | POST | `/api/qr/scan` | `BOOTH_MANAGER`, `STAFF`, `ADMIN`, `SUPER_ADMIN` | 권한별 사용자 정보 조회 |
@@ -312,7 +312,7 @@ QR에는 개인정보나 Access Token을 넣지 않습니다. 서버는 256비�
 | `/admin/birthday-messages` | `STAFF` 이상 | 생일축하 쪽지·하트 사용자 관리 |
 | `/admin/system` | `SUPER_ADMIN` | 실시간 시스템 모니터링 |
 
-관리자 부스 담당자와 사용자 검색은 축제 서비스에 연결된 사용자만 대상으로 합니다. 스탬프 페이지에서 `BOOTH_MANAGER`는 담당 부스만, `ADMIN` 이상은 모든 스탬프 지급 부스를 볼 수 있습니다.
+관리자 부스 담당자와 사용자 검색은 축제 서비스에 연결된 사용자만 대상으로 합니다. 일반 사용자 조회와 스탬프 임의 지급용 검색은 20명 단위 숫자 페이지를 사용합니다. 스탬프 페이지에서 `BOOTH_MANAGER`는 담당 부스만, `ADMIN` 이상은 모든 스탬프 지급 부스를 볼 수 있습니다.
 
 ## 미디어와 트랜잭션
 

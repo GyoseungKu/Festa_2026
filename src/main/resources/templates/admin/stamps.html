@@ -77,23 +77,34 @@
 
         <section class="form-section stamp-admin-section" th:if="${canAdminOverride}">
             <div class="form-section-heading"><span>02</span><div><h2>사용자 검색 임의 처리</h2><p>ADMIN 이상만 QR 없이 사용자를 검색해 지급하거나 회수할 수 있습니다.</p></div></div>
-            <div class="manager-search-row"><input id="stampUserSearch" type="search" placeholder="이름, 아이디, 학번, 학과 또는 UUID">
-                <button id="stampUserSearchButton" class="button button-primary" type="button">검색</button></div>
+            <form class="manager-search-row" method="get" th:action="@{/admin/stamps}">
+                <input type="hidden" name="boothId" th:value="${selectedBoothId}">
+                <input name="userQuery" type="search" th:value="${userQuery}" placeholder="이름, 아이디, 학번, 학과 또는 UUID" required minlength="2" maxlength="100">
+                <button class="button button-primary" type="submit">검색</button>
+            </form>
             <p class="support-copy">검색 버튼을 누르거나 Enter 키를 누르세요.</p>
-            <div id="stampUserResults" class="stamp-user-results" hidden>
-                <article class="stamp-user-row" th:each="candidate : ${userCandidates}"
-                         th:attr="data-search=${candidate.searchableText}">
-                    <div><strong th:text="${candidate.displayName}">사용자</strong>
+            <div class="alert alert-error" th:if="${userSearchError}" th:text="${userSearchError}"></div>
+            <div class="stamp-user-results" th:if="${stampUserSearchResult != null}">
+                <article class="stamp-user-row" th:each="candidate : ${stampUserSearchResult.items}">
+                    <div><strong th:text="${candidate.name}">사용자</strong>
                         <small th:text="|${candidate.studentNo ?: '-'} · ${candidate.department ?: '-'} · ${candidate.loginId ?: candidate.userUuid}|">사용자 정보</small></div>
                     <form method="post" th:action="@{/admin/stamps/user/action}">
                         <input type="hidden" name="boothId" th:value="${selectedBoothId}"><input type="hidden" name="userUuid" th:value="${candidate.userUuid}">
+                        <input type="hidden" name="userQuery" th:value="${userQuery}"><input type="hidden" name="userPage" th:value="${stampUserSearchResult.page}">
                         <button th:unless="${stampedUserIds.contains(candidate.userUuid)}" class="button button-primary button-small" name="action" value="GRANT">지급</button>
                         <button th:if="${stampedUserIds.contains(candidate.userUuid)}" class="button button-danger button-small" name="action" value="REVOKE"
                                 onclick="return confirm('선택한 사용자의 스탬프를 회수할까요?');">회수</button>
                     </form>
                 </article>
             </div>
-            <p id="stampUserSearchStatus" class="support-copy">검색 전입니다.</p>
+            <p class="support-copy" th:if="${stampUserSearchResult == null and userSearchError == null}">검색 전입니다.</p>
+            <p class="support-copy" th:if="${stampUserSearchResult != null}" th:text="|총 ${stampUserSearchResult.totalElements}명 · ${stampUserSearchResult.page + 1}/${stampUserSearchResult.totalPages == 0 ? 1 : stampUserSearchResult.totalPages} 페이지|">검색 결과</p>
+            <p class="support-copy" th:if="${stampUserSearchResult != null and #lists.isEmpty(stampUserSearchResult.items)}">검색 결과가 없습니다.</p>
+            <nav class="number-pagination" th:if="${stampUserSearchResult != null and stampUserSearchResult.totalPages > 1}" aria-label="스탬프 사용자 검색 결과 페이지">
+                <a th:if="${stampUserSearchResult.page > 0}" th:href="@{/admin/stamps(boothId=${selectedBoothId},userQuery=${userQuery},userPage=${stampUserSearchResult.page - 1})}" aria-label="이전 페이지">‹</a>
+                <a th:each="number : ${userPageNumbers}" th:href="@{/admin/stamps(boothId=${selectedBoothId},userQuery=${userQuery},userPage=${number})}" th:text="${number + 1}" th:classappend="${number == stampUserSearchResult.page} ? ' is-current'">1</a>
+                <a th:if="${stampUserSearchResult.page + 1 < stampUserSearchResult.totalPages}" th:href="@{/admin/stamps(boothId=${selectedBoothId},userQuery=${userQuery},userPage=${stampUserSearchResult.page + 1})}" aria-label="다음 페이지">›</a>
+            </nav>
         </section>
 
         <section class="form-section stamp-history-section" th:if="${stampAdmin != null}">
@@ -109,36 +120,14 @@
                 <tbody><tr th:each="item : ${stampAdmin.history}"><td th:text="${item.action}">GRANT</td><td th:text="${item.targetName}">대상</td>
                     <td th:text="${item.actorName}">관리자</td><td th:text="${item.method}">QR</td><td th:text="${#temporals.format(item.occurredAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm:ss')} + ' KST'">시각</td></tr>
                 <tr th:if="${#lists.isEmpty(stampAdmin.history)}"><td colspan="5">처리 이력이 없습니다.</td></tr></tbody></table></div>
-            <nav class="birthday-pagination" th:if="${stampAdmin.historyTotalPages > 1}" aria-label="감사 이력 페이지">
-                <a class="button button-secondary" th:if="${stampAdmin.historyPage > 0}"
-                   th:href="@{/admin/stamps(boothId=${selectedBoothId},page=${stampAdmin.historyPage - 1},size=${stampAdmin.historySize})}">이전</a>
-                <span th:text="|${stampAdmin.historyPage + 1} / ${stampAdmin.historyTotalPages}|">1 / 1</span>
-                <a class="button button-secondary" th:if="${stampAdmin.historyPage + 1 < stampAdmin.historyTotalPages}"
-                   th:href="@{/admin/stamps(boothId=${selectedBoothId},page=${stampAdmin.historyPage + 1},size=${stampAdmin.historySize})}">다음</a>
+            <nav class="number-pagination" th:if="${stampAdmin.historyTotalPages > 1}" aria-label="감사 이력 페이지">
+                <a th:if="${stampAdmin.historyPage > 0}" th:href="@{/admin/stamps(boothId=${selectedBoothId},page=${stampAdmin.historyPage - 1},userQuery=${userQuery},userPage=${stampUserSearchResult == null ? 0 : stampUserSearchResult.page})}" aria-label="이전 페이지">‹</a>
+                <a th:each="number : ${pageNumbers}" th:href="@{/admin/stamps(boothId=${selectedBoothId},page=${number},userQuery=${userQuery},userPage=${stampUserSearchResult == null ? 0 : stampUserSearchResult.page})}" th:text="${number + 1}" th:classappend="${number == stampAdmin.historyPage} ? ' is-current'">1</a>
+                <a th:if="${stampAdmin.historyPage + 1 < stampAdmin.historyTotalPages}" th:href="@{/admin/stamps(boothId=${selectedBoothId},page=${stampAdmin.historyPage + 1},userQuery=${userQuery},userPage=${stampUserSearchResult == null ? 0 : stampUserSearchResult.page})}" aria-label="다음 페이지">›</a>
             </nav>
         </section>
     </div>
 </main>
 <div th:replace="~{admin/fragments/footer :: footer(true)}"></div>
-<script>
-const stampSearch = document.getElementById('stampUserSearch');
-const stampSearchButton = document.getElementById('stampUserSearchButton');
-const stampResults = document.getElementById('stampUserResults');
-const stampRows = [...document.querySelectorAll('.stamp-user-row')];
-const stampStatus = document.getElementById('stampUserSearchStatus');
-function searchStampUsers() {
-    const query = stampSearch.value.trim().toLocaleLowerCase();
-    let visible = 0;
-    stampRows.forEach(row => {
-        const match = !query || row.dataset.search.toLocaleLowerCase().includes(query);
-        row.hidden = !match;
-        if (match) visible++;
-    });
-    stampResults.hidden = false;
-    stampStatus.textContent = query ? `${visible}명을 찾았습니다.` : `전체 ${visible}명`;
-}
-if (stampSearchButton) stampSearchButton.addEventListener('click', searchStampUsers);
-if (stampSearch) stampSearch.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); searchStampUsers(); } });
-</script>
 </body>
 </html>

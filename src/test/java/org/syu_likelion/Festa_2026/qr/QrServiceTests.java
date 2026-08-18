@@ -133,7 +133,7 @@ class QrServiceTests {
 
         QrDtos.UserSearchResponse result = service.searchAs(FestivalRole.STAFF, "구요승");
 
-        assertThat(result.totalMatches()).isEqualTo(1);
+        assertThat(result.totalElements()).isEqualTo(1);
         assertThat(result.items()).singleElement().satisfies(view -> {
             assertThat(view.name()).isEqualTo("구*승");
             assertThat(view.studentNo()).isEqualTo("2024******");
@@ -183,6 +183,46 @@ class QrServiceTests {
                 .isInstanceOfSatisfying(ApiException.class,
                         exception -> assertThat(exception.code()).isEqualTo("INVALID_USER_SEARCH_QUERY"));
         verify(festivalUsers, never()).getLinkedUserUuids();
+    }
+
+    @Test
+    void departmentSearchReturnsTwentyUsersPerPage() {
+        List<InternalUserProfile> all = java.util.stream.IntStream.range(0, 45).mapToObj(index -> {
+            UUID id = UUID.nameUUIDFromBytes(("profile-" + index).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return new InternalUserProfile(id, "user" + index, "user" + index + "@example.com", "USER", "ACTIVE",
+                    "사용자" + index, null, "2024" + String.format("%06d", index), "컴퓨터공학과", 3,
+                    "ENROLLED", null, null, null);
+        }).toList();
+        List<UUID> ids = all.stream().map(InternalUserProfile::userUuid).toList();
+        when(festivalUsers.getLinkedUserUuids()).thenReturn(ids);
+        when(profiles.getProfiles(ids)).thenReturn(all);
+
+        QrDtos.UserSearchResponse second = service.searchAs(FestivalRole.STAFF, "컴퓨터공학과", 1, 20);
+        QrDtos.UserSearchResponse third = service.searchAs(FestivalRole.STAFF, "컴퓨터공학과", 2, 20);
+
+        assertThat(second.items()).hasSize(20);
+        assertThat(second.page()).isEqualTo(1);
+        assertThat(second.totalElements()).isEqualTo(45);
+        assertThat(second.totalPages()).isEqualTo(3);
+        assertThat(third.items()).hasSize(5);
+    }
+
+    @Test
+    void outOfRangeSearchPageIsClampedToLastPage() {
+        List<InternalUserProfile> all = java.util.stream.IntStream.range(0, 21).mapToObj(index -> {
+            UUID id = UUID.nameUUIDFromBytes(("department-" + index).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return new InternalUserProfile(id, "student" + index, null, "USER", "ACTIVE",
+                    "학생" + index, null, "2024" + String.format("%06d", index), "간호학과", 2,
+                    "ENROLLED", null, null, null);
+        }).toList();
+        List<UUID> ids = all.stream().map(InternalUserProfile::userUuid).toList();
+        when(festivalUsers.getLinkedUserUuids()).thenReturn(ids);
+        when(profiles.getProfiles(ids)).thenReturn(all);
+
+        QrDtos.UserSearchResponse result = service.searchAs(FestivalRole.ADMIN, "간호학과", Integer.MAX_VALUE, 20);
+
+        assertThat(result.page()).isEqualTo(1);
+        assertThat(result.items()).hasSize(1);
     }
 
     @Test

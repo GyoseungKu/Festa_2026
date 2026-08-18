@@ -33,10 +33,10 @@
             </a>
         </article>
     </section>
-    <nav class="birthday-pagination" th:if="${result.totalPages > 1}">
-        <a class="button button-secondary" th:if="${result.page > 0}" th:href="@{/admin/birthday-messages(sort=${selectedSort},page=${result.page - 1})}">이전</a>
-        <span th:text="|${result.page + 1} / ${result.totalPages}|">1 / 1</span>
-        <a class="button button-secondary" th:if="${result.page + 1 < result.totalPages}" th:href="@{/admin/birthday-messages(sort=${selectedSort},page=${result.page + 1})}">다음</a>
+    <nav class="number-pagination" th:if="${result.totalPages > 1}" aria-label="생일축하 쪽지 페이지">
+        <a th:if="${result.page > 0}" th:href="@{/admin/birthday-messages(sort=${selectedSort},page=${result.page - 1})}" aria-label="이전 페이지">‹</a>
+        <a th:each="number : ${pageNumbers}" th:href="@{/admin/birthday-messages(sort=${selectedSort},page=${number})}" th:text="${number + 1}" th:classappend="${number == result.page} ? ' is-current'">1</a>
+        <a th:if="${result.page + 1 < result.totalPages}" th:href="@{/admin/birthday-messages(sort=${selectedSort},page=${result.page + 1})}" aria-label="다음 페이지">›</a>
     </nav>
 </main>
 <div th:replace="~{admin/fragments/footer :: footer(true)}"></div>

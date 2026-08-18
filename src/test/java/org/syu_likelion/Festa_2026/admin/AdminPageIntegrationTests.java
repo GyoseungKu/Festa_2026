@@ -212,9 +212,9 @@ class AdminPageIntegrationTests {
                 "가장 기대되는 프로그램", java.util.List.of(21L), java.util.List.of("공연"), null);
         var submission = new org.syu_likelion.Festa_2026.poll.PollDtos.AdminSubmissionResponse(31L,
                 null, null, null, null, now, java.util.List.of(answer));
-        when(pollService.adminDetailAs(3L, FestivalRole.ADMIN)).thenReturn(
+        when(pollService.adminDetailAs(3L, FestivalRole.ADMIN, 0, 20)).thenReturn(
                 new org.syu_likelion.Festa_2026.poll.PollDtos.PollAdminDetailResponse(poll, 1, result,
-                        java.util.List.of(submission), 0, 50, 1, 1));
+                        java.util.List.of(submission), 0, 20, 1, 1));
 
         mvc.perform(get("/admin/polls/3").cookie(new Cookie("festivalAdminAccess", "access-one")))
                 .andExpect(status().isOk())
@@ -268,7 +268,8 @@ class AdminPageIntegrationTests {
                 .thenReturn(new AuthorizedResult<>(identity(FestivalRole.STAFF), null, null));
         when(adminAccess.authenticate("booth-access", null))
                 .thenReturn(new AuthorizedResult<>(identity(FestivalRole.BOOTH_MANAGER), null, null));
-        when(lostItemService.listAdmin(null, LostItemSort.NEWEST)).thenReturn(java.util.List.of());
+        when(lostItemService.listAdmin(null, LostItemSort.NEWEST, 0, 20))
+                .thenReturn(new LostItemPageResponse(java.util.List.of(), 0, 20, 0, 0));
 
         mvc.perform(get("/admin/lost-items")
                         .cookie(new Cookie("festivalAdminAccess", "staff-access")))
@@ -316,8 +317,8 @@ class AdminPageIntegrationTests {
                 .thenReturn(new LostItemPageResponse(java.util.List.of(), 0, 20, 0, 0));
         when(adminAccess.authenticate("staff-access", null))
                 .thenReturn(new AuthorizedResult<>(identity(FestivalRole.STAFF), null, null));
-        when(lostItemService.listAdmin(LostItemStatus.HOLDING, LostItemSort.OLDEST))
-                .thenReturn(java.util.List.of());
+        when(lostItemService.listAdmin(LostItemStatus.HOLDING, LostItemSort.OLDEST, 0, 20))
+                .thenReturn(new LostItemPageResponse(java.util.List.of(), 0, 20, 0, 0));
 
         mvc.perform(get("/api/lost-items")
                         .param("status", "RETURNED").param("sort", "OLDEST"))
@@ -411,10 +412,10 @@ class AdminPageIntegrationTests {
                 null, null, null, null, null);
         java.time.Instant createdAt = java.time.Instant.parse("2026-08-14T03:00:00Z");
         when(birthdayMessageAdminService.listAs(Set.of(FestivalRole.STAFF),
-                BirthdayMessageSort.LATEST, 0, 30))
+                BirthdayMessageSort.LATEST, 0, 20))
                 .thenReturn(new AdminBirthdayMessagePageResponse(java.util.List.of(
                         new AdminBirthdayMessageResponse(11L, "생일 축하해!", 2L, createdAt, author)),
-                        0, 30, 1, 1));
+                        0, 20, 1, 1));
 
         mvc.perform(get("/admin/birthday-messages")
                         .cookie(new Cookie("festivalAdminAccess", "staff-access")))
@@ -493,8 +494,8 @@ class AdminPageIntegrationTests {
         QrUserView masked = new QrUserView(FestivalRole.STAFF, null, null, null, null, null,
                 "홍*동", null, "2024******", "컴퓨터공학부", 3,
                 null, null, null, null, null);
-        when(qrService.searchAs(FestivalRole.STAFF, "홍길동"))
-                .thenReturn(new UserSearchResponse(java.util.List.of(masked), 1, false));
+        when(qrService.searchAs(FestivalRole.STAFF, "홍길동", 0, 20))
+                .thenReturn(new UserSearchResponse(java.util.List.of(masked), 0, 20, 1, 1));
 
         mvc.perform(post("/admin/qr/search").with(csrf())
                         .cookie(new Cookie("festivalAdminAccess", "staff-search"))
@@ -517,8 +518,8 @@ class AdminPageIntegrationTests {
                 null, null, null, null, Set.of(FestivalRole.USER));
         when(qrService.updateRoleAs(ADMIN_UUID, FestivalRole.ADMIN, target, FestivalRole.STAFF))
                 .thenReturn(new UserRoleUpdateResponse(target, Set.of(FestivalRole.STAFF)));
-        when(qrService.searchAs(FestivalRole.ADMIN, "홍길동"))
-                .thenReturn(new UserSearchResponse(java.util.List.of(user), 1, false));
+        when(qrService.searchAs(FestivalRole.ADMIN, "홍길동", 0, 20))
+                .thenReturn(new UserSearchResponse(java.util.List.of(user), 0, 20, 1, 1));
 
         mvc.perform(post("/admin/qr/users/{id}/role", target).with(csrf())
                         .cookie(new Cookie("festivalAdminAccess", "admin-role"))
@@ -538,7 +539,7 @@ class AdminPageIntegrationTests {
         when(adminAccess.authenticate("manager-access", null))
                 .thenReturn(new AuthorizedResult<>(identity(FestivalRole.BOOTH_MANAGER), null, null));
         when(stampService.availableBoothsAs(ADMIN_UUID, FestivalRole.BOOTH_MANAGER)).thenReturn(java.util.List.of(booth));
-        when(stampService.historyAs(ADMIN_UUID, FestivalRole.BOOTH_MANAGER, 7L, 0, 30))
+        when(stampService.historyAs(ADMIN_UUID, FestivalRole.BOOTH_MANAGER, 7L, 0, 20))
                 .thenReturn(new BoothStampAdminResponse(7L, "담당 부스",
                         java.util.List.of(new org.syu_likelion.Festa_2026.stamp.StampDtos.CurrentStampResponse(
                                 null, "홍*동", "2026******", java.time.Instant.parse("2026-08-17T03:00:00Z"),
@@ -573,7 +574,7 @@ class AdminPageIntegrationTests {
                 .thenReturn(new AuthorizedResult<>(adminAndManager, null, null));
         when(stampService.availableBoothsAs(ADMIN_UUID, FestivalRole.ADMIN))
                 .thenReturn(java.util.List.of(booth, otherBooth));
-        when(stampService.historyAs(ADMIN_UUID, FestivalRole.ADMIN, 8L, 0, 30))
+        when(stampService.historyAs(ADMIN_UUID, FestivalRole.ADMIN, 8L, 0, 20))
                 .thenReturn(new BoothStampAdminResponse(8L, "전체 관리 부스",
                         java.util.List.of(new org.syu_likelion.Festa_2026.stamp.StampDtos.CurrentStampResponse(
                                 ADMIN_UUID, "스탬프 사용자", "2026000001", java.time.Instant.parse("2026-08-17T03:00:00Z"),
@@ -582,16 +583,21 @@ class AdminPageIntegrationTests {
                                 1L, org.syu_likelion.Festa_2026.stamp.StampAction.GRANT,
                                 org.syu_likelion.Festa_2026.stamp.StampMethod.QR, ADMIN_UUID, "스탬프 사용자",
                                 ADMIN_UUID, "축제 관리자", java.time.Instant.parse("2026-08-17T03:00:00Z"))),
-                        0, 30, 31, 2));
-        when(boothManagerDirectory.candidates()).thenReturn(java.util.List.of());
+                        0, 20, 31, 2));
+        QrUserView searchUser = adminView();
+        when(qrService.searchAs(FestivalRole.ADMIN, "컴퓨터공학과", 0, 20))
+                .thenReturn(new UserSearchResponse(java.util.List.of(searchUser), 0, 20, 21, 2));
 
-        mvc.perform(get("/admin/stamps").cookie(new Cookie("festivalAdminAccess", "admin-stamp-access")))
+        mvc.perform(get("/admin/stamps").cookie(new Cookie("festivalAdminAccess", "admin-stamp-access"))
+                        .param("userQuery", "컴퓨터공학과"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("전체 관리 부스")))
                 .andExpect(content().string(containsString("다른 부스")))
                 .andExpect(content().string(containsString("사용자 검색 임의 처리")))
+                .andExpect(content().string(containsString("스탬프 사용자 검색 결과 페이지")))
+                .andExpect(content().string(containsString("userPage=1")))
                 .andExpect(content().string(containsString("지급·회수 감사 이력")))
-                .andExpect(content().string(containsString("1 / 2")))
+                .andExpect(content().string(containsString("감사 이력 페이지")))
                 .andExpect(content().string(containsString("page=1")))
                 .andExpect(content().string(containsString("2026-08-17 12:00:00 KST")));
     }

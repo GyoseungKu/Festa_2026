@@ -23,6 +23,7 @@ import org.syu_likelion.Festa_2026.user.FestivalRole;
 @RequestMapping("/admin/birthday-messages")
 public class AdminBirthdayMessagePageController {
     private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
+    private static final int ADMIN_PAGE_SIZE = 20;
     private final AdminAccessService adminAccess;
     private final AdminCookieManager cookies;
     private final BirthdayMessageAdminService adminMessages;
@@ -44,7 +45,9 @@ public class AdminBirthdayMessagePageController {
         AdminIdentity admin = staffOrNull(request, response);
         if (admin == null) return redirect(request);
         common(model, admin);
-        model.addAttribute("result", adminMessages.listAs(Set.of(admin.role()), sort, page, 30));
+        var result = adminMessages.listAs(Set.of(admin.role()), sort, page, ADMIN_PAGE_SIZE);
+        model.addAttribute("result", result);
+        model.addAttribute("pageNumbers", AdminPagination.window(result.page(), result.totalPages()));
         model.addAttribute("selectedSort", sort);
         model.addAttribute("sortOptions", BirthdayMessageSort.values());
         return "admin/birthday-messages/list";
@@ -56,7 +59,9 @@ public class AdminBirthdayMessagePageController {
         AdminIdentity admin = staffOrNull(request, response);
         if (admin == null) return redirect(request);
         common(model, admin);
-        model.addAttribute("result", adminMessages.heartsAs(id, Set.of(admin.role()), page, 30));
+        var result = adminMessages.heartsAs(id, Set.of(admin.role()), page, ADMIN_PAGE_SIZE);
+        model.addAttribute("result", result);
+        model.addAttribute("pageNumbers", AdminPagination.window(result.page(), result.totalPages()));
         return "admin/birthday-messages/hearts";
     }
 

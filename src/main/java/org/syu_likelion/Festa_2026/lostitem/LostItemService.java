@@ -69,6 +69,11 @@ public class LostItemService {
                 .stream().map(this::toResponse).toList();
     }
 
+    @Transactional(readOnly = true)
+    public LostItemPageResponse listAdmin(LostItemStatus status, LostItemSort order, int page, int size) {
+        return listPublic(status, order, page, size);
+    }
+
     public List<LostItemResponse> listAdmin() {
         return listAdmin(null, LostItemSort.NEWEST);
     }

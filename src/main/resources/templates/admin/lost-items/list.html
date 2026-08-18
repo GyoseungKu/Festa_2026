@@ -83,6 +83,11 @@
             </div>
         </article>
     </section>
+    <nav class="number-pagination" th:if="${result.totalPages > 1}" aria-label="분실물 공지 페이지">
+        <a th:if="${result.page > 0}" th:href="@{/admin/lost-items(status=${selectedStatus},sort=${selectedSort},page=${result.page - 1})}" aria-label="이전 페이지">‹</a>
+        <a th:each="number : ${pageNumbers}" th:href="@{/admin/lost-items(status=${selectedStatus},sort=${selectedSort},page=${number})}" th:text="${number + 1}" th:classappend="${number == result.page} ? ' is-current'" th:attr="aria-current=${number == result.page ? 'page' : null}">1</a>
+        <a th:if="${result.page + 1 < result.totalPages}" th:href="@{/admin/lost-items(status=${selectedStatus},sort=${selectedSort},page=${result.page + 1})}" aria-label="다음 페이지">›</a>
+    </nav>
 </main>
 <div th:replace="~{admin/fragments/footer :: footer(true)}"></div>
 </body>

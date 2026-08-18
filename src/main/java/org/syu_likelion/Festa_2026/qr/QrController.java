@@ -70,7 +70,7 @@ public class QrController {
             @Parameter(hidden = true) HttpServletRequest request,
             @Valid @RequestBody UserSearchRequest searchRequest) {
         return response(qrService.search(BearerTokens.require(authorization), cookies.readRefreshToken(request),
-                searchRequest.query()));
+                searchRequest.query(), searchRequest.page(), searchRequest.size()));
     }
 
     @PatchMapping("/users/{userUuid}/role")

@@ -27,6 +27,7 @@ import org.syu_likelion.Festa_2026.user.FestivalRole;
 @RequestMapping("/admin/polls")
 public class AdminPollPageController {
     private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
+    private static final int ADMIN_PAGE_SIZE = 20;
     private final AdminAccessService adminAccess;
     private final AdminCookieManager cookies;
     private final PollService polls;
@@ -61,10 +62,14 @@ public class AdminPollPageController {
             return "admin/polls/form";
         }
     }
-    @GetMapping("/{id}") String detail(@PathVariable Long id, HttpServletRequest request,
+    @GetMapping("/{id}") String detail(@PathVariable Long id,
+            @RequestParam(defaultValue = "0") int page,
+            HttpServletRequest request,
             HttpServletResponse response, Model model) {
         AdminIdentity admin = managerOrNull(request, response); if (admin == null) return redirect(request);
-        common(model, admin); model.addAttribute("detail", polls.adminDetailAs(id, admin.role()));
+        PollAdminDetailResponse detail = polls.adminDetailAs(id, admin.role(), page, ADMIN_PAGE_SIZE);
+        common(model, admin); model.addAttribute("detail", detail);
+        model.addAttribute("pageNumbers", AdminPagination.window(detail.page(), detail.totalPages()));
         return "admin/polls/detail";
     }
     @GetMapping("/{id}/edit") String editPage(@PathVariable Long id, HttpServletRequest request,

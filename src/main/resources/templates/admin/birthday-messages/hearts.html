@@ -34,5 +34,10 @@
             </dl>
         </article>
     </section>
+    <nav class="number-pagination" th:if="${result.totalPages > 1}" aria-label="하트 사용자 페이지">
+        <a th:if="${result.page > 0}" th:href="@{/admin/birthday-messages/{id}/hearts(id=${result.messageId},page=${result.page - 1})}" aria-label="이전 페이지">‹</a>
+        <a th:each="number : ${pageNumbers}" th:href="@{/admin/birthday-messages/{id}/hearts(id=${result.messageId},page=${number})}" th:text="${number + 1}" th:classappend="${number == result.page} ? ' is-current'">1</a>
+        <a th:if="${result.page + 1 < result.totalPages}" th:href="@{/admin/birthday-messages/{id}/hearts(id=${result.messageId},page=${result.page + 1})}" aria-label="다음 페이지">›</a>
+    </nav>
 </main><div th:replace="~{admin/fragments/footer :: footer(true)}"></div>
 </body></html>

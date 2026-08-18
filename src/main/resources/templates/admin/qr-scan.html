@@ -52,8 +52,7 @@
     </section>
 
     <section class="panel user-search-results" th:if="${searchResult != null}">
-        <div class="result-heading"><div><span class="success-mark">✓</span><div><p class="eyebrow">SEARCH RESULT</p><h2 th:text="|${searchResult.totalMatches}명 검색됨|">검색 결과</h2></div></div></div>
-        <p class="support-copy" th:if="${searchResult.truncated}">검색 결과가 많아 상위 20명만 표시합니다. 검색어를 더 구체적으로 입력해 주세요.</p>
+        <div class="result-heading"><div><span class="success-mark">✓</span><div><p class="eyebrow">SEARCH RESULT</p><h2 th:text="|${searchResult.totalElements}명 검색됨|">검색 결과</h2></div></div></div>
         <p class="empty-copy" th:if="${searchResult.items.empty}">일치하는 축제 연동 사용자가 없습니다.</p>
         <div class="user-search-result-list" th:unless="${searchResult.items.empty}"><article th:each="user : ${searchResult.items}">
             <dl class="profile-grid">
@@ -62,6 +61,7 @@
             <form class="user-role-form" method="post" th:if="${canManageUserRoles and user.userUuid != null and user.managementRole != null}"
                   th:action="@{/admin/qr/users/{id}/role(id=${user.userUuid})}">
                 <input type="hidden" name="query" th:value="${searchQuery}">
+                <input type="hidden" name="page" th:value="${searchResult.page}">
                 <label><span>관리 권한</span><select name="managementRole">
                     <option th:each="role : ${managementRoleOptions}" th:value="${role}" th:text="${role}" th:selected="${role == user.managementRole}"></option>
                 </select></label>
@@ -69,6 +69,11 @@
                 <small th:if="${adminRole.name() == 'ADMIN'}">ADMIN은 USER·STAFF 범위만 변경할 수 있습니다.</small>
             </form>
         </article></div>
+        <nav class="number-pagination" th:if="${searchResult.totalPages > 1}" aria-label="사용자 검색 결과 페이지">
+            <form method="post" th:if="${searchResult.page > 0}" th:action="@{/admin/qr/search}"><input type="hidden" name="query" th:value="${searchQuery}"><input type="hidden" name="page" th:value="${searchResult.page - 1}"><button type="submit" aria-label="이전 페이지">‹</button></form>
+            <form method="post" th:each="number : ${searchPages}" th:action="@{/admin/qr/search}"><input type="hidden" name="query" th:value="${searchQuery}"><input type="hidden" name="page" th:value="${number}"><button type="submit" th:classappend="${number == searchResult.page} ? ' is-current'" th:text="${number + 1}" th:attr="aria-current=${number == searchResult.page ? 'page' : null}">1</button></form>
+            <form method="post" th:if="${searchResult.page + 1 < searchResult.totalPages}" th:action="@{/admin/qr/search}"><input type="hidden" name="query" th:value="${searchQuery}"><input type="hidden" name="page" th:value="${searchResult.page + 1}"><button type="submit" aria-label="다음 페이지">›</button></form>
+        </nav>
     </section>
 
     <div class="qr-layout qr-camera-only">

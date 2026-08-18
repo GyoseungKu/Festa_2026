@@ -28,7 +28,7 @@ import org.syu_likelion.Festa_2026.user.UserService;
 @Service
 public class QrService {
     private static final int PROFILE_BATCH_SIZE = 100;
-    private static final int SEARCH_RESULT_LIMIT = 20;
+    private static final int DEFAULT_SEARCH_PAGE_SIZE = 20;
     private final UserService users;
     private final FestivalUserService festivalUsers;
     private final SsoInternalProfileClient profiles;
@@ -73,14 +73,20 @@ public class QrService {
         return toView(viewerRole, profile);
     }
 
-    public AuthorizedResult<UserSearchResponse> search(String accessToken, String refreshToken, String query) {
+    public AuthorizedResult<UserSearchResponse> search(String accessToken, String refreshToken, String query,
+                                                         Integer page, Integer size) {
         AuthorizedResult<MeResponse> authenticated = users.getMe(accessToken, refreshToken);
         FestivalRole viewerRole = highestSearchRole(authenticated.body().festivalRoles());
-        return new AuthorizedResult<>(searchAs(viewerRole, query), authenticated.newAccessToken(),
+        return new AuthorizedResult<>(searchAs(viewerRole, query, page == null ? 0 : page,
+                size == null ? DEFAULT_SEARCH_PAGE_SIZE : size), authenticated.newAccessToken(),
                 authenticated.newRefreshToken());
     }
 
     public UserSearchResponse searchAs(FestivalRole viewerRole, String query) {
+        return searchAs(viewerRole, query, 0, DEFAULT_SEARCH_PAGE_SIZE);
+    }
+
+    public UserSearchResponse searchAs(FestivalRole viewerRole, String query, int page, int size) {
         requireSearchRole(viewerRole);
         String term = query == null ? "" : query.trim();
         String normalized = normalize(term);
@@ -98,10 +104,14 @@ public class QrService {
         matched.sort(Comparator.comparing((InternalUserProfile profile) -> !exactMatch(profile, normalized, digits))
                 .thenComparing(profile -> normalize(profile.name()), Comparator.nullsLast(String::compareTo))
                 .thenComparing(profile -> normalize(profile.studentNo()), Comparator.nullsLast(String::compareTo)));
+        int safeSize = Math.max(1, Math.min(size, 100));
         int total = matched.size();
-        List<QrUserView> items = matched.stream().limit(SEARCH_RESULT_LIMIT)
-                .map(profile -> toView(viewerRole, profile)).toList();
-        return new UserSearchResponse(items, total, total > SEARCH_RESULT_LIMIT);
+        int totalPages = total == 0 ? 0 : (total + safeSize - 1) / safeSize;
+        int safePage = totalPages == 0 ? 0 : Math.min(Math.max(0, page), totalPages - 1);
+        int from = (int) Math.min(total, (long) safePage * safeSize);
+        int to = Math.min(total, from + safeSize);
+        List<QrUserView> items = matched.subList(from, to).stream().map(profile -> toView(viewerRole, profile)).toList();
+        return new UserSearchResponse(items, safePage, safeSize, total, totalPages);
     }
 
     public AuthorizedResult<UserRoleUpdateResponse> updateRole(String accessToken, String refreshToken,

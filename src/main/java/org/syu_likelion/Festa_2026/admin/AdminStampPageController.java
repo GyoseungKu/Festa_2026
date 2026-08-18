@@ -15,9 +15,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.syu_likelion.Festa_2026.admin.AdminAccessService.AdminIdentity;
 import org.syu_likelion.Festa_2026.auth.AuthorizedSsoExecutor.AuthorizedResult;
-import org.syu_likelion.Festa_2026.booth.BoothManagerDirectory;
 import org.syu_likelion.Festa_2026.booth.FestivalBooth;
 import org.syu_likelion.Festa_2026.error.ApiException;
+import org.syu_likelion.Festa_2026.qr.QrDtos.UserSearchResponse;
+import org.syu_likelion.Festa_2026.qr.QrService;
 import org.syu_likelion.Festa_2026.sso.SsoException;
 import org.syu_likelion.Festa_2026.stamp.StampDtos.BoothStampAdminResponse;
 import org.syu_likelion.Festa_2026.stamp.StampDtos.StampTargetResponse;
@@ -27,25 +28,27 @@ import org.syu_likelion.Festa_2026.user.FestivalRole;
 @Controller
 @RequestMapping("/admin/stamps")
 public class AdminStampPageController {
+    private static final int ADMIN_PAGE_SIZE = 20;
     private final AdminAccessService adminAccess;
     private final AdminCookieManager cookies;
     private final StampService stamps;
-    private final BoothManagerDirectory users;
+    private final QrService qrUsers;
 
     public AdminStampPageController(AdminAccessService adminAccess, AdminCookieManager cookies,
-                                    StampService stamps, BoothManagerDirectory users) {
-        this.adminAccess = adminAccess; this.cookies = cookies; this.stamps = stamps; this.users = users;
+                                    StampService stamps, QrService qrUsers) {
+        this.adminAccess = adminAccess; this.cookies = cookies; this.stamps = stamps; this.qrUsers = qrUsers;
     }
 
     @GetMapping
     String page(@RequestParam(required = false) Long boothId,
                 @RequestParam(defaultValue = "0") int page,
-                @RequestParam(defaultValue = "30") int size,
+                @RequestParam(required = false) String userQuery,
+                @RequestParam(defaultValue = "0") int userPage,
                 HttpServletRequest request,
                 HttpServletResponse response, Model model) {
         AdminIdentity admin = stampAdminOrNull(request, response);
         if (admin == null) return redirect(request);
-        populate(model, admin, boothId, page, size);
+        populate(model, admin, boothId, page, ADMIN_PAGE_SIZE, userQuery, userPage);
         return "admin/stamps";
     }
 
@@ -54,7 +57,7 @@ public class AdminStampPageController {
                   HttpServletResponse response, Model model) {
         AdminIdentity admin = stampAdminOrNull(request, response);
         if (admin == null) return redirect(request);
-        populate(model, admin, boothId, 0, 30);
+        populate(model, admin, boothId, 0, ADMIN_PAGE_SIZE, null, 0);
         try {
             model.addAttribute("stampTarget", stamps.lookupQrAs(admin.userUuid(), stampRole(admin), boothId, token));
             model.addAttribute("qrToken", token == null ? null : token.trim());
@@ -71,7 +74,7 @@ public class AdminStampPageController {
                     HttpServletRequest request, HttpServletResponse response, Model model) {
         AdminIdentity admin = stampAdminOrNull(request, response);
         if (admin == null) return redirect(request);
-        populate(model, admin, boothId, 0, 30);
+        populate(model, admin, boothId, 0, ADMIN_PAGE_SIZE, null, 0);
         try {
             StampTargetResponse target = "REVOKE".equals(action)
                     ? stamps.revokeQrAs(admin.userUuid(), stampRole(admin), boothId, token)
@@ -79,7 +82,7 @@ public class AdminStampPageController {
             model.addAttribute("stampTarget", target);
             model.addAttribute("qrToken", token.trim());
             model.addAttribute("message", "REVOKE".equals(action) ? "스탬프를 회수했습니다." : "스탬프를 지급했습니다.");
-            refreshHistory(model, admin, boothId, 0, 30);
+            refreshHistory(model, admin, boothId, 0, ADMIN_PAGE_SIZE);
         } catch (ApiException exception) {
             model.addAttribute("error", exception.getMessage());
         }
@@ -88,6 +91,8 @@ public class AdminStampPageController {
 
     @PostMapping("/user/action")
     String userAction(@RequestParam Long boothId, @RequestParam UUID userUuid, @RequestParam String action,
+                      @RequestParam(required = false) String userQuery,
+                      @RequestParam(defaultValue = "0") int userPage,
                       HttpServletRequest request, HttpServletResponse response, RedirectAttributes redirect) {
         AdminIdentity admin = stampAdminOrNull(request, response);
         if (admin == null) return redirect(request);
@@ -101,10 +106,14 @@ public class AdminStampPageController {
         } catch (SsoException exception) {
             redirect.addFlashAttribute("error", "SSO 사용자 정보를 조회하지 못했습니다. 잠시 후 다시 시도해 주세요.");
         }
-        return "redirect:/admin/stamps?boothId=" + boothId;
+        redirect.addAttribute("boothId", boothId);
+        if (userQuery != null && !userQuery.isBlank()) redirect.addAttribute("userQuery", userQuery.trim());
+        redirect.addAttribute("userPage", Math.max(0, userPage));
+        return "redirect:/admin/stamps";
     }
 
-    private void populate(Model model, AdminIdentity admin, Long requestedBoothId, int page, int size) {
+    private void populate(Model model, AdminIdentity admin, Long requestedBoothId, int page, int size,
+                          String userQuery, int userPage) {
         FestivalRole effectiveRole = stampRole(admin);
         List<FestivalBooth> available = stamps.availableBoothsAs(admin.userUuid(), effectiveRole);
         Long selected = requestedBoothId;
@@ -118,8 +127,17 @@ public class AdminStampPageController {
         model.addAttribute("booths", available);
         model.addAttribute("selectedBoothId", selectedId);
         model.addAttribute("canAdminOverride", isAdmin(admin));
-        if (isAdmin(admin)) {
-            model.addAttribute("userCandidates", users.candidates());
+        String normalizedUserQuery = userQuery == null ? "" : userQuery.trim();
+        model.addAttribute("userQuery", normalizedUserQuery);
+        if (isAdmin(admin) && !normalizedUserQuery.isBlank()) {
+            try {
+                UserSearchResponse result = qrUsers.searchAs(stampRole(admin), normalizedUserQuery,
+                        Math.max(0, userPage), 20);
+                model.addAttribute("stampUserSearchResult", result);
+                model.addAttribute("userPageNumbers", AdminPagination.window(result.page(), result.totalPages()));
+            } catch (ApiException exception) {
+                model.addAttribute("userSearchError", exception.getMessage());
+            }
         }
         refreshHistory(model, admin, selectedId, page, size);
     }
@@ -128,6 +146,7 @@ public class AdminStampPageController {
         if (boothId == null) return;
         BoothStampAdminResponse history = stamps.historyAs(admin.userUuid(), stampRole(admin), boothId, page, size);
         model.addAttribute("stampAdmin", history);
+        model.addAttribute("pageNumbers", AdminPagination.window(history.historyPage(), history.historyTotalPages()));
         if (isAdmin(admin)) {
             Set<UUID> stamped = new HashSet<>(history.currentStamps().stream().map(item -> item.userUuid()).toList());
             model.addAttribute("stampedUserIds", stamped);

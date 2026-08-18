@@ -40,11 +40,15 @@ public class AdminLostItemPageController {
     @GetMapping
     String list(@RequestParam(required = false) LostItemStatus status,
                 @RequestParam(defaultValue = "NEWEST") LostItemSort sort,
+                @RequestParam(defaultValue = "0") int page,
                 HttpServletRequest request, HttpServletResponse response, Model model) {
         AdminIdentity admin = staffOrNull(request, response);
         if (admin == null) return redirect(request);
         common(model, admin);
-        model.addAttribute("notices", lostItems.listAdmin(status, sort));
+        var result = lostItems.listAdmin(status, sort, page, 20);
+        model.addAttribute("result", result);
+        model.addAttribute("notices", result.items());
+        model.addAttribute("pageNumbers", AdminPagination.window(result.page(), result.totalPages()));
         model.addAttribute("selectedStatus", status);
         model.addAttribute("selectedSort", sort);
         return "admin/lost-items/list";

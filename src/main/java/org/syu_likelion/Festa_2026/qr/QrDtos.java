@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Max;
 import java.time.Instant;
 import java.util.Set;
 import java.util.List;
@@ -16,8 +18,10 @@ public final class QrDtos {
     public record QrTokenResponse(String token, Instant expiresAt) { }
 
     public record QrScanRequest(@NotBlank @Size(max = 128) String token) { }
-    public record UserSearchRequest(@NotBlank @Size(min = 2, max = 100) String query) { }
-    public record UserSearchResponse(List<QrUserView> items, int totalMatches, boolean truncated) { }
+    public record UserSearchRequest(@NotBlank @Size(min = 2, max = 100) String query,
+                                    @Min(0) Integer page, @Min(1) @Max(100) Integer size) { }
+    public record UserSearchResponse(List<QrUserView> items, int page, int size,
+                                     long totalElements, int totalPages) { }
     public record UserRoleUpdateRequest(@NotNull FestivalRole managementRole) { }
     public record UserRoleUpdateResponse(UUID userUuid, Set<FestivalRole> festivalRoles) { }
 

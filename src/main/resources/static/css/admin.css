@@ -233,6 +233,10 @@ button { cursor: pointer; }
 .user-role-form label { display: grid; gap: 5px; min-width: 180px; color: var(--muted); font-size: .75rem; font-weight: 700; }
 .user-role-form select { min-height: 40px; color: inherit; border: 1px solid var(--line); border-radius: 9px; padding: 8px 10px; background: var(--surface); }
 .user-role-form small { width: 100%; color: var(--muted); }
+.number-pagination { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px; margin-top: 20px; }
+.number-pagination form { margin: 0; }
+.number-pagination a,.number-pagination button { display: grid; min-width: 38px; height: 38px; place-items: center; border: 1px solid var(--line); border-radius: 9px; padding: 0 10px; color: inherit; background: var(--surface); font-weight: 800; text-decoration: none; cursor: pointer; }
+.number-pagination .is-current { color: #071b44; border-color: #ffc4e6; background: #ffc4e6; }
 .result-heading { padding-bottom: 21px; border-bottom: 1px solid var(--line); }
 .result-heading .eyebrow { margin-bottom: 2px; }
 .success-mark { display: grid; width: 43px; height: 43px; place-items: center; border-radius: 13px; color: #fff; background: var(--success); font-size: 1.2rem; font-weight: 900; }

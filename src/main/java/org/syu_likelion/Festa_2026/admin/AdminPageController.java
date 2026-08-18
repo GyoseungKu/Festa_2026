@@ -113,14 +113,15 @@ public class AdminPageController {
     }
 
     @PostMapping("/admin/qr/search")
-    String searchUsers(@RequestParam String query, HttpServletRequest request,
+    String searchUsers(@RequestParam String query, @RequestParam(defaultValue = "0") int page,
+                       HttpServletRequest request,
                        HttpServletResponse response, Model model) {
         AuthorizedResult<AdminIdentity> admin = authenticateOrNull(request, response);
         if (admin == null) return "redirect:/admin/login";
         addAdmin(model, admin.body());
         model.addAttribute("searchQuery", query);
         try {
-            model.addAttribute("searchResult", qrService.searchAs(admin.body().role(), query));
+            addSearchResult(model, qrService.searchAs(admin.body().role(), query, page, 20));
         } catch (ApiException exception) {
             model.addAttribute("error", exception.getMessage());
         } catch (SsoException exception) {
@@ -132,6 +133,7 @@ public class AdminPageController {
     @PostMapping("/admin/qr/users/{userUuid}/role")
     String updateUserRole(@PathVariable UUID userUuid, @RequestParam FestivalRole managementRole,
                           @RequestParam(required = false) String query, HttpServletRequest request,
+                          @RequestParam(defaultValue = "0") int page,
                           HttpServletResponse response, Model model) {
         AuthorizedResult<AdminIdentity> admin = authenticateOrNull(request, response);
         if (admin == null) return "redirect:/admin/login";
@@ -141,11 +143,11 @@ public class AdminPageController {
             qrService.updateRoleAs(admin.body().userUuid(), admin.body().role(), userUuid, managementRole);
             model.addAttribute("message", "사용자 관리 권한을 변경했습니다.");
             if (query != null && !query.isBlank())
-                model.addAttribute("searchResult", qrService.searchAs(admin.body().role(), query));
+                addSearchResult(model, qrService.searchAs(admin.body().role(), query, page, 20));
         } catch (ApiException exception) {
             model.addAttribute("error", exception.getMessage());
             if (query != null && !query.isBlank()) {
-                try { model.addAttribute("searchResult", qrService.searchAs(admin.body().role(), query)); }
+                try { addSearchResult(model, qrService.searchAs(admin.body().role(), query, page, 20)); }
                 catch (RuntimeException ignored) { /* 원래 권한 변경 오류를 우선 표시합니다. */ }
             }
         }
@@ -192,5 +194,10 @@ public class AdminPageController {
                 : canManagePerformances ? List.of(FestivalRole.USER, FestivalRole.STAFF) : List.of());
         model.addAttribute("availableFeatureCount", 1 + (canManageStaffFeatures ? 2 : 0)
                 + (canManagePerformances ? 3 : 0) + (canManageStamps ? 1 : 0) + (superAdmin ? 1 : 0));
+    }
+
+    private void addSearchResult(Model model, org.syu_likelion.Festa_2026.qr.QrDtos.UserSearchResponse result) {
+        model.addAttribute("searchResult", result);
+        model.addAttribute("searchPages", AdminPagination.window(result.page(), result.totalPages()));
     }
 }
