@@ -1,5 +1,8 @@
 package org.syu_likelion.Festa_2026.user;
 
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -11,10 +14,13 @@ import org.syu_likelion.Festa_2026.error.ApiException;
 
 @Service
 public class FestivalUserService {
+    private static final Duration WELCOME_EMAIL_CLAIM_TIMEOUT = Duration.ofMinutes(15);
     private final FestivalUserRepository repository;
+    private final Clock clock;
 
-    public FestivalUserService(FestivalUserRepository repository) {
+    public FestivalUserService(FestivalUserRepository repository, Clock clock) {
         this.repository = repository;
+        this.clock = clock;
     }
 
     @Transactional
@@ -30,6 +36,30 @@ public class FestivalUserService {
 
     @Transactional(readOnly = true)
     public List<UUID> getLinkedUserUuids() { return repository.findAllUserUuids(); }
+
+    @Transactional
+    public UUID claimWelcomeEmail(UUID userUuid) {
+        FestivalUser user = repository.findByUserUuidForUpdate(userUuid).orElse(null);
+        if (user == null || !user.isWelcomeEmailPending() || user.getWelcomeEmailSentAt() != null) return null;
+        Instant now = clock.instant();
+        Instant claimedAt = user.getWelcomeEmailClaimedAt();
+        if (claimedAt != null && now.isBefore(claimedAt.plus(WELCOME_EMAIL_CLAIM_TIMEOUT))) return null;
+        UUID claimToken = UUID.randomUUID();
+        user.claimWelcomeEmail(claimToken, now);
+        return claimToken;
+    }
+
+    @Transactional
+    public void completeWelcomeEmail(UUID userUuid, UUID claimToken) {
+        repository.findByUserUuidForUpdate(userUuid)
+                .ifPresent(user -> user.completeWelcomeEmail(claimToken, clock.instant()));
+    }
+
+    @Transactional
+    public void releaseWelcomeEmailClaim(UUID userUuid, UUID claimToken) {
+        repository.findByUserUuidForUpdate(userUuid)
+                .ifPresent(user -> user.releaseWelcomeEmailClaim(claimToken));
+    }
 
     @Transactional
     public Set<FestivalRole> updateManagementRole(UUID actorUuid, FestivalRole actorRole,

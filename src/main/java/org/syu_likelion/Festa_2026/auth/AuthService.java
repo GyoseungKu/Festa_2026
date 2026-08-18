@@ -29,12 +29,15 @@ public class AuthService {
     private final SsoAuthClient client;
     private final FestivalUserService festivalUsers;
     private final AccountRecoveryAttemptLimiter recoveryAttempts;
+    private final WelcomeEmailService welcomeEmails;
 
     public AuthService(SsoAuthClient client, FestivalUserService festivalUsers,
-                       AccountRecoveryAttemptLimiter recoveryAttempts) {
+                       AccountRecoveryAttemptLimiter recoveryAttempts,
+                       WelcomeEmailService welcomeEmails) {
         this.client = client;
         this.festivalUsers = festivalUsers;
         this.recoveryAttempts = recoveryAttempts;
+        this.welcomeEmails = welcomeEmails;
     }
 
     public void sendSignupEmailCode(EmailRequest request) { client.sendSignupEmailCode(request); }
@@ -88,6 +91,7 @@ public class AuthService {
         SignupResponse response = client.register(request);
         if (response == null || response.userUuid() == null) throw new SsoException(502, "SSO response did not contain userUuid");
         festivalUsers.linkAndGetRoles(response.userUuid());
+        welcomeEmails.sendLater(response.userUuid(), request.email(), request.name());
         return response;
     }
 
@@ -99,6 +103,7 @@ public class AuthService {
         }
         MeResponse me = client.getMe(result.body().accessToken());
         festivalUsers.linkAndGetRoles(me.userUuid());
+        welcomeEmails.sendLater(me.userUuid(), me.email(), me.name());
         ApiRequestContext.markAuthenticatedUser(me.userUuid());
         return new LoginResult(result.body(), result.refreshToken());
     }

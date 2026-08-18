@@ -33,6 +33,18 @@ public class FestivalUser {
     @Column(name = "booth_manager", nullable = false, columnDefinition = "boolean default false")
     private boolean boothManager;
 
+    @Column(name = "welcome_email_sent_at")
+    private Instant welcomeEmailSentAt;
+
+    @Column(name = "welcome_email_pending", nullable = false, columnDefinition = "boolean default false")
+    private boolean welcomeEmailPending;
+
+    @Column(name = "welcome_email_claim_token", length = 36)
+    private String welcomeEmailClaimToken;
+
+    @Column(name = "welcome_email_claimed_at")
+    private Instant welcomeEmailClaimedAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -43,6 +55,7 @@ public class FestivalUser {
 
     public FestivalUser(UUID userUuid) {
         this.userUuid = userUuid;
+        this.welcomeEmailPending = true;
     }
 
     @PrePersist
@@ -64,7 +77,36 @@ public class FestivalUser {
     public Long getId() { return id; }
     public FestivalRole getManagementRole() { return managementRole; }
     public boolean isBoothManager() { return boothManager; }
+    public Instant getWelcomeEmailSentAt() { return welcomeEmailSentAt; }
+    public boolean isWelcomeEmailPending() { return welcomeEmailPending; }
+    public String getWelcomeEmailClaimToken() { return welcomeEmailClaimToken; }
+    public Instant getWelcomeEmailClaimedAt() { return welcomeEmailClaimedAt; }
     public void changeManagementRole(FestivalRole role) { managementRole = role; }
+
+    public void claimWelcomeEmail(UUID claimToken, Instant claimedAt) {
+        welcomeEmailClaimToken = claimToken.toString();
+        welcomeEmailClaimedAt = claimedAt;
+    }
+
+    public boolean ownsWelcomeEmailClaim(UUID claimToken) {
+        return claimToken != null && claimToken.toString().equals(welcomeEmailClaimToken);
+    }
+
+    public void completeWelcomeEmail(UUID claimToken, Instant sentAt) {
+        if (!ownsWelcomeEmailClaim(claimToken)) return;
+        welcomeEmailSentAt = sentAt;
+        welcomeEmailPending = false;
+        clearWelcomeEmailClaim();
+    }
+
+    public void releaseWelcomeEmailClaim(UUID claimToken) {
+        if (ownsWelcomeEmailClaim(claimToken)) clearWelcomeEmailClaim();
+    }
+
+    private void clearWelcomeEmailClaim() {
+        welcomeEmailClaimToken = null;
+        welcomeEmailClaimedAt = null;
+    }
 
     public void addRole(FestivalRole role) {
         if (role == FestivalRole.BOOTH_MANAGER) boothManager = true;

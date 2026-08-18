@@ -8,6 +8,9 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.syu_likelion.Festa_2026.error.ApiException;
@@ -20,7 +23,8 @@ class FestivalUserServiceTests {
 
     @BeforeEach void setUp() {
         repository = mock(FestivalUserRepository.class);
-        service = new FestivalUserService(repository);
+        service = new FestivalUserService(repository,
+                Clock.fixed(Instant.parse("2026-08-18T12:00:00Z"), ZoneOffset.UTC));
     }
 
     @Test void adminCanChangeUserToStaffWithoutRemovingBoothManagerRole() {
@@ -76,5 +80,28 @@ class FestivalUserServiceTests {
         assertThatThrownBy(() -> service.updateManagementRole(ACTOR, FestivalRole.SUPER_ADMIN,
                 TARGET, FestivalRole.BOOTH_MANAGER)).isInstanceOfSatisfying(ApiException.class, error ->
                         assertThat(error.code()).isEqualTo("INVALID_MANAGEMENT_ROLE"));
+    }
+
+    @Test void welcomeEmailCanBeClaimedOnlyUntilItIsCompleted() {
+        FestivalUser user = new FestivalUser(TARGET);
+        when(repository.findByUserUuidForUpdate(TARGET)).thenReturn(Optional.of(user));
+
+        UUID claim = service.claimWelcomeEmail(TARGET);
+
+        assertThat(claim).isNotNull();
+        assertThat(service.claimWelcomeEmail(TARGET)).isNull();
+        service.completeWelcomeEmail(TARGET, claim);
+        assertThat(user.getWelcomeEmailSentAt()).isEqualTo(Instant.parse("2026-08-18T12:00:00Z"));
+        assertThat(service.claimWelcomeEmail(TARGET)).isNull();
+    }
+
+    @Test void failedWelcomeEmailClaimCanBeReleasedForRetry() {
+        FestivalUser user = new FestivalUser(TARGET);
+        when(repository.findByUserUuidForUpdate(TARGET)).thenReturn(Optional.of(user));
+        UUID first = service.claimWelcomeEmail(TARGET);
+
+        service.releaseWelcomeEmailClaim(TARGET, first);
+
+        assertThat(service.claimWelcomeEmail(TARGET)).isNotNull().isNotEqualTo(first);
     }
 }

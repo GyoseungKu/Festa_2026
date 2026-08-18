@@ -11,12 +11,13 @@ import org.syu_likelion.Festa_2026.performance.R2Properties;
 import org.syu_likelion.Festa_2026.logging.ApiRequestLogProperties;
 import org.syu_likelion.Festa_2026.analytics.FrontendAnalyticsProperties;
 import org.syu_likelion.Festa_2026.monitoring.MonitoringProperties;
+import org.syu_likelion.Festa_2026.auth.WelcomeEmailProperties;
 
 @Configuration
 @EnableScheduling
 @EnableConfigurationProperties({SsoProperties.class, AuthProperties.class, QrProperties.class,
         AdminProperties.class, R2Properties.class, ApiRequestLogProperties.class,
-        FrontendAnalyticsProperties.class, MonitoringProperties.class})
+        FrontendAnalyticsProperties.class, MonitoringProperties.class, WelcomeEmailProperties.class})
 public class AppConfig {
     @Bean
     Clock clock() {

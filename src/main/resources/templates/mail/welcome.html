@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>천보축전 홈페이지 가입을 환영합니다</title>
+</head>
+<body style="margin:0;padding:0;background:#f5f7fb;font-family:Pretendard,'Apple SD Gothic Neo','Noto Sans KR',Arial,sans-serif;color:#16213e;">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f5f7fb;padding:32px 16px;">
+    <tr><td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:620px;background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 12px 36px rgba(22,33,62,.10);">
+            <tr><td style="padding:36px 40px;background:linear-gradient(135deg,#172554,#312e81);color:#ffffff;">
+                <p style="margin:0 0 10px;font-size:13px;font-weight:700;letter-spacing:.14em;color:#f9a8d4;">LIKELION SYU · CHEONBO FESTIVAL</p>
+                <h1 style="margin:0;font-size:28px;line-height:1.4;">천보축전에 오신 것을<br>환영합니다!</h1>
+            </td></tr>
+            <tr><td style="padding:40px;">
+                <p style="margin:0 0 20px;font-size:18px;line-height:1.8;"><strong th:text="${name}">방문자</strong>님, 안녕하세요.</p>
+                <p style="margin:0 0 14px;font-size:16px;line-height:1.8;">삼육대학교 개교 120주년을 기념하는 천보축전 홈페이지 가입이 완료되었습니다.</p>
+                <p style="margin:0 0 30px;font-size:16px;line-height:1.8;color:#475569;">부스 지도와 공연 일정, 스탬프, 투표 등 축제를 더 즐겁게 만들어 줄 다양한 기능을 만나보세요.</p>
+                <table role="presentation" cellspacing="0" cellpadding="0"><tr><td style="border-radius:10px;background:#ec4899;">
+                    <a th:href="${siteUrl}" href="https://festa.syu-likelion.org" style="display:inline-block;padding:14px 24px;color:#ffffff;text-decoration:none;font-size:16px;font-weight:700;">천보축전 홈페이지 바로가기</a>
+                </td></tr></table>
+            </td></tr>
+            <tr><td style="padding:22px 40px;background:#f8fafc;border-top:1px solid #e2e8f0;color:#64748b;font-size:12px;line-height:1.7;">
+                본 메일은 천보축전 홈페이지 가입 완료에 따라 자동 발송되었습니다.<br>
+                © Likelion SYU. All rights reserved.
+            </td></tr>
+        </table>
+    </td></tr>
+</table>
+</body>
+</html>

@@ -88,6 +88,8 @@ Content-Type: application/json
 { "userUuid": "123e4567-e89b-12d3-a456-426614174000" }
 ```
 
+가입 성공 후 Festa가 별도의 HTML 가입 환영 메일을 비동기로 발송합니다. 메일 발송 장애는 회원가입 API의 성공 응답에 영향을 주지 않습니다.
+
 ## 로그인
 
 ```http
@@ -106,6 +108,8 @@ Content-Type: application/json
 ```
 
 응답의 Refresh Token은 HttpOnly `Set-Cookie`로 저장됩니다. Access Token만 메모리 인증 store에 보관한 다음 `/api/users/me`를 조회해 사용자와 축제 권한을 초기화합니다.
+
+기존 SSO 사용자가 Festa에 최초 로그인한 경우에도 같은 HTML 환영 메일이 한 번 발송됩니다. 이미 발송된 사용자에게는 이후 로그인 시 다시 발송하지 않으며 프런트에서 별도의 메일 API를 호출할 필요가 없습니다.
 
 ## 명시적 토큰 갱신
 

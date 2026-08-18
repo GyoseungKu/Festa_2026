@@ -82,13 +82,13 @@ SSO의 `ssoRole`과 축제 운영 권한은 별개입니다.
 
 ### 환경설정
 
-[env.properties.example](src/main/resources/env.properties.example)을 복사하여 `src/main/resources/env.properties`를 만듭니다.
+[env.properties.example](env.properties.example)을 복사하여 프로젝트 루트에 `env.properties`를 만듭니다.
 
 ```powershell
-Copy-Item src\main\resources\env.properties.example src\main\resources\env.properties
+Copy-Item env.properties.example env.properties
 ```
 
-`env.properties`는 Git에서 제외됩니다. 운영 환경에서는 JAR 내부 파일보다 서버 환경변수나 Secret Manager 사용을 권장합니다.
+`env.properties`는 Git에서 제외되고 JAR에도 포함되지 않습니다. 운영 환경에서는 서버 환경변수나 Secret Manager 사용을 권장합니다.
 
 필수값은 DB 계정, SSO Client, R2 자격증명과 메일 계정입니다. `DB_URL`도 배포 환경에 맞게 명시적으로 설정하십시오.
 
@@ -145,6 +145,22 @@ Origin은 경로나 마지막 `/` 없이 `scheme://host[:port]` 형식으로 입
 | POST | `/api/auth/logout` | 선택 | SSO 로그아웃 및 Refresh 쿠키 삭제 |
 
 회원가입의 `loginId`, `password`, `email`, `name`, `studentNo`, `department`는 필수이고 `phone`, `grade`, `enrollment`, `birthDate`는 nullable입니다. 학교 학생 인증 연동은 현재 포함하지 않습니다.
+
+### HTML 가입 환영 메일
+
+- Festa를 통해 SSO 신규가입을 완료하거나 기존 SSO 사용자가 Festa에 최초 연결되면 HTML 환영 메일을 비동기로 발송합니다.
+- 신규 Festa 연결 시에만 발송 대기 상태를 만들고 완료 상태를 `festival_users`에 저장하므로, 기존 Festa 이용자나 이후 로그인에는 중복 발송하지 않습니다.
+- SMTP 또는 템플릿 처리 실패는 가입·로그인을 실패시키지 않으며 처리 상태를 해제하여 다음 로그인에서 재시도합니다.
+- 제목 기본값은 `[Likelion SYU] 삼육대학교 개교 120주년 천보축전 홈페이지 가입을 환영합니다.`입니다.
+- HTML은 [welcome.html](src/main/resources/templates/mail/welcome.html)에서 수정합니다.
+
+| 환경변수 | 기본값/설명 |
+|---|---|
+| `WELCOME_EMAIL_ENABLED` | `true`, 환영 메일 기능 활성화 |
+| `WELCOME_EMAIL_FROM` | 기본값은 `MAIL_USERNAME`; Gmail에서는 인증 계정 또는 등록된 발신 별칭 사용 |
+| `WELCOME_EMAIL_FROM_NAME` | `Likelion SYU`, 발신자 표시 이름 |
+| `WELCOME_EMAIL_SUBJECT` | 환영 메일 제목 |
+| `WELCOME_EMAIL_SITE_URL` | `https://festa.syu-likelion.org` |
 
 ### 내 정보와 계정
 
