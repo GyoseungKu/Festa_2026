@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>QR 사용자 조회 | SYU FESTA 2026</title>
+    <title>사용자 조회 | SYU FESTA 2026</title>
     <link rel="icon" type="image/svg+xml" th:href="@{/images/favicon.svg}" href="/images/favicon.svg">
     <link rel="stylesheet" th:href="@{/css/admin.css}">
     <script defer th:src="@{/webjars/jsqr/1.4.0/dist/jsQR.js}"></script>
@@ -27,25 +27,55 @@
 
 <main class="admin-main qr-page">
     <nav class="breadcrumb" aria-label="현재 위치">
-        <a th:href="@{/admin}">관리자 홈</a><span>/</span><strong>QR 사용자 조회</strong>
+        <a th:href="@{/admin}">관리자 홈</a><span>/</span><strong>사용자 조회</strong>
     </nav>
 
     <section class="page-heading">
         <div>
-            <p class="eyebrow">QR USER LOOKUP</p>
-            <h1>QR 사용자 조회</h1>
-            <p>사용자의 동적 QR을 카메라로 스캔하면 정보가 자동으로 조회됩니다.</p>
+            <p class="eyebrow">USER LOOKUP</p>
+            <h1>사용자 조회</h1>
+            <p>동적 QR을 스캔하거나 이름·학번 등 사용자 정보를 입력해 조회합니다.</p>
         </div>
         <span class="role-chip"><span class="live-dot"></span><span th:text="${adminRole}">ADMIN</span> 권한</span>
     </section>
 
     <div class="alert alert-error" role="alert" th:if="${error}" th:text="${error}"></div>
+    <div class="alert alert-success" role="status" th:if="${message}" th:text="${message}"></div>
+
+    <section class="panel user-search-panel" th:if="${adminRole.name() == 'STAFF' || adminRole.name() == 'ADMIN' || adminRole.name() == 'SUPER_ADMIN'}">
+        <div class="panel-heading"><div><span class="step-number">01</span><h2>사용자 정보 검색</h2></div></div>
+        <form class="user-search-form" method="post" th:action="@{/admin/qr/search}">
+            <label class="field-group"><span>검색어</span><input type="search" name="query" minlength="2" maxlength="100" required th:value="${searchQuery}" placeholder="이름, 학번, 아이디, 이메일, 전화번호, 학과"></label>
+            <button class="button button-primary" type="submit">검색</button>
+        </form>
+        <p class="support-copy">검색은 원본 정보로 처리되지만 결과에는 현재 권한으로 볼 수 있는 정보만 표시됩니다. 최대 20명까지 표시합니다.</p>
+    </section>
+
+    <section class="panel user-search-results" th:if="${searchResult != null}">
+        <div class="result-heading"><div><span class="success-mark">✓</span><div><p class="eyebrow">SEARCH RESULT</p><h2 th:text="|${searchResult.totalMatches}명 검색됨|">검색 결과</h2></div></div></div>
+        <p class="support-copy" th:if="${searchResult.truncated}">검색 결과가 많아 상위 20명만 표시합니다. 검색어를 더 구체적으로 입력해 주세요.</p>
+        <p class="empty-copy" th:if="${searchResult.items.empty}">일치하는 축제 연동 사용자가 없습니다.</p>
+        <div class="user-search-result-list" th:unless="${searchResult.items.empty}"><article th:each="user : ${searchResult.items}">
+            <dl class="profile-grid">
+                <div th:if="${user.name != null}"><dt>이름</dt><dd th:text="${user.name}"></dd></div><div th:if="${user.studentNo != null}"><dt>학번</dt><dd th:text="${user.studentNo}"></dd></div><div th:if="${user.department != null}"><dt>학과</dt><dd th:text="${user.department}"></dd></div><div th:if="${user.grade != null}"><dt>학년</dt><dd th:text="|${user.grade}학년|"></dd></div><div th:if="${user.phone != null}"><dt>전화번호</dt><dd th:text="${user.phone}"></dd></div><div th:if="${user.email != null}"><dt>이메일</dt><dd th:text="${user.email}"></dd></div><div th:if="${user.userUuid != null}"><dt>사용자 UUID</dt><dd class="mono" th:text="${user.userUuid}"></dd></div><div th:if="${user.loginId != null}"><dt>로그인 ID</dt><dd th:text="${user.loginId}"></dd></div><div th:if="${user.status != null}"><dt>계정 상태</dt><dd th:text="${user.status}"></dd></div><div th:if="${user.enrollment != null}"><dt>재학 상태</dt><dd th:text="${user.enrollment}"></dd></div><div th:if="${user.birthDate != null}"><dt>생년월일</dt><dd th:text="${user.birthDate}"></dd></div><div th:if="${user.festivalRoles != null}"><dt>축제 권한</dt><dd th:text="${user.festivalRoles}"></dd></div>
+            </dl>
+            <form class="user-role-form" method="post" th:if="${canManageUserRoles and user.userUuid != null and user.managementRole != null}"
+                  th:action="@{/admin/qr/users/{id}/role(id=${user.userUuid})}">
+                <input type="hidden" name="query" th:value="${searchQuery}">
+                <label><span>관리 권한</span><select name="managementRole">
+                    <option th:each="role : ${managementRoleOptions}" th:value="${role}" th:text="${role}" th:selected="${role == user.managementRole}"></option>
+                </select></label>
+                <button class="button button-primary button-small" type="submit">권한 변경</button>
+                <small th:if="${adminRole.name() == 'ADMIN'}">ADMIN은 USER·STAFF 범위만 변경할 수 있습니다.</small>
+            </form>
+        </article></div>
+    </section>
 
     <div class="qr-layout qr-camera-only">
         <section class="panel scanner-panel">
             <div class="panel-heading">
                 <div>
-                    <span class="step-number">01</span>
+                    <span class="step-number">02</span>
                     <h2>카메라 스캔</h2>
                 </div>
                 <span id="camera-status" class="camera-status">대기 중</span>
@@ -96,6 +126,11 @@
             <div th:if="${result.birthDate != null}"><dt>생년월일</dt><dd th:text="${result.birthDate}"></dd></div>
             <div th:if="${result.festivalRoles != null}"><dt>축제 권한</dt><dd th:text="${result.festivalRoles}"></dd></div>
         </dl>
+        <form class="user-role-form" method="post" th:if="${canManageUserRoles and result.userUuid != null and result.managementRole != null}"
+              th:action="@{/admin/qr/users/{id}/role(id=${result.userUuid})}">
+            <label><span>관리 권한</span><select name="managementRole"><option th:each="role : ${managementRoleOptions}" th:value="${role}" th:text="${role}" th:selected="${role == result.managementRole}"></option></select></label>
+            <button class="button button-primary button-small" type="submit">권한 변경</button>
+        </form>
     </section>
 </main>
 <div th:replace="~{admin/fragments/footer :: footer(true)}"></div>

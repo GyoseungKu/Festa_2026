@@ -7,12 +7,16 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.PathVariable;
+import java.util.List;
+import java.util.UUID;
 import org.syu_likelion.Festa_2026.admin.AdminAccessService.AdminIdentity;
 import org.syu_likelion.Festa_2026.auth.AuthDtos.LoginRequest;
 import org.syu_likelion.Festa_2026.auth.AuthService;
 import org.syu_likelion.Festa_2026.auth.AuthorizedSsoExecutor.AuthorizedResult;
 import org.syu_likelion.Festa_2026.error.ApiException;
 import org.syu_likelion.Festa_2026.qr.QrService;
+import org.syu_likelion.Festa_2026.user.FestivalRole;
 import org.syu_likelion.Festa_2026.sso.SsoException;
 
 @Controller
@@ -125,6 +129,29 @@ public class AdminPageController {
         return "admin/qr-scan";
     }
 
+    @PostMapping("/admin/qr/users/{userUuid}/role")
+    String updateUserRole(@PathVariable UUID userUuid, @RequestParam FestivalRole managementRole,
+                          @RequestParam(required = false) String query, HttpServletRequest request,
+                          HttpServletResponse response, Model model) {
+        AuthorizedResult<AdminIdentity> admin = authenticateOrNull(request, response);
+        if (admin == null) return "redirect:/admin/login";
+        addAdmin(model, admin.body());
+        model.addAttribute("searchQuery", query);
+        try {
+            qrService.updateRoleAs(admin.body().userUuid(), admin.body().role(), userUuid, managementRole);
+            model.addAttribute("message", "사용자 관리 권한을 변경했습니다.");
+            if (query != null && !query.isBlank())
+                model.addAttribute("searchResult", qrService.searchAs(admin.body().role(), query));
+        } catch (ApiException exception) {
+            model.addAttribute("error", exception.getMessage());
+            if (query != null && !query.isBlank()) {
+                try { model.addAttribute("searchResult", qrService.searchAs(admin.body().role(), query)); }
+                catch (RuntimeException ignored) { /* 원래 권한 변경 오류를 우선 표시합니다. */ }
+            }
+        }
+        return "admin/qr-scan";
+    }
+
     private AuthorizedResult<AdminIdentity> authenticateOrNull(HttpServletRequest request,
                                                                HttpServletResponse response) {
         try {
@@ -159,6 +186,10 @@ public class AdminPageController {
         model.addAttribute("canManageLostItems", canManageStaffFeatures);
         model.addAttribute("canManageBirthdayMessages", canManageStaffFeatures);
         model.addAttribute("canMonitorSystem", superAdmin);
+        model.addAttribute("canManageUserRoles", canManagePerformances);
+        model.addAttribute("managementRoleOptions", superAdmin
+                ? List.of(FestivalRole.USER, FestivalRole.STAFF, FestivalRole.ADMIN, FestivalRole.SUPER_ADMIN)
+                : canManagePerformances ? List.of(FestivalRole.USER, FestivalRole.STAFF) : List.of());
         model.addAttribute("availableFeatureCount", 1 + (canManageStaffFeatures ? 2 : 0)
                 + (canManagePerformances ? 3 : 0) + (canManageStamps ? 1 : 0) + (superAdmin ? 1 : 0));
     }

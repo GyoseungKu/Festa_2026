@@ -62,6 +62,9 @@ public class FestivalUser {
         return Set.copyOf(roles);
     }
     public Long getId() { return id; }
+    public FestivalRole getManagementRole() { return managementRole; }
+    public boolean isBoothManager() { return boothManager; }
+    public void changeManagementRole(FestivalRole role) { managementRole = role; }
 
     public void addRole(FestivalRole role) {
         if (role == FestivalRole.BOOTH_MANAGER) boothManager = true;

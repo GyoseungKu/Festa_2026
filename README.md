@@ -276,12 +276,15 @@ Origin은 경로나 마지막 `/` 없이 `scheme://host[:port]` 형식으로 입
 | Method | Path | 권한 | 설명 |
 |---|---|---|---|
 | POST | `/api/qr/search` | `STAFF` 이상 | 원본 정보로 사용자 검색 후 권한별 마스킹 결과 반환 |
+| PATCH | `/api/qr/users/{userUuid}/role` | `ADMIN` 이상 | 사용자 관리 권한 변경 |
 | POST | `/api/qr/tokens` | 로그인 | 내 동적 QR 토큰 발급 |
 | POST | `/api/qr/scan` | `BOOTH_MANAGER`, `STAFF`, `ADMIN`, `SUPER_ADMIN` | 권한별 사용자 정보 조회 |
 
 QR에는 개인정보나 Access Token을 넣지 않습니다. 서버는 256비트 난수 토큰의 SHA-256 해시, `userUuid`, 만료 시각만 저장합니다. 기본 유효시간은 60초입니다.
 
 일반 QR 사용자 조회와 부스 스탬프 처리는 별도 API입니다. 스탬프 지급은 반드시 `/api/booths/{boothId}/stamps/**`를 사용해야 담당 부스와 지급 가능 여부를 검증합니다.
+
+사용자 관리 권한은 기존 ENUM(`USER`, `STAFF`, `ADMIN`, `SUPER_ADMIN`)으로 유지합니다. `ADMIN`은 USER·STAFF 범위만 변경하고 `SUPER_ADMIN`만 ADMIN 이상을 지정할 수 있습니다. `BOOTH_MANAGER`는 부스 담당자 관계와 별도로 관리하므로 사용자 권한 변경 API 대상이 아닙니다.
 
 ### 프런트 이벤트와 접속 현황
 

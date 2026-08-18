@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -54,6 +55,7 @@ import org.syu_likelion.Festa_2026.birthday.BirthdayMessageDtos.AdminBirthdayMes
 import org.syu_likelion.Festa_2026.birthday.BirthdayMessageDtos.AdminUserView;
 import org.syu_likelion.Festa_2026.qr.QrDtos.QrUserView;
 import org.syu_likelion.Festa_2026.qr.QrDtos.UserSearchResponse;
+import org.syu_likelion.Festa_2026.qr.QrDtos.UserRoleUpdateResponse;
 import org.syu_likelion.Festa_2026.qr.QrService;
 import org.syu_likelion.Festa_2026.user.FestivalRole;
 import org.syu_likelion.Festa_2026.user.UserDtos.MeResponse;
@@ -480,7 +482,8 @@ class AdminPageIntegrationTests {
                 .andExpect(content().string(containsString("구요승")))
                 .andExpect(content().string(containsString("01012345678")))
                 .andExpect(content().string(containsString("target@example.com")))
-                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("사용자 UUID"))));
+                .andExpect(content().string(containsString("사용자 UUID")))
+                .andExpect(content().string(containsString("권한 변경")));
     }
 
     @Test
@@ -502,6 +505,28 @@ class AdminPageIntegrationTests {
                 .andExpect(content().string(containsString("홍*동")))
                 .andExpect(content().string(containsString("2024******")))
                 .andExpect(content().string(org.hamcrest.Matchers.not(containsString("사용자 UUID"))));
+    }
+
+    @Test
+    void adminCanChangeSearchedUsersManagementRole() throws Exception {
+        UUID target = UUID.fromString("123e4567-e89b-12d3-a456-426614174099");
+        when(adminAccess.authenticate("admin-role", null))
+                .thenReturn(new AuthorizedResult<>(identity(FestivalRole.ADMIN), null, null));
+        QrUserView user = new QrUserView(FestivalRole.ADMIN, target, null, "user@example.com", null, null,
+                "홍길동", "01012345678", "2024000001", "컴퓨터공학부", 3,
+                null, null, null, null, Set.of(FestivalRole.USER));
+        when(qrService.updateRoleAs(ADMIN_UUID, FestivalRole.ADMIN, target, FestivalRole.STAFF))
+                .thenReturn(new UserRoleUpdateResponse(target, Set.of(FestivalRole.STAFF)));
+        when(qrService.searchAs(FestivalRole.ADMIN, "홍길동"))
+                .thenReturn(new UserSearchResponse(java.util.List.of(user), 1, false));
+
+        mvc.perform(post("/admin/qr/users/{id}/role", target).with(csrf())
+                        .cookie(new Cookie("festivalAdminAccess", "admin-role"))
+                        .param("managementRole", "STAFF").param("query", "홍길동"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/qr-scan"))
+                .andExpect(content().string(containsString("사용자 관리 권한을 변경했습니다.")));
+        verify(qrService).updateRoleAs(ADMIN_UUID, FestivalRole.ADMIN, target, FestivalRole.STAFF);
     }
 
     @Test
@@ -585,8 +610,9 @@ class AdminPageIntegrationTests {
     }
 
     private QrUserView adminView() {
-        return new QrUserView(FestivalRole.ADMIN, null, null, "target@example.com", null, null,
+        return new QrUserView(FestivalRole.ADMIN,
+                UUID.fromString("123e4567-e89b-12d3-a456-426614174099"), null, "target@example.com", null, null,
                 "구요승", "01012345678", "2024100920", "컴퓨터공학과", 3,
-                null, null, null, null, null);
+                null, null, null, null, Set.of(FestivalRole.USER));
     }
 }

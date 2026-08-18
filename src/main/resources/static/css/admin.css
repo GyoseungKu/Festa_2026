@@ -229,6 +229,10 @@ button { cursor: pointer; }
 .user-search-result-list { display: grid; gap: 12px; margin-top: 14px; }
 .user-search-result-list > article { padding: 0 18px; border: 1px solid var(--line); border-radius: 13px; background: rgba(255,255,255,.03); }
 .user-search-result-list .profile-grid { margin-top: 0; }
+.user-role-form { display: flex; align-items: end; flex-wrap: wrap; gap: 10px; padding: 14px 0 16px; border-top: 1px solid var(--line); }
+.user-role-form label { display: grid; gap: 5px; min-width: 180px; color: var(--muted); font-size: .75rem; font-weight: 700; }
+.user-role-form select { min-height: 40px; color: inherit; border: 1px solid var(--line); border-radius: 9px; padding: 8px 10px; background: var(--surface); }
+.user-role-form small { width: 100%; color: var(--muted); }
 .result-heading { padding-bottom: 21px; border-bottom: 1px solid var(--line); }
 .result-heading .eyebrow { margin-bottom: 2px; }
 .success-mark { display: grid; width: 43px; height: 43px; place-items: center; border-radius: 13px; color: #fff; background: var(--success); font-size: 1.2rem; font-weight: 900; }

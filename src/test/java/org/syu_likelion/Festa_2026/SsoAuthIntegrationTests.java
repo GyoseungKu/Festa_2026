@@ -371,7 +371,9 @@ class SsoAuthIntegrationTests {
                 .andExpect(jsonPath("$.paths['/api/users/me'].get.parameters").doesNotExist())
                 .andExpect(jsonPath("$.paths['/api/auth/logout'].post.parameters").doesNotExist())
                 .andExpect(jsonPath("$.paths['/api/qr/tokens'].post.summary").value("내 QR 토큰 발급"))
-                .andExpect(jsonPath("$.paths['/api/qr/scan'].post.security[0].bearerAuth").isArray());
+                .andExpect(jsonPath("$.paths['/api/qr/scan'].post.security[0].bearerAuth").isArray())
+                .andExpect(jsonPath("$.paths['/api/qr/search'].post.security[0].bearerAuth").isArray())
+                .andExpect(jsonPath("$.paths['/api/qr/users/{userUuid}/role'].patch.security[0].bearerAuth").isArray());
     }
 
     @Test

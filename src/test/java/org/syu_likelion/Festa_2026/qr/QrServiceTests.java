@@ -15,6 +15,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -82,14 +83,14 @@ class QrServiceTests {
     }
 
     @Test
-    void staffSeesUnmaskedAcademicProfileButNoContactInformation() {
+    void staffSeesMaskedAcademicProfileButNoContactInformation() {
         authenticateAs(FestivalRole.STAFF, SCANNER_UUID);
         tokens.save("valid-token", TARGET_UUID, Duration.ofSeconds(60));
 
         QrDtos.QrUserView view = service.scan("access", null, "valid-token").body();
 
-        assertThat(view.name()).isEqualTo("구요승");
-        assertThat(view.studentNo()).isEqualTo("2024100920");
+        assertThat(view.name()).isEqualTo("구*승");
+        assertThat(view.studentNo()).isEqualTo("2024******");
         assertThat(view.department()).isEqualTo("컴퓨터공학과");
         assertThat(view.grade()).isEqualTo(3);
         assertThat(view.phone()).isNull();
@@ -105,6 +106,8 @@ class QrServiceTests {
 
         assertThat(view.phone()).isEqualTo("01012345678");
         assertThat(view.email()).isEqualTo("target@example.com");
+        assertThat(view.userUuid()).isEqualTo(TARGET_UUID);
+        assertThat(view.festivalRoles()).containsExactly(FestivalRole.USER);
         assertThat(view.birthDate()).isNull();
         assertThat(view.loginId()).isNull();
     }
@@ -121,6 +124,65 @@ class QrServiceTests {
         assertThat(view.birthDate()).isEqualTo("2004-01-02");
         assertThat(view.enrollment()).isEqualTo("ENROLLED");
         assertThat(view.festivalRoles()).containsExactly(FestivalRole.USER);
+    }
+
+    @Test
+    void staffCanSearchWithOriginalNameButReceivesOnlyMaskedResult() {
+        when(festivalUsers.getLinkedUserUuids()).thenReturn(List.of(TARGET_UUID));
+        when(profiles.getProfiles(List.of(TARGET_UUID))).thenReturn(List.of(targetProfile()));
+
+        QrDtos.UserSearchResponse result = service.searchAs(FestivalRole.STAFF, "구요승");
+
+        assertThat(result.totalMatches()).isEqualTo(1);
+        assertThat(result.items()).singleElement().satisfies(view -> {
+            assertThat(view.name()).isEqualTo("구*승");
+            assertThat(view.studentNo()).isEqualTo("2024******");
+            assertThat(view.phone()).isNull();
+            assertThat(view.email()).isNull();
+        });
+    }
+
+    @Test
+    void adminCanSearchByPhoneAndReceivesAdminScope() {
+        when(festivalUsers.getLinkedUserUuids()).thenReturn(List.of(TARGET_UUID));
+        when(profiles.getProfiles(List.of(TARGET_UUID))).thenReturn(List.of(targetProfile()));
+
+        QrDtos.UserSearchResponse result = service.searchAs(FestivalRole.ADMIN, "010-1234-5678");
+
+        assertThat(result.items()).singleElement().satisfies(view -> {
+            assertThat(view.name()).isEqualTo("구요승");
+            assertThat(view.phone()).isEqualTo("01012345678");
+            assertThat(view.userUuid()).isEqualTo(TARGET_UUID);
+        });
+    }
+
+    @Test
+    void authenticatedAdminCanUpdateManagementRole() {
+        authenticateAs(FestivalRole.ADMIN, SCANNER_UUID);
+        when(festivalUsers.updateManagementRole(SCANNER_UUID, FestivalRole.ADMIN, TARGET_UUID, FestivalRole.STAFF))
+                .thenReturn(Set.of(FestivalRole.STAFF));
+
+        QrDtos.UserRoleUpdateResponse result = service.updateRole("access", null, TARGET_UUID,
+                FestivalRole.STAFF).body();
+
+        assertThat(result.userUuid()).isEqualTo(TARGET_UUID);
+        assertThat(result.festivalRoles()).containsExactly(FestivalRole.STAFF);
+    }
+
+    @Test
+    void boothManagerCannotUseDirectorySearch() {
+        assertThatThrownBy(() -> service.searchAs(FestivalRole.BOOTH_MANAGER, "구요승"))
+                .isInstanceOfSatisfying(ApiException.class,
+                        exception -> assertThat(exception.code()).isEqualTo("USER_SEARCH_FORBIDDEN"));
+        verify(festivalUsers, never()).getLinkedUserUuids();
+    }
+
+    @Test
+    void normalizedSearchQueryMustContainAtLeastTwoCharacters() {
+        assertThatThrownBy(() -> service.searchAs(FestivalRole.STAFF, "가 "))
+                .isInstanceOfSatisfying(ApiException.class,
+                        exception -> assertThat(exception.code()).isEqualTo("INVALID_USER_SEARCH_QUERY"));
+        verify(festivalUsers, never()).getLinkedUserUuids();
     }
 
     @Test

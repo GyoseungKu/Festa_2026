@@ -4,6 +4,10 @@ import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -12,6 +16,8 @@ import org.syu_likelion.Festa_2026.auth.AuthorizedSsoExecutor.AuthorizedResult;
 import org.syu_likelion.Festa_2026.error.ApiException;
 import org.syu_likelion.Festa_2026.qr.QrDtos.QrTokenResponse;
 import org.syu_likelion.Festa_2026.qr.QrDtos.QrUserView;
+import org.syu_likelion.Festa_2026.qr.QrDtos.UserSearchResponse;
+import org.syu_likelion.Festa_2026.qr.QrDtos.UserRoleUpdateResponse;
 import org.syu_likelion.Festa_2026.sso.SsoInternalProfileClient;
 import org.syu_likelion.Festa_2026.sso.SsoProfiles.InternalUserProfile;
 import org.syu_likelion.Festa_2026.user.FestivalRole;
@@ -21,6 +27,8 @@ import org.syu_likelion.Festa_2026.user.UserService;
 
 @Service
 public class QrService {
+    private static final int PROFILE_BATCH_SIZE = 100;
+    private static final int SEARCH_RESULT_LIMIT = 20;
     private final UserService users;
     private final FestivalUserService festivalUsers;
     private final SsoInternalProfileClient profiles;
@@ -65,6 +73,52 @@ public class QrService {
         return toView(viewerRole, profile);
     }
 
+    public AuthorizedResult<UserSearchResponse> search(String accessToken, String refreshToken, String query) {
+        AuthorizedResult<MeResponse> authenticated = users.getMe(accessToken, refreshToken);
+        FestivalRole viewerRole = highestSearchRole(authenticated.body().festivalRoles());
+        return new AuthorizedResult<>(searchAs(viewerRole, query), authenticated.newAccessToken(),
+                authenticated.newRefreshToken());
+    }
+
+    public UserSearchResponse searchAs(FestivalRole viewerRole, String query) {
+        requireSearchRole(viewerRole);
+        String term = query == null ? "" : query.trim();
+        String normalized = normalize(term);
+        if (normalized.length() < 2 || term.length() > 100)
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_USER_SEARCH_QUERY",
+                    "검색어는 공백 제외 2자 이상 100자 이하로 입력해 주세요.");
+        String digits = digits(term);
+        List<InternalUserProfile> matched = new ArrayList<>();
+        List<UUID> ids = festivalUsers.getLinkedUserUuids();
+        for (int start = 0; start < ids.size(); start += PROFILE_BATCH_SIZE) {
+            List<UUID> batch = ids.subList(start, Math.min(start + PROFILE_BATCH_SIZE, ids.size()));
+            profiles.getProfiles(batch).stream().filter(profile -> matches(profile, normalized, digits))
+                    .forEach(matched::add);
+        }
+        matched.sort(Comparator.comparing((InternalUserProfile profile) -> !exactMatch(profile, normalized, digits))
+                .thenComparing(profile -> normalize(profile.name()), Comparator.nullsLast(String::compareTo))
+                .thenComparing(profile -> normalize(profile.studentNo()), Comparator.nullsLast(String::compareTo)));
+        int total = matched.size();
+        List<QrUserView> items = matched.stream().limit(SEARCH_RESULT_LIMIT)
+                .map(profile -> toView(viewerRole, profile)).toList();
+        return new UserSearchResponse(items, total, total > SEARCH_RESULT_LIMIT);
+    }
+
+    public AuthorizedResult<UserRoleUpdateResponse> updateRole(String accessToken, String refreshToken,
+            UUID targetUuid, FestivalRole requestedRole) {
+        AuthorizedResult<MeResponse> authenticated = users.getMe(accessToken, refreshToken);
+        FestivalRole actorRole = highestViewerRole(authenticated.body().festivalRoles());
+        UserRoleUpdateResponse response = updateRoleAs(authenticated.body().userUuid(), actorRole,
+                targetUuid, requestedRole);
+        return new AuthorizedResult<>(response, authenticated.newAccessToken(), authenticated.newRefreshToken());
+    }
+
+    public UserRoleUpdateResponse updateRoleAs(UUID actorUuid, FestivalRole actorRole,
+                                                UUID targetUuid, FestivalRole requestedRole) {
+        Set<FestivalRole> roles = festivalUsers.updateManagementRole(actorUuid, actorRole, targetUuid, requestedRole);
+        return new UserRoleUpdateResponse(targetUuid, roles);
+    }
+
     public UUID resolveUserUuid(String qrToken) {
         if (qrToken == null || qrToken.isBlank()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "QR_INVALID_OR_EXPIRED",
@@ -83,17 +137,29 @@ public class QrService {
         throw new ApiException(HttpStatus.FORBIDDEN, "QR_SCAN_FORBIDDEN", "QR 사용자 조회 권한이 없습니다.");
     }
 
+    private FestivalRole highestSearchRole(Set<FestivalRole> roles) {
+        FestivalRole role = highestViewerRole(roles);
+        requireSearchRole(role);
+        return role;
+    }
+
+    private void requireSearchRole(FestivalRole role) {
+        if (role != FestivalRole.STAFF && role != FestivalRole.ADMIN && role != FestivalRole.SUPER_ADMIN)
+            throw new ApiException(HttpStatus.FORBIDDEN, "USER_SEARCH_FORBIDDEN",
+                    "사용자 검색은 STAFF 이상만 사용할 수 있습니다.");
+    }
+
     private QrUserView toView(FestivalRole viewerRole, InternalUserProfile profile) {
         return switch (viewerRole) {
             case BOOTH_MANAGER -> new QrUserView(viewerRole, null, null, null, null, null,
                     maskName(profile.name()), null, maskStudentNo(profile.studentNo()),
                     profile.department(), profile.grade(), null, null, null, null, null);
             case STAFF -> new QrUserView(viewerRole, null, null, null, null, null,
-                    profile.name(), null, profile.studentNo(), profile.department(), profile.grade(),
+                    maskName(profile.name()), null, maskStudentNo(profile.studentNo()), profile.department(), profile.grade(),
                     null, null, null, null, null);
-            case ADMIN -> new QrUserView(viewerRole, null, null, profile.email(), null, null,
+            case ADMIN -> new QrUserView(viewerRole, profile.userUuid(), null, profile.email(), null, null,
                     profile.name(), profile.phone(), profile.studentNo(), profile.department(), profile.grade(),
-                    null, null, null, null, null);
+                    null, null, null, null, festivalUsers.getRoles(profile.userUuid()));
             case SUPER_ADMIN -> new QrUserView(viewerRole, profile.userUuid(), profile.loginId(), profile.email(),
                     profile.ssoRole(), profile.status(), profile.name(), profile.phone(), profile.studentNo(),
                     profile.department(), profile.grade(), profile.enrollment(), profile.birthDate(),
@@ -102,6 +168,32 @@ public class QrService {
                     "QR 사용자 조회 권한이 없습니다.");
         };
     }
+
+    private boolean matches(InternalUserProfile profile, String term, String digitTerm) {
+        if (contains(profile.name(), term) || contains(profile.loginId(), term)
+                || contains(profile.email(), term) || contains(profile.department(), term)
+                || contains(profile.enrollment(), term) || contains(profile.userUuid().toString(), term)) return true;
+        return !digitTerm.isEmpty() && (digits(profile.studentNo()).contains(digitTerm)
+                || digits(profile.phone()).contains(digitTerm));
+    }
+
+    private boolean exactMatch(InternalUserProfile profile, String term, String digitTerm) {
+        if (equalsNormalized(profile.name(), term) || equalsNormalized(profile.loginId(), term)
+                || equalsNormalized(profile.email(), term) || equalsNormalized(profile.userUuid().toString(), term)) return true;
+        return !digitTerm.isEmpty() && (digits(profile.studentNo()).equals(digitTerm)
+                || digits(profile.phone()).equals(digitTerm));
+    }
+
+    private boolean contains(String value, String term) {
+        return value != null && normalize(value).contains(term);
+    }
+    private boolean equalsNormalized(String value, String term) {
+        return value != null && normalize(value).equals(term);
+    }
+    private String normalize(String value) {
+        return value == null ? null : value.strip().toLowerCase(Locale.ROOT).replaceAll("\\s+", "");
+    }
+    private String digits(String value) { return value == null ? "" : value.replaceAll("\\D", ""); }
 
     public static String maskName(String name) {
         if (name == null || name.isBlank()) return name;
