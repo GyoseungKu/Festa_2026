@@ -2,6 +2,8 @@
 
 관리자 모니터링의 “현재 접속 추정”은 로그인 사용자 목록이 아니라 최근 150초 안에 heartbeat를 보낸 브라우저 세션 수입니다. 개인정보와 Access Token은 수집하지 않습니다.
 
+공통 API 규약은 [공통 API 규약](frontend-api-common.md)을 참고하되, 이 API에는 인증과 쿠키가 필요하지 않습니다.
+
 ## API
 
 ```http
@@ -49,7 +51,6 @@ export function PresenceHeartbeat() {
       void fetch(`${API_BASE_URL}/api/presence/heartbeat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({
           sessionId: presenceSessionId(),
           route: location.pathname,
@@ -72,3 +73,10 @@ export function PresenceHeartbeat() {
 ```
 
 앱의 Router 내부 최상단에 `<PresenceHeartbeat />`를 한 번 배치합니다. 이 값은 “사람 수”가 아니라 활성 브라우저 탭 수에 가까운 추정치이며, 여러 서버 인스턴스로 확장하면 인스턴스별 메모리가 분리되므로 별도 집계 계층이 필요합니다.
+
+## 실패 처리
+
+- heartbeat 실패는 사용자 기능을 막거나 화면에 오류 토스트를 띄우지 않습니다.
+- `400 INVALID_REQUEST`: UUID 또는 route 형식 오류이므로 동일 payload를 재시도하지 않습니다.
+- `429 PRESENCE_CAPACITY_EXCEEDED`: 서버 추적 한도에 도달한 상태이므로 현재 탭에서는 전송 간격을 늘립니다.
+- 네트워크 오류는 다음 60초 주기에서 자연스럽게 다시 시도합니다.

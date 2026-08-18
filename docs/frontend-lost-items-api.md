@@ -1,119 +1,155 @@
-# 분실물 공지 API 연동 가이드
+# 분실물 공지 API
 
-분실물 공지는 로그인하지 않은 사용자도 조회할 수 있습니다. 요청에 `Authorization` 헤더나 Refresh Cookie가 필요하지 않습니다.
+공통 오류와 토큰 갱신 처리는 [공통 API 규약](frontend-api-common.md)을 따릅니다.
 
-## 목록 조회
+## 타입
+
+```ts
+type LostItemStatus = "HOLDING" | "RETURNED";
+type LostItemSort = "NEWEST" | "OLDEST";
+
+type LostItem = {
+  id: number;
+  title: string;
+  content: string;
+  status: LostItemStatus;
+  statusLabel: string;
+  pinned: boolean;
+  viewCount: number;
+  images: Array<{ id: number; url: string; displayOrder: number }>;
+  authorName: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type LostItemPage = {
+  items: LostItem[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+};
+```
+
+## 공개 목록
 
 ```http
 GET /api/lost-items?status=HOLDING&sort=NEWEST&page=0&size=20
 ```
 
-- `status`: 선택값. `HOLDING`(보관 중), `RETURNED`(주인에게 돌아감)
-- `sort`: `NEWEST`(최신순, 기본값), `OLDEST`(오래된순)
-- `page`: 0부터 시작하며 기본값은 0
-- `size`: 기본값 20, 최대 100
-- `status`를 생략하면 보관 중과 반환 완료를 모두 조회합니다.
-- 정렬: 상단 고정 → 최근 고정 → 선택한 작성일 정렬
-- 상단 고정 공지는 `OLDEST`에서도 일반 공지보다 먼저 표시됩니다.
-- 목록 조회는 조회수를 증가시키지 않습니다.
+| 쿼리 | 값 |
+|---|---|
+| `status` | 선택, `HOLDING` 또는 `RETURNED`; 생략 시 전체 |
+| `sort` | `NEWEST` 기본, `OLDEST` |
+| `page` | 0부터 시작, 기본 0 |
+| `size` | 기본 20, 최대 100 |
 
-필터 조합 예시:
+상단 고정 공지가 항상 먼저 나오고, 그 안에서 최근 고정순, 이후 선택한 작성일순으로 정렬됩니다. 목록 조회는 조회수를 증가시키지 않습니다.
 
-```http
-# 전체 최신순
-GET /api/lost-items?sort=NEWEST
+성공 `200`은 `LostItemPage`입니다.
 
-# 보관 중 오래된순
-GET /api/lost-items?status=HOLDING&sort=OLDEST
-
-# 반환 완료 최신순
-GET /api/lost-items?status=RETURNED&sort=NEWEST
-```
-
-## 상세 조회
+## 공개 상세
 
 ```http
 GET /api/lost-items/{id}
 ```
 
-상세 API를 정상 호출할 때마다 조회수가 1 증가합니다. 현재 정책은 브라우저나 IP별 중복 제거 없이 요청 1회당 1회 집계입니다. 관리자 페이지에서 조회하는 경우에는 증가하지 않습니다.
+성공할 때마다 조회수가 1 증가합니다. 브라우저나 IP 중복 제거는 없습니다. `createdAt`, `updatedAt`은 UTC ISO-8601이며 화면에서 `Asia/Seoul`로 변환합니다.
 
 ```json
 {
   "id": 7,
   "title": "학생회관 앞에서 발견된 검은색 지갑",
-  "content": "8월 13일 오후 학생회관 앞에서 발견했습니다.",
+  "content": "학생회관 분실물 센터에서 보관 중입니다.",
   "status": "HOLDING",
   "statusLabel": "보관 중",
   "pinned": true,
   "viewCount": 13,
   "images": [
-    {
-      "id": 21,
-      "url": "https://cdn.example.com/festa2026_lost_items/images/example.webp",
-      "displayOrder": 0
-    }
+    { "id": 21, "url": "https://cdn.example.com/wallet.webp", "displayOrder": 0 }
   ],
   "authorName": "축제 스태프",
-  "createdAt": "2026-08-13T03:00:00Z",
-  "updatedAt": "2026-08-13T03:10:00Z"
+  "createdAt": "2026-08-18T03:00:00Z",
+  "updatedAt": "2026-08-18T03:10:00Z"
 }
 ```
 
-`createdAt`과 `updatedAt`은 UTC ISO-8601 형식입니다. 화면에서는 Asia/Seoul 시간대로 변환해 표시하면 됩니다.
+## STAFF 이상 관리 API
 
-존재하지 않는 공지는 `404 LOST_ITEM_NOT_FOUND`를 반환합니다.
-
-## 관리 REST API
-
-관리 API는 `Authorization: Bearer {accessToken}`이 필요하며 `STAFF`, `ADMIN`, `SUPER_ADMIN`만 호출할 수 있습니다. 권한이 부족하면 `403 LOST_ITEM_MANAGE_FORBIDDEN`을 반환합니다.
-
-| Method | Path | Content-Type | 설명 |
+| Method | Path | Content-Type | 성공 |
 |---|---|---|---|
-| POST | `/api/lost-items` | `multipart/form-data` | 공지와 사진 등록 |
-| PATCH | `/api/lost-items/{id}` | `multipart/form-data` | 내용 수정, 사진 추가·삭제 |
-| PATCH | `/api/lost-items/{id}/status` | `application/json` | 반환 상태 변경 |
-| PATCH | `/api/lost-items/{id}/pin` | `application/json` | 상단 고정 변경 |
-| DELETE | `/api/lost-items/{id}` | 없음 | 공지와 사진 삭제 |
+| `POST` | `/api/lost-items` | multipart | `201`, 생성된 `LostItem` |
+| `PATCH` | `/api/lost-items/{id}` | multipart | `200`, 수정된 `LostItem` |
+| `PATCH` | `/api/lost-items/{id}/status` | JSON | `200`, 수정된 `LostItem` |
+| `PATCH` | `/api/lost-items/{id}/pin` | JSON | `200`, 수정된 `LostItem` |
+| `DELETE` | `/api/lost-items/{id}` | 없음 | `204` |
 
-### 공지 등록
+공지 JSON:
 
-multipart의 `data` 파트는 JSON, `images` 파트는 이미지 파일 목록입니다. 사진이 없으면 `images`를 생략할 수 있습니다.
-
-```bash
-curl -X POST http://localhost:8888/api/lost-items \
-  -H "Authorization: Bearer ACCESS_TOKEN" \
-  -F 'data={"title":"검은색 지갑","content":"학생회관 앞에서 발견했습니다.","status":"HOLDING","pinned":false};type=application/json' \
-  -F 'images=@wallet-front.webp;type=image/webp' \
-  -F 'images=@wallet-back.webp;type=image/webp'
+```ts
+type LostItemMutation = {
+  title: string;      // 1~150자
+  content: string;    // 1~5000자
+  status: LostItemStatus;
+  pinned: boolean;
+};
 ```
 
-성공 시 `201 Created`와 생성된 `LostItemResponse`를 반환합니다.
+사진은 최대 5개이며 JPG, PNG, WebP를 지원합니다.
 
-### 공지 수정
+### 등록 FormData
 
-`data`와 새 `images` 외에 삭제할 기존 사진 ID를 `removeImageIds`로 반복해서 전달할 수 있습니다.
+```ts
+const form = new FormData();
+form.append("data", new Blob([JSON.stringify(payload)], { type: "application/json" }));
+images.forEach((image) => form.append("images", image));
 
-```bash
-curl -X PATCH http://localhost:8888/api/lost-items/7 \
-  -H "Authorization: Bearer ACCESS_TOKEN" \
-  -F 'data={"title":"검은색 지갑","content":"학생회관 분실물 센터에서 보관 중입니다.","status":"HOLDING","pinned":true};type=application/json' \
-  -F 'removeImageIds=21' \
-  -F 'images=@new-photo.webp;type=image/webp'
+await apiFetch<LostItem>("/api/lost-items", {
+  method: "POST",
+  auth: true,
+  body: form,
+});
 ```
 
-수정 후 남는 기존 사진과 새 사진을 합해 최대 5장이어야 합니다.
+### 수정 FormData
 
-### 상태 및 고정 변경
+기존 사진 삭제 ID는 `removeImageIds`를 반복해서 추가합니다. 삭제 후 남는 사진과 새 사진 합계가 5개 이하여야 합니다.
+
+```ts
+const form = new FormData();
+form.append("data", new Blob([JSON.stringify(payload)], { type: "application/json" }));
+removeImageIds.forEach((id) => form.append("removeImageIds", String(id)));
+newImages.forEach((image) => form.append("images", image));
+
+await apiFetch<LostItem>(`/api/lost-items/${id}`, {
+  method: "PATCH",
+  auth: true,
+  body: form,
+});
+```
+
+### 상태·고정 변경
 
 ```json
 PATCH /api/lost-items/7/status
-{"status":"RETURNED"}
+{ "status": "RETURNED" }
 ```
 
 ```json
 PATCH /api/lost-items/7/pin
-{"pinned":true}
+{ "pinned": true }
 ```
 
-Access Token이 갱신되면 기존 API와 동일하게 `X-Access-Token` 응답 헤더가 제공되며, Refresh Token이 회전하면 `/api` 경로의 HttpOnly Cookie가 갱신됩니다.
+## 주요 오류
+
+| HTTP | code | 처리 |
+|---|---|---|
+| `400` | `INVALID_LOST_ITEM` | 제목·내용·상태 확인 |
+| `400` | `INVALID_LOST_ITEM_IMAGE_ID` | 상세를 다시 조회해 사진 동기화 |
+| `400` | `LOST_ITEM_IMAGE_LIMIT_EXCEEDED` | 최대 5장 안내 |
+| `403` | `LOST_ITEM_MANAGE_FORBIDDEN` | 관리 UI 접근 차단 |
+| `404` | `LOST_ITEM_NOT_FOUND` | 목록으로 이동 |
+| `413` | `UPLOAD_TOO_LARGE` | 파일 크기 안내 |
+| `415` | `UNSUPPORTED_MEDIA_TYPE` | multipart 및 이미지 형식 확인 |
+
+관리자 HTML 화면은 `/admin/lost-items`입니다.

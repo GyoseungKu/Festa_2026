@@ -1,33 +1,197 @@
-# 부스 지도 API
+# 부스 지도·찜 API
 
-모든 시각은 축제 당일의 `HH:mm:ss` 형식이며, 좌표는 WGS84 위도·경도입니다. 전체 조회와 상세 조회는 비로그인 사용자도 호출할 수 있습니다. 선택적으로 Bearer 토큰을 보내면 `favorited`에 현재 사용자의 찜 여부가 반영됩니다. 전체 찜 수는 어떤 응답에도 공개하지 않습니다.
+공통 인증, `X-Access-Token`, 오류 처리는 [공통 API 규약](frontend-api-common.md)을 따릅니다.
 
-## 공개 조회
+## 핵심 정책
 
-- `GET /api/booths`: 지도에 표시할 전체 부스 핀 목록
-- `GET /api/booths/{boothId}`: 선택한 부스 상세와 통합 정렬 미디어
+- 좌표는 WGS84 위도·경도입니다.
+- 운영시간은 축제 당일 `HH:mm:ss` 형식입니다.
+- 전체·상세 조회는 공개 API입니다.
+- 로그인 상태에서 Bearer Token을 선택적으로 보내면 `favorited`가 현재 사용자 기준으로 계산됩니다.
+- 전체 찜 수는 공개하지 않습니다.
+- `representativeMedia`는 미디어가 없으면 `null`입니다.
 
-목록 응답에는 `id`, `latitude`, `longitude`, `name`, `operator`, `opensAt`, `closesAt`, `stampEnabled`, `representativeMedia`, `favorited`가 포함됩니다. `stampEnabled`는 스탬프 지급 부스 여부입니다. 상세 응답의 `media`는 이미지와 동영상이 섞인 노출 순서이며 각 항목은 `kind`, `url`, `displayOrder`, `representative`를 가집니다.
+## 프런트 타입
+
+```ts
+type BoothMediaKind = "IMAGE" | "VIDEO";
+
+type BoothMedia = {
+  id: number;
+  kind: BoothMediaKind;
+  url: string;
+  displayOrder: number;
+  representative: boolean;
+};
+
+type BoothSummary = {
+  id: number;
+  latitude: number;
+  longitude: number;
+  name: string;
+  operator: string;
+  opensAt: string;
+  closesAt: string;
+  stampEnabled: boolean;
+  representativeMedia: BoothMedia | null;
+  favorited: boolean;
+};
+
+type BoothDetail = BoothSummary & {
+  description: string;
+  media: BoothMedia[];
+  createdAt: string;
+  updatedAt: string;
+};
+```
+
+## 전체 부스 핀 조회
+
+```http
+GET /api/booths
+Authorization: Bearer ACCESS_TOKEN  # 선택
+```
+
+성공 `200`은 `BoothSummary[]`입니다.
+
+```json
+[
+  {
+    "id": 7,
+    "latitude": 37.6432,
+    "longitude": 127.1059,
+    "name": "멋사 체험 부스",
+    "operator": "멋쟁이사자처럼",
+    "opensAt": "10:00:00",
+    "closesAt": "18:00:00",
+    "stampEnabled": true,
+    "representativeMedia": {
+      "id": 12,
+      "kind": "IMAGE",
+      "url": "https://cdn.example.com/booth.webp",
+      "displayOrder": 0,
+      "representative": true
+    },
+    "favorited": false
+  }
+]
+```
+
+지도 핀은 `latitude`, `longitude`를 사용하고, 핀 팝업은 `name`, `operator`, `representativeMedia`를 사용하면 됩니다. 초기 화면에서 이 배열 전체를 지도에 표시합니다.
+
+## 부스 상세 조회
+
+```http
+GET /api/booths/{boothId}
+Authorization: Bearer ACCESS_TOKEN  # 선택
+```
+
+성공 `200`은 `BoothDetail`입니다. `media` 배열 자체가 이미지·동영상 통합 노출 순서이며 `displayOrder` 오름차순입니다. 종류별로 다시 정렬하지 마십시오.
+
+```json
+{
+  "id": 7,
+  "latitude": 37.6432,
+  "longitude": 127.1059,
+  "name": "멋사 체험 부스",
+  "operator": "멋쟁이사자처럼",
+  "description": "체험 설명",
+  "opensAt": "10:00:00",
+  "closesAt": "18:00:00",
+  "stampEnabled": true,
+  "media": [
+    {
+      "id": 12,
+      "kind": "IMAGE",
+      "url": "https://cdn.example.com/booth.webp",
+      "displayOrder": 0,
+      "representative": true
+    },
+    {
+      "id": 13,
+      "kind": "VIDEO",
+      "url": "https://cdn.example.com/booth.mp4",
+      "displayOrder": 1,
+      "representative": false
+    }
+  ],
+  "representativeMedia": {
+    "id": 12,
+    "kind": "IMAGE",
+    "url": "https://cdn.example.com/booth.webp",
+    "displayOrder": 0,
+    "representative": true
+  },
+  "favorited": false,
+  "createdAt": "2026-08-18T01:00:00Z",
+  "updatedAt": "2026-08-18T02:00:00Z"
+}
+```
 
 ## 찜
 
-Bearer Access Token이 필수입니다.
+Bearer 인증이 필요합니다.
 
-- `POST /api/booths/{boothId}/favorite`: 찜 등록. 이미 등록되어도 성공하는 멱등 요청이며 `204`를 반환합니다.
-- `DELETE /api/booths/{boothId}/favorite`: 찜 해제. 이미 해제되어도 `204`를 반환합니다.
-- `GET /api/users/me/favorite-booths`: 내가 찜한 부스 목록
+| Method | Path | 성공 응답 |
+|---|---|---|
+| `GET` | `/api/users/me/favorite-booths` | `200`, `BoothSummary[]` |
+| `POST` | `/api/booths/{boothId}/favorite` | `204` |
+| `DELETE` | `/api/booths/{boothId}/favorite` | `204` |
+
+등록과 해제는 멱등입니다. 낙관적으로 하트를 바꿀 수 있지만 실패하면 이전 값으로 복원합니다.
+
+```ts
+async function setFavorite(boothId: number, favorite: boolean) {
+  await apiFetch<void>(`/api/booths/${boothId}/favorite`, {
+    method: favorite ? "POST" : "DELETE",
+    auth: true,
+  });
+}
+```
 
 ## ADMIN 이상 관리 API
 
-- `POST /api/booths`: 기본 정보, `stampEnabled`, 복수 `managerUuids` 등록
-- `PATCH /api/booths/{boothId}`: 기본 정보와 담당자 수정
-- `POST /api/booths/{boothId}/images`: `files` multipart 이미지 업로드, 최대 5개
-- `POST /api/booths/{boothId}/videos`: `files` multipart 동영상 업로드, 최대 3개
-- `PATCH /api/booths/{boothId}/media/order`: 통합 순서와 대표 항목 변경
-- `DELETE /api/booths/{boothId}/media/{mediaId}`: 미디어 한 개 삭제
-- `DELETE /api/booths/{boothId}`: 부스 삭제
+### 부스 등록·수정 본문
 
-순서 변경 본문 예시:
+```json
+{
+  "latitude": 37.6432,
+  "longitude": 127.1059,
+  "name": "멋사 체험 부스",
+  "operator": "멋쟁이사자처럼",
+  "description": "체험 설명",
+  "opensAt": "10:00:00",
+  "closesAt": "18:00:00",
+  "stampEnabled": true,
+  "managerUuids": ["123e4567-e89b-12d3-a456-426614174000"]
+}
+```
+
+| Method | Path | 성공 |
+|---|---|---|
+| `POST` | `/api/booths` | `201`, `BoothAdminResponse` |
+| `PATCH` | `/api/booths/{boothId}` | `200`, `BoothAdminResponse` |
+| `POST` | `/api/booths/{boothId}/images` | `200`, `BoothAdminResponse` |
+| `POST` | `/api/booths/{boothId}/videos` | `200`, `BoothAdminResponse` |
+| `PATCH` | `/api/booths/{boothId}/media/order` | `200`, `BoothAdminResponse` |
+| `DELETE` | `/api/booths/{boothId}/media/{mediaId}` | `200`, `BoothAdminResponse` |
+| `DELETE` | `/api/booths/{boothId}` | `204` |
+
+`BoothAdminResponse`는 `{ "booth": BoothDetail, "managerUuids": string[] }` 형태입니다.
+
+파일 업로드는 `FormData`의 `files` key를 반복해서 사용합니다. 이미지 최대 5개, 동영상 최대 3개입니다.
+
+```ts
+const form = new FormData();
+files.forEach((file) => form.append("files", file));
+await apiFetch(`/api/booths/${boothId}/images`, {
+  method: "POST",
+  auth: true,
+  body: form,
+});
+```
+
+통합 순서와 대표 항목 변경:
 
 ```json
 {
@@ -36,6 +200,18 @@ Bearer Access Token이 필수입니다.
 }
 ```
 
-`mediaIds`에는 해당 부스의 현재 미디어 ID를 빠짐없이 한 번씩 보내야 합니다. 대표 항목은 이미지 또는 동영상 모두 가능합니다. 처음 업로드할 때는 통합 순서의 첫 항목이 자동으로 대표가 됩니다.
+`mediaIds`에는 현재 부스의 모든 미디어 ID를 누락·중복 없이 보내야 합니다. 이미지와 동영상을 섞어 원하는 표시 순서로 보냅니다. 대표 항목은 이미지 또는 동영상 모두 가능합니다.
 
-관리자 웹 화면은 `/admin/booths`이며 `ADMIN`, `SUPER_ADMIN`만 접근할 수 있습니다. 담당자 후보는 축제 서비스에 한 번 이상 로그인해 로컬 사용자와 연결된 계정을 SSO 프로필로 표시합니다.
+## 주요 오류
+
+| HTTP | code | 처리 |
+|---|---|---|
+| `401` | `UNAUTHORIZED` | 로그인 상태 제거 |
+| `403` | `BOOTH_MANAGE_FORBIDDEN` | 관리 UI 접근 차단 |
+| `404` | `BOOTH_NOT_FOUND`, `BOOTH_MEDIA_NOT_FOUND` | 목록 새로고침 |
+| `400` | `INVALID_BOOTH_COORDINATES`, `INVALID_BOOTH_HOURS` | 좌표·운영시간 필드 표시 |
+| `400` | `INVALID_BOOTH_MEDIA_ORDER` | 서버 상세를 다시 조회해 미디어 목록 동기화 |
+| `400` | `TOO_MANY_BOOTH_MEDIA` | 파일 개수 안내 |
+| `413` | `UPLOAD_TOO_LARGE` | 파일 크기 안내 |
+
+관리자 HTML 화면은 `/admin/booths`입니다.

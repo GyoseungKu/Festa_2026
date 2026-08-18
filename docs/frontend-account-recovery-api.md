@@ -2,6 +2,8 @@
 
 아이디 찾기와 비밀번호 재설정은 로그인 전 공개 API입니다. React가 SSO를 직접 호출하지 않고 반드시 Festa 백엔드만 호출해야 하며, `SSO_CLIENT_SECRET`은 프런트에 두지 않습니다.
 
+공통 오류 응답과 fetch 처리는 [공통 API 규약](frontend-api-common.md)을 따릅니다.
+
 ## 아이디 찾기
 
 ### 1. 인증번호 발송
@@ -93,14 +95,23 @@ Content-Type: application/json
 
 `newPassword`는 Festa 백엔드에서 8~128자로 검증합니다. 성공 응답은 현재 브라우저의 Festa Refresh Token 쿠키를 제거하므로 `credentials: "include"`로 호출합니다.
 
+## 프런트 화면 흐름
+
+- 아이디 찾기와 비밀번호 재설정의 이메일 발송 화면은 성공 응답으로 계정 존재 여부를 추측하지 않습니다.
+- 발송 성공 후 이메일과 목적을 화면 상태에 유지하고 인증번호 입력 단계로 이동합니다.
+- 인증번호는 React 상태에만 두고 URL, `localStorage`, analytics에 넣지 않습니다.
+- 재설정 성공 후 메모리 Access Token과 사용자 캐시를 비우고 로그인 화면으로 replace 이동합니다.
+- 제출 버튼은 요청 중 비활성화하여 같은 인증번호를 중복 전송하지 않습니다.
+
 ## 오류 처리
 
-| HTTP | 의미 | 권장 화면 문구 |
+| HTTP | 대표 code | 권장 화면 문구 |
 |---|---|---|
-| `400` | 입력 형식, 인증번호, 아이디·이메일 불일치 | 입력 정보 또는 인증번호를 확인해 주세요. |
-| `429` | 발송 또는 검증 시도 초과 | 잠시 후 다시 시도해 주세요. |
-| `503` | SSO 연결 지연·장애 | 인증 서버에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요. |
-| `502` | SSO 응답 계약 오류 | 일시적인 오류가 발생했습니다. |
+| `400` | `INVALID_REQUEST`, `LOGIN_ID_REQUIRED` | 입력 정보를 확인해 주세요. |
+| `400` | `ACCOUNT_RECOVERY_FAILED`, `SSO_INVALID_REQUEST` | 입력 정보 또는 인증번호를 확인해 주세요. |
+| `429` | `RECOVERY_ATTEMPTS_EXCEEDED`, `TOO_MANY_REQUESTS` | 잠시 후 다시 시도해 주세요. |
+| `503` | `SSO_UNAVAILABLE` | 인증 서버에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요. |
+| `502` | `SSO_BAD_GATEWAY` | 일시적인 오류가 발생했습니다. |
 
 인증번호와 새 비밀번호를 로그, analytics metadata, URL query string, `localStorage`에 기록하지 않습니다.
 

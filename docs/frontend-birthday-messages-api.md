@@ -1,82 +1,116 @@
-# 수야·수호 생일축하 쪽지 API
+# 생일축하 쪽지·하트 API
+
+공통 인증과 오류 처리는 [공통 API 규약](frontend-api-common.md)을 따릅니다.
 
 ## 정책
 
-- 목록과 상세는 로그인 없이 조회할 수 있습니다.
-- 작성, 본인 삭제, 하트 추가·취소는 Bearer 로그인이 필요합니다.
-- 활성 쪽지는 사용자당 하나만 작성할 수 있습니다.
-- 수정 API는 없습니다.
-- 삭제하면 쪽지와 연결된 하트가 삭제되며 새 쪽지를 다시 작성할 수 있습니다.
-- 본문은 Unicode 문자 기준 최대 100자입니다.
+- 목록·상세는 공개입니다.
+- 작성·내 쪽지·본인 삭제·하트는 Bearer 인증이 필요합니다.
+- 활성 쪽지는 사용자당 하나이며 수정 API는 없습니다.
+- 삭제하면 연결된 하트도 삭제되고 새 쪽지를 작성할 수 있습니다.
+- 본문은 trim 후 1~100자입니다.
 - 본인 쪽지에는 하트를 누를 수 없습니다.
-- 공개 작성자 정보는 학과, 마스킹 학번, 마스킹 이름뿐입니다.
+- 공개 작성자는 학과·마스킹 학번·마스킹 이름만 제공합니다.
 
-## 공개 조회
+## 타입
+
+```ts
+type BirthdayMessage = {
+  id: number;
+  content: string;
+  author: {
+    department: string | null;
+    maskedStudentNo: string | null;
+    maskedName: string | null;
+  };
+  heartCount: number;
+  heartedByMe: boolean;
+  mine: boolean;
+  createdAt: string;
+};
+
+type BirthdayMessagePage = {
+  items: BirthdayMessage[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+};
+```
+
+## 목록·상세
 
 ```http
 GET /api/birthday-messages?sort=LATEST&page=0&size=30
 GET /api/birthday-messages/{id}
+Authorization: Bearer ACCESS_TOKEN  # 선택
 ```
 
-정렬값은 `LATEST`, `OLDEST`, `MOST_LIKED`입니다. 기본값은 `LATEST`, 최대 페이지 크기는 100입니다.
+- `sort`: `LATEST`(기본), `OLDEST`, `MOST_LIKED`
+- `page`: 0부터 시작
+- `size`: 기본 30, 최대 100
+- 비로그인 요청은 `heartedByMe=false`, `mine=false`
+- 로그인 토큰을 보내면 두 값이 사용자 기준으로 계산됨
 
-Authorization 헤더 없이 호출하면 `heartedByMe`와 `mine`은 `false`입니다. 정상 Bearer Token을 함께 보내면 현재 사용자를 기준으로 두 값이 계산됩니다.
+목록은 `BirthdayMessagePage`, 상세는 `BirthdayMessage`를 반환합니다.
 
-```json
-{
-  "items": [
-    {
-      "id": 11,
-      "content": "수야와 수호의 생일을 축하해!",
-      "author": {
-        "department": "컴퓨터공학부",
-        "maskedStudentNo": "2024******",
-        "maskedName": "홍*동"
-      },
-      "heartCount": 3,
-      "heartedByMe": false,
-      "mine": false,
-      "createdAt": "2026-08-14T03:00:00Z"
-    }
-  ],
-  "page": 0,
-  "size": 30,
-  "totalElements": 1,
-  "totalPages": 1
-}
-```
-
-## 작성과 내 쪽지
+## 작성·내 쪽지·삭제
 
 ```http
 POST /api/birthday-messages
-Authorization: Bearer ACCESS_TOKEN
 Content-Type: application/json
+Authorization: Bearer ACCESS_TOKEN
 
-{"content":"수야와 수호의 생일을 축하해!"}
+{ "content": "수야와 수호의 생일을 축하해!" }
 ```
 
-성공 시 `201 Created`입니다. 이미 활성 쪽지가 있으면 `409 BIRTHDAY_MESSAGE_ALREADY_EXISTS`입니다.
+성공은 `201`과 생성된 `BirthdayMessage`입니다.
 
 ```http
 GET /api/birthday-messages/me
 DELETE /api/birthday-messages/{id}
 ```
 
-`GET /me`는 `written`과 현재 쪽지를 반환합니다. 본인이 아닌 쪽지를 삭제하면 `403 BIRTHDAY_MESSAGE_DELETE_FORBIDDEN`입니다.
+내 쪽지 응답:
+
+```json
+{
+  "written": true,
+  "message": {
+    "id": 11,
+    "content": "수야와 수호의 생일을 축하해!",
+    "author": {
+      "department": "컴퓨터공학부",
+      "maskedStudentNo": "2024******",
+      "maskedName": "홍*동"
+    },
+    "heartCount": 3,
+    "heartedByMe": false,
+    "mine": true,
+    "createdAt": "2026-08-18T03:00:00Z"
+  }
+}
+```
+
+작성하지 않았으면 `{ "written": false, "message": null }`입니다. 삭제 성공은 `204`입니다.
 
 ## 하트
 
 ```http
 PUT /api/birthday-messages/{id}/heart
 DELETE /api/birthday-messages/{id}/heart
+Authorization: Bearer ACCESS_TOKEN
 ```
 
-두 API는 멱등입니다. 같은 하트를 여러 번 추가하거나 취소해도 한 번만 반영됩니다. 본인 글에는 `400 SELF_HEART_NOT_ALLOWED`를 반환합니다.
+두 요청은 멱등이며 성공 응답은 동일한 형태입니다.
 
-## 관리자 API
+```json
+{ "messageId": 11, "heartCount": 4, "heartedByMe": true }
+```
 
-`STAFF`, `ADMIN`, `SUPER_ADMIN`만 사용할 수 있습니다.
+낙관적 업데이트를 하더라도 서버 응답의 `heartCount`, `heartedByMe`로 최종 동기화합니다.
+
+## STAFF 이상 관리자 API
 
 ```http
 GET /api/admin/birthday-messages?sort=MOST_LIKED&page=0&size=30
@@ -84,10 +118,23 @@ GET /api/admin/birthday-messages/{id}/hearts?page=0&size=30
 DELETE /api/admin/birthday-messages/{id}
 ```
 
+- 목록과 하트 사용자 목록 모두 최대 페이지 크기는 100입니다.
 - `STAFF`: 이름, 학번, 학과, 학년
-- `ADMIN`: STAFF 정보와 전화번호, 이메일
-- `SUPER_ADMIN`: UUID, 로그인 ID, 이메일, SSO 역할·계정 상태, 이름, 전화번호, 학번, 학과, 학년, 재학 상태, 생년월일, 계정 생성·수정일시, 축제 권한
-- 하트 사용자 API에는 현재 하트를 유지 중인 사용자와 `heartedAt`이 표시됩니다.
-- 개인정보 원본은 게시판 DB에 복사하지 않고 관리자 조회 시 SSO 배치 프로필 API에서 가져옵니다.
+- `ADMIN`: STAFF 범위 + 전화번호, 이메일
+- `SUPER_ADMIN`: UUID, 로그인 ID, SSO 상태·역할, 전체 프로필과 축제 권한
+- 권한상 숨기는 필드는 `null`이며 JSON에서 생략될 수 있습니다.
+- 개인정보 원본은 게시판 DB가 아니라 조회 시점 SSO 프로필에서 가져옵니다.
 
-관리자 HTML 화면은 `/admin/birthday-messages`에서 사용할 수 있습니다.
+## 주요 오류
+
+| HTTP | code | 처리 |
+|---|---|---|
+| `400` | `BIRTHDAY_MESSAGE_CONTENT_REQUIRED` | 빈 본문 안내 |
+| `400` | `BIRTHDAY_MESSAGE_CONTENT_TOO_LONG` | Unicode 문자 기준 최대 100자 안내 |
+| `400` | `SELF_HEART_NOT_ALLOWED` | 본인 글 하트 UI 비활성화 |
+| `403` | `BIRTHDAY_MESSAGE_DELETE_FORBIDDEN` | 본인 글이 아님 |
+| `403` | `BIRTHDAY_MESSAGE_MANAGE_FORBIDDEN` | 관리자 권한 없음 |
+| `404` | `BIRTHDAY_MESSAGE_NOT_FOUND` | 목록 새로고침 |
+| `409` | `BIRTHDAY_MESSAGE_ALREADY_EXISTS` | 내 쪽지 화면으로 이동 |
+
+관리자 HTML 화면은 `/admin/birthday-messages`입니다.

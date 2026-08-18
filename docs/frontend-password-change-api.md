@@ -2,6 +2,8 @@
 
 이 API는 현재 비밀번호를 알고 있는 로그인 사용자가 마이페이지에서 사용하는 기능입니다. 비밀번호를 잊은 사용자는 로그인 전 계정 복구 API를 사용합니다.
 
+공통 인증과 토큰 갱신은 [공통 API 규약](frontend-api-common.md)을 따릅니다.
+
 ## 요청
 
 ```http
@@ -35,20 +37,12 @@ Content-Type: application/json
 
 ```tsx
 async function changePassword(currentPassword: string, newPassword: string) {
-  const response = await fetch(`${API_BASE_URL}/api/users/me/password`, {
+  await apiFetch<void>("/api/users/me/password", {
     method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${authStore.getAccessToken()}`,
-    },
-    credentials: "include",
+    auth: true,
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ currentPassword, newPassword }),
   });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message ?? "비밀번호를 변경하지 못했습니다.");
-  }
 
   authStore.clearAccessToken();
   queryClient.clear();
