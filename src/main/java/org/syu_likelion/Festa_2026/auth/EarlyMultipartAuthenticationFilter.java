@@ -19,9 +19,13 @@ import org.syu_likelion.Festa_2026.user.UserService;
 /** Authenticates protected multipart endpoints before Spring parses their request bodies. */
 public final class EarlyMultipartAuthenticationFilter extends OncePerRequestFilter {
     private static final Pattern BOOTH_MEDIA = Pattern.compile(
-            "^/api/booths/[^/]+/media/(?:images|videos)/?$");
+            "^/api/booths/[^/]+/(?:images|videos)/?$");
     private static final Pattern PERFORMANCE_MEDIA = Pattern.compile(
-            "^/api/performances/[^/]+/media/(?:images|videos)/?$");
+            "^/api/performances/[^/]+/(?:images|videos)/?$");
+    private static final Pattern POLL_OPTION_IMAGE = Pattern.compile(
+            "^/api/admin/polls/[^/]+/options/[^/]+/image/?$");
+    private static final Pattern POLL_QUESTION_MEDIA = Pattern.compile(
+            "^/api/admin/polls/[^/]+/questions/[^/]+/media/?$");
     private static final Pattern LOST_ITEM_DETAIL = Pattern.compile("^/api/lost-items/[^/]+/?$");
 
     private final UserService users;
@@ -62,7 +66,9 @@ public final class EarlyMultipartAuthenticationFilter extends OncePerRequestFilt
         String path = contextPath == null || contextPath.isEmpty() ? uri : uri.substring(contextPath.length());
         String method = request.getMethod();
         if ("POST".equals(method) && (BOOTH_MEDIA.matcher(path).matches()
-                || PERFORMANCE_MEDIA.matcher(path).matches())) return RequiredAccess.ADMIN;
+                || PERFORMANCE_MEDIA.matcher(path).matches()
+                || POLL_OPTION_IMAGE.matcher(path).matches()
+                || POLL_QUESTION_MEDIA.matcher(path).matches())) return RequiredAccess.ADMIN;
         if ("POST".equals(method) && "/api/lost-items".equals(stripTrailingSlash(path)))
             return RequiredAccess.STAFF;
         if ("PATCH".equals(method) && LOST_ITEM_DETAIL.matcher(path).matches()) return RequiredAccess.STAFF;

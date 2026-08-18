@@ -64,7 +64,7 @@ SSO의 `ssoRole`과 축제 운영 권한은 별개입니다.
 |---|---|
 | `SUPER_ADMIN` | 전체 관리 및 시스템 모니터링 |
 | `ADMIN` | 부스·스탬프·공연·분실물·생일축하 관리 |
-| `STAFF` | 분실물·생일축하 관리 및 일반 QR 사용자 조회 |
+| `STAFF` | 분실물·생일축하 관리 및 마스킹된 사용자 조회 |
 | `USER` | 일반 사용자 기능 |
 
 부스 관리자 여부는 별도 `festival_users.booth_manager` boolean과 `festival_booth_managers` 담당 부스 관계로 관리합니다. 따라서 한 사용자가 `ADMIN`이면서 동시에 특정 부스의 `BOOTH_MANAGER`일 수 있습니다. 관리 권한 판정에서는 `SUPER_ADMIN`, `ADMIN`을 우선합니다.
@@ -214,6 +214,32 @@ Origin은 경로나 마지막 `/` 없이 `scheme://host[:port]` 형식으로 입
 
 공연 구분은 `CELEBRITY`, `CLUB`, `INDIVIDUAL`입니다. 일반 링크는 최대 3개이고 이미지와 동영상은 각각 링크와 파일을 합해 최대 3개입니다.
 
+### 투표와 응답 폼
+
+모든 투표 API는 로그인이 필요합니다.
+
+| Method | Path | 권한 | 설명 |
+|---|---|---|---|
+| GET | `/api/polls` | 로그인 | 진행 중·진행 예정·종료 투표 목록 |
+| GET | `/api/polls/{id}` | 로그인 | 공개된 투표 상세와 질문·선택지·질문 미디어 |
+| POST | `/api/polls/{id}/submissions` | 로그인 | 투표 응답 제출 |
+| GET | `/api/polls/{id}/submissions/me` | 로그인 | 내 제출 내역 |
+| GET | `/api/polls/{id}/results` | 로그인 | 설정된 공개 시각 이후 결과 조회 |
+| GET | `/api/admin/polls` | `ADMIN` 이상 | 전체 투표 목록 |
+| GET | `/api/admin/polls/{id}` | `ADMIN` 이상 | 실시간 집계와 제출 내역 페이지 |
+| POST | `/api/admin/polls` | `ADMIN` 이상 | 투표 생성 |
+| PUT | `/api/admin/polls/{id}` | `ADMIN` 이상 | 응답 전 질문·선택지 전체 수정 |
+| PATCH | `/api/admin/polls/{id}/settings` | `ADMIN` 이상 | 응답 후에도 가능한 설정 수정 |
+| POST | `/api/admin/polls/{id}/close` | `ADMIN` 이상 | 되돌릴 수 없는 즉시 종료 |
+| POST | `/api/admin/polls/{id}/options/{optionId}/image` | `ADMIN` 이상 | 선택지 이미지 등록·교체 |
+| DELETE | `/api/admin/polls/{id}/options/{optionId}/image` | `ADMIN` 이상 | 선택지 이미지 삭제 |
+| POST | `/api/admin/polls/{id}/questions/{questionId}/media` | `ADMIN` 이상 | 질문 이미지·동영상 업로드, 합계 최대 3개 |
+| PATCH | `/api/admin/polls/{id}/questions/{questionId}/media/order` | `ADMIN` 이상 | 질문 이미지·동영상 통합 순서 변경 |
+| DELETE | `/api/admin/polls/{id}/questions/{questionId}/media/{mediaId}` | `ADMIN` 이상 | 질문 미디어 삭제 |
+| DELETE | `/api/admin/polls/{id}` | `ADMIN` 이상 | 투표 삭제, 응답 포함 강제 삭제는 `SUPER_ADMIN` |
+
+질문 유형은 단일 선택, 복수 선택, 주관식 단답, 주관식 장문입니다. 질문마다 이미지·동영상을 통합 순서로 최대 3개 첨부할 수 있고, 응답이 시작되면 질문 미디어도 잠깁니다. 결과 공개 시각이 종료 전이면 사용자에게 진행 중 집계도 공개됩니다. 익명 투표 참여자 신원은 `ADMIN`에게 숨기고 `SUPER_ADMIN`에게만 제공합니다.
+
 ### 분실물
 
 | Method | Path | 권한 | 설명 |
@@ -249,6 +275,7 @@ Origin은 경로나 마지막 `/` 없이 `scheme://host[:port]` 형식으로 입
 
 | Method | Path | 권한 | 설명 |
 |---|---|---|---|
+| POST | `/api/qr/search` | `STAFF` 이상 | 원본 정보로 사용자 검색 후 권한별 마스킹 결과 반환 |
 | POST | `/api/qr/tokens` | 로그인 | 내 동적 QR 토큰 발급 |
 | POST | `/api/qr/scan` | `BOOTH_MANAGER`, `STAFF`, `ADMIN`, `SUPER_ADMIN` | 권한별 사용자 정보 조회 |
 
@@ -277,6 +304,7 @@ QR에는 개인정보나 Access Token을 넣지 않습니다. 서버는 256비�
 | `/admin/stamps` | 담당 `BOOTH_MANAGER`, `ADMIN` 이상 | 스탬프 지급·회수 및 페이지 이력 |
 | `/admin/booths` | `ADMIN` 이상 | 부스 지도와 미디어·담당자 관리 |
 | `/admin/performances` | `ADMIN` 이상 | 공연팀 관리 |
+| `/admin/polls` | `ADMIN` 이상 | 투표·응답 폼 생성과 실시간 현황 |
 | `/admin/lost-items` | `STAFF` 이상 | 분실물 관리 |
 | `/admin/birthday-messages` | `STAFF` 이상 | 생일축하 쪽지·하트 사용자 관리 |
 | `/admin/system` | `SUPER_ADMIN` | 실시간 시스템 모니터링 |
@@ -291,7 +319,7 @@ QR에는 개인정보나 Access Token을 넣지 않습니다. 서버는 256비�
 - 업로드한 파일은 DB 트랜잭션이 롤백되면 정리합니다.
 - 기존 파일 삭제는 DB 커밋 이후 실행하여 DB가 롤백됐는데 파일만 사라지는 상황을 방지합니다.
 - 부스 미디어 업로드·삭제·정렬은 부스 행 잠금으로 동시 변경을 직렬화합니다.
-- 기본 R2 prefix는 `festa2026_performance`, `festa2026_lost_items`, `festa2026_booths`이며 환경변수로 변경할 수 있습니다.
+- 기본 R2 prefix는 `festa2026_performance`, `festa2026_lost_items`, `festa2026_booths`, `festa2026_polls`이며 환경변수로 변경할 수 있습니다.
 
 ## 공통 오류 응답
 
@@ -397,6 +425,7 @@ Swagger UI의 **Authorize**에는 SSO Access Token 원문만 입력합니다. `B
 - 부스·찜·통합 미디어 정렬과 대표 미디어
 - 스탬프 중복 방지, 담당 부스 권한과 감사 이력 페이지네이션
 - 공연·분실물·생일축하 쪽지의 권한과 제한
+- 투표 중복 참여 정책, 필수 응답, 익명 신원 마스킹과 강제 종료·삭제
 - 인증 전 multipart 차단과 미디어 커밋·롤백 정리
 - CORS 허용/차단 Origin 및 공통 예외 응답
 - API 요청 로그, 프런트 이벤트와 heartbeat
@@ -412,6 +441,7 @@ Swagger UI의 **Authorize**에는 SSO Access Token 원문만 입력합니다. `B
 - [부스 지도](docs/frontend-booths-api.md)
 - [스탬프](docs/frontend-stamps-api.md)
 - [공연](docs/frontend-performances-api.md)
+- [투표·응답 폼](docs/frontend-polls-api.md)
 - [동적 QR](docs/frontend-qr-api.md)
 - [분실물](docs/frontend-lost-items-api.md)
 - [생일축하 쪽지](docs/frontend-birthday-messages-api.md)

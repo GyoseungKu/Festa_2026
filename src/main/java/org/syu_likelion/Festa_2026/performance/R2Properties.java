@@ -15,6 +15,7 @@ public record R2Properties(
         String performancePrefix,
         String lostItemPrefix,
         String boothPrefix,
+        String pollPrefix,
         DataSize imageMaxSize,
         DataSize videoMaxSize) {
 
@@ -31,6 +32,8 @@ public record R2Properties(
                 ? "festa2026_lost_items" : lostItemPrefix.replaceAll("^/+|/+$", "");
         boothPrefix = boothPrefix == null || boothPrefix.isBlank()
                 ? "festa2026_booths" : boothPrefix.replaceAll("^/+|/+$", "");
+        pollPrefix = pollPrefix == null || pollPrefix.isBlank()
+                ? "festa2026_polls" : pollPrefix.replaceAll("^/+|/+$", "");
         imageMaxSize = imageMaxSize == null ? DataSize.ofMegabytes(10) : imageMaxSize;
         videoMaxSize = videoMaxSize == null ? DataSize.ofMegabytes(200) : videoMaxSize;
     }

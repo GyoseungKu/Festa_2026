@@ -53,6 +53,7 @@ import org.syu_likelion.Festa_2026.birthday.BirthdayMessageDtos.AdminBirthdayMes
 import org.syu_likelion.Festa_2026.birthday.BirthdayMessageDtos.AdminBirthdayMessageResponse;
 import org.syu_likelion.Festa_2026.birthday.BirthdayMessageDtos.AdminUserView;
 import org.syu_likelion.Festa_2026.qr.QrDtos.QrUserView;
+import org.syu_likelion.Festa_2026.qr.QrDtos.UserSearchResponse;
 import org.syu_likelion.Festa_2026.qr.QrService;
 import org.syu_likelion.Festa_2026.user.FestivalRole;
 import org.syu_likelion.Festa_2026.user.UserDtos.MeResponse;
@@ -61,6 +62,7 @@ import org.syu_likelion.Festa_2026.stamp.StampService;
 import org.syu_likelion.Festa_2026.stamp.StampDtos.BoothStampAdminResponse;
 import org.syu_likelion.Festa_2026.booth.BoothManagerDirectory;
 import org.syu_likelion.Festa_2026.booth.FestivalBooth;
+import org.syu_likelion.Festa_2026.poll.PollService;
 
 @SpringBootTest(properties = {
         "sso.client-id=test-client", "sso.client-secret=test-secret",
@@ -88,6 +90,7 @@ class AdminPageIntegrationTests {
     @MockitoBean StampService stampService;
     @MockitoBean BoothManagerDirectory boothManagerDirectory;
     @MockitoBean UserService userService;
+    @MockitoBean PollService pollService;
 
     @Test
     void loginPageIsRenderedWithCsrfToken() throws Exception {
@@ -131,7 +134,7 @@ class AdminPageIntegrationTests {
         mvc.perform(get("/admin").cookie(new Cookie("festivalAdminAccess", "access-one")))
                 .andExpect(status().isOk())
                 .andExpect(view().name("admin/dashboard"))
-                .andExpect(content().string(containsString("QR 사용자 조회")))
+                .andExpect(content().string(containsString("사용자 조회")))
                 .andExpect(content().string(containsString("서버 장애 긴급 연락처")))
                 .andExpect(content().string(containsString("010-4953-5080")))
                 .andExpect(content().string(containsString("STAFF")));
@@ -139,8 +142,9 @@ class AdminPageIntegrationTests {
         mvc.perform(get("/admin/qr").cookie(new Cookie("festivalAdminAccess", "access-one")))
                 .andExpect(status().isOk())
                 .andExpect(view().name("admin/qr-scan"))
+                .andExpect(content().string(containsString("사용자 정보 검색")))
                 .andExpect(content().string(containsString("카메라 시작")))
-                .andExpect(content().string(containsString("정보가 자동으로 조회됩니다")))
+                .andExpect(content().string(containsString("이름·학번 등 사용자 정보를 입력")))
                 .andExpect(content().string(org.hamcrest.Matchers.not(containsString("토큰 조회"))))
                 .andExpect(content().string(org.hamcrest.Matchers.not(containsString("사용자 정보 조회</button>"))));
     }
@@ -161,6 +165,61 @@ class AdminPageIntegrationTests {
                 .andExpect(content().string(containsString("새 공연팀 등록")))
                 .andExpect(content().string(containsString("name=\"_csrf\"")))
                 .andExpect(content().string(containsString("name=\"links[0]\"")));
+    }
+
+    @Test
+    void adminSeesPollManagementAndCanBuildDynamicQuestionForm() throws Exception {
+        when(adminAccess.authenticate("access-one", null))
+                .thenReturn(new AuthorizedResult<>(identity(FestivalRole.ADMIN), null, null));
+
+        mvc.perform(get("/admin").cookie(new Cookie("festivalAdminAccess", "access-one")))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("투표 관리")));
+
+        mvc.perform(get("/admin/polls/new").cookie(new Cookie("festivalAdminAccess", "access-one")))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/polls/form"))
+                .andExpect(content().string(containsString("새 투표 만들기")))
+                .andExpect(content().string(containsString("questions[0].text")))
+                .andExpect(content().string(containsString("questions[0].mediaFiles")))
+                .andExpect(content().string(containsString("video/quicktime")))
+                .andExpect(content().string(containsString("questions[0].options[0].image")))
+                .andExpect(content().string(containsString("name=\"_csrf\"")));
+    }
+
+    @Test
+    void pollStatusPageRendersAggregateAndAnonymousSubmissionWithoutIdentity() throws Exception {
+        when(adminAccess.authenticate("access-one", null))
+                .thenReturn(new AuthorizedResult<>(identity(FestivalRole.ADMIN), null, null));
+        java.time.Instant now = java.time.Instant.parse("2026-08-18T07:00:00Z");
+        var option = new org.syu_likelion.Festa_2026.poll.PollDtos.PollOptionResponse(21L, "공연", null);
+        var question = new org.syu_likelion.Festa_2026.poll.PollDtos.PollQuestionResponse(11L,
+                "가장 기대되는 프로그램", org.syu_likelion.Festa_2026.poll.PollQuestionType.SINGLE_CHOICE,
+                true, java.util.List.of(option), java.util.List.of());
+        var poll = new org.syu_likelion.Festa_2026.poll.PollDtos.PollDetailResponse(3L, "축제 사전 설문", "설명",
+                true, false, now.minusSeconds(7200), now.minusSeconds(3600), now.plusSeconds(3600),
+                now.minusSeconds(600), null, org.syu_likelion.Festa_2026.poll.PollState.OPEN,
+                false, 0, true, java.util.List.of(question), now.minusSeconds(7200), now);
+        var optionResult = new org.syu_likelion.Festa_2026.poll.PollDtos.OptionResultResponse(21L, "공연", null, 1, 100.0);
+        var questionResult = new org.syu_likelion.Festa_2026.poll.PollDtos.QuestionResultResponse(11L,
+                "가장 기대되는 프로그램", org.syu_likelion.Festa_2026.poll.PollQuestionType.SINGLE_CHOICE,
+                1, java.util.List.of(optionResult), java.util.List.of());
+        var result = new org.syu_likelion.Festa_2026.poll.PollDtos.PollResultResponse(3L, "축제 사전 설문", 1,
+                now, java.util.List.of(questionResult));
+        var answer = new org.syu_likelion.Festa_2026.poll.PollDtos.AdminAnswerResponse(11L,
+                "가장 기대되는 프로그램", java.util.List.of(21L), java.util.List.of("공연"), null);
+        var submission = new org.syu_likelion.Festa_2026.poll.PollDtos.AdminSubmissionResponse(31L,
+                null, null, null, null, now, java.util.List.of(answer));
+        when(pollService.adminDetailAs(3L, FestivalRole.ADMIN)).thenReturn(
+                new org.syu_likelion.Festa_2026.poll.PollDtos.PollAdminDetailResponse(poll, 1, result,
+                        java.util.List.of(submission), 0, 50, 1, 1));
+
+        mvc.perform(get("/admin/polls/3").cookie(new Cookie("festivalAdminAccess", "access-one")))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/polls/detail"))
+                .andExpect(content().string(containsString("총 1건 제출")))
+                .andExpect(content().string(containsString("익명 응답")))
+                .andExpect(content().string(containsString("공연")));
     }
 
     @Test
@@ -421,6 +480,27 @@ class AdminPageIntegrationTests {
                 .andExpect(content().string(containsString("구요승")))
                 .andExpect(content().string(containsString("01012345678")))
                 .andExpect(content().string(containsString("target@example.com")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("사용자 UUID"))));
+    }
+
+    @Test
+    void staffSearchRendersMaskedResultFoundByOriginalQuery() throws Exception {
+        when(adminAccess.authenticate("staff-search", null))
+                .thenReturn(new AuthorizedResult<>(identity(FestivalRole.STAFF), null, null));
+        QrUserView masked = new QrUserView(FestivalRole.STAFF, null, null, null, null, null,
+                "홍*동", null, "2024******", "컴퓨터공학부", 3,
+                null, null, null, null, null);
+        when(qrService.searchAs(FestivalRole.STAFF, "홍길동"))
+                .thenReturn(new UserSearchResponse(java.util.List.of(masked), 1, false));
+
+        mvc.perform(post("/admin/qr/search").with(csrf())
+                        .cookie(new Cookie("festivalAdminAccess", "staff-search"))
+                        .param("query", "홍길동"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/qr-scan"))
+                .andExpect(content().string(containsString("1명 검색됨")))
+                .andExpect(content().string(containsString("홍*동")))
+                .andExpect(content().string(containsString("2024******")))
                 .andExpect(content().string(org.hamcrest.Matchers.not(containsString("사용자 UUID"))));
     }
 

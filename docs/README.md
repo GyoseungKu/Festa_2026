@@ -20,6 +20,7 @@ React 프런트에서 Festa API를 연동할 때 사용하는 문서 모음입�
 | 부스 지도·찜·미디어 | [부스 API](frontend-booths-api.md) |
 | 스탬프판·지급·회수·이력 | [스탬프 API](frontend-stamps-api.md) |
 | 공연 일정·미디어 | [공연 API](frontend-performances-api.md) |
+| 투표·응답 폼·실시간 결과 | [투표 API](frontend-polls-api.md) |
 | 동적 사용자 QR | [QR API](frontend-qr-api.md) |
 | 분실물 공지 | [분실물 API](frontend-lost-items-api.md) |
 | 생일축하 쪽지·하트 | [생일축하 API](frontend-birthday-messages-api.md) |

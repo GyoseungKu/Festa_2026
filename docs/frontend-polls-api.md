@@ -1,0 +1,291 @@
+# 투표·응답 폼 API
+
+모든 투표 API는 로그인과 Bearer 인증이 필요합니다. 공통 헤더, 토큰 갱신과 오류 처리는 [공통 API 규약](frontend-api-common.md)을 따릅니다.
+
+## 핵심 정책
+
+- 사용자 목록에는 공개일시가 지난 `진행 중`, `진행 예정`, `종료` 투표가 모두 표시됩니다.
+- 목록 순서는 `OPEN → UPCOMING → ENDED`입니다.
+- `allowMultipleSubmissions=false`이면 사용자당 1회, `true`이면 횟수 제한 없이 별도 응답을 제출합니다.
+- 익명 투표도 서버에는 `userUuid`를 보관합니다. `ADMIN`에게는 숨기고 `SUPER_ADMIN`에게만 원본 신원을 제공합니다.
+- `resultPublishedAt`이 null이면 결과는 관리자 전용입니다. 값이 있으면 해당 시각부터 사용자도 결과를 조회합니다.
+- 결과 공개 시각이 종료 전이면 진행 중 집계도 실시간 공개됩니다.
+- 관리자가 임의 종료한 투표는 다시 시작할 수 없습니다.
+
+## 타입
+
+```ts
+type PollState = "UPCOMING" | "OPEN" | "ENDED";
+type PollQuestionType =
+  | "SINGLE_CHOICE"
+  | "MULTIPLE_CHOICE"
+  | "SHORT_TEXT"
+  | "LONG_TEXT";
+
+type PollOption = {
+  id: number;
+  text: string;
+  imageUrl: string | null;
+};
+
+type PollQuestionMedia = {
+  id: number;
+  kind: "IMAGE" | "VIDEO";
+  url: string;
+  originalFilename: string;
+  displayOrder: number;
+};
+
+type PollQuestion = {
+  id: number;
+  text: string;
+  type: PollQuestionType;
+  required: boolean;
+  options: PollOption[];
+  media: PollQuestionMedia[]; // displayOrder 오름차순
+};
+
+type PollSummary = {
+  id: number;
+  title: string;
+  description: string;
+  anonymous: boolean;
+  allowMultipleSubmissions: boolean;
+  publishedAt: string;
+  startsAt: string;
+  endsAt: string;
+  resultPublishedAt: string | null;
+  closedAt: string | null;
+  state: PollState;
+  hasSubmitted: boolean;
+  mySubmissionCount: number;
+  resultAvailable: boolean;
+};
+
+type PollDetail = PollSummary & {
+  questions: PollQuestion[];
+  createdAt: string;
+  updatedAt: string;
+};
+```
+
+모든 일시는 UTC ISO-8601 `Instant`입니다. 화면에서 `Asia/Seoul`로 변환합니다.
+
+## 사용자 목록·상세
+
+```http
+GET /api/polls
+GET /api/polls/{pollId}
+Authorization: Bearer ACCESS_TOKEN
+```
+
+목록은 `PollSummary[]`, 상세는 `PollDetail`입니다. 공개 전 투표는 상세에서도 `404 POLL_NOT_FOUND`로 처리합니다.
+
+화면 동작 권장안:
+
+- `UPCOMING`: 시작 시각 표시, 제출 버튼 비활성화
+- `OPEN`: 제출 가능
+- `ENDED`: 제출 불가
+- 1회 참여 투표에서 `hasSubmitted=true`: 다시 제출 버튼 비활성화
+- 복수 참여 투표: `mySubmissionCount`를 참여 횟수로 표시하고 계속 제출 허용
+- `resultAvailable=true`: 결과 보기 버튼 표시
+
+## 응답 제출
+
+```http
+POST /api/polls/{pollId}/submissions
+Content-Type: application/json
+Authorization: Bearer ACCESS_TOKEN
+```
+
+```json
+{
+  "answers": [
+    { "questionId": 11, "optionIds": [101], "text": null },
+    { "questionId": 12, "optionIds": [201, 203], "text": null },
+    { "questionId": 13, "optionIds": [], "text": "축제가 기대됩니다." }
+  ]
+}
+```
+
+질문 유형별 규칙:
+
+| 유형 | `optionIds` | `text` |
+|---|---|---|
+| `SINGLE_CHOICE` | 0~1개, 필수 질문이면 정확히 1개 | null |
+| `MULTIPLE_CHOICE` | 중복 없는 여러 개, 필수 질문이면 1개 이상 | null |
+| `SHORT_TEXT` | 빈 배열 또는 생략 | 최대 500자 |
+| `LONG_TEXT` | 빈 배열 또는 생략 | 최대 5,000자 |
+
+선택 질문을 건너뛸 때는 해당 질문을 `answers`에서 생략해도 됩니다. 성공은 `201`입니다.
+
+```json
+{
+  "submissionId": 501,
+  "submittedAt": "2026-08-18T07:00:00Z",
+  "mySubmissionCount": 2
+}
+```
+
+## 내 제출 내역
+
+```http
+GET /api/polls/{pollId}/submissions/me
+```
+
+최신 제출순 배열입니다. 익명 투표여도 사용자는 자신의 제출 내용을 조회할 수 있습니다.
+
+```ts
+type MyPollSubmission = {
+  id: number;
+  submittedAt: string;
+  answers: Array<{
+    questionId: number;
+    optionIds: number[];
+    text: string | null;
+  }>;
+};
+```
+
+## 사용자 결과
+
+```http
+GET /api/polls/{pollId}/results
+```
+
+`resultPublishedAt`이 지나기 전에는 `403 POLL_RESULT_NOT_AVAILABLE`입니다.
+
+```ts
+type PollResult = {
+  pollId: number;
+  title: string;
+  submissionCount: number;
+  generatedAt: string;
+  questions: Array<{
+    questionId: number;
+    text: string;
+    type: PollQuestionType;
+    answeredCount: number;
+    options: Array<PollOption & { count: number; percentage: number }>;
+    textAnswers: Array<{ text: string; submittedAt: string }>;
+  }>;
+};
+```
+
+복수 선택 질문의 퍼센트는 `선택 횟수 / 해당 질문 응답 수`이므로 합계가 100%를 넘을 수 있습니다. 공개 주관식 결과에는 작성자 신원이 포함되지 않습니다.
+
+## ADMIN 이상 투표 생성·수정
+
+```ts
+type PollMutation = {
+  title: string;                    // 최대 200자
+  description: string;              // 최대 5,000자
+  anonymous: boolean;
+  allowMultipleSubmissions: boolean;
+  publishedAt: string;
+  startsAt: string;
+  endsAt: string;
+  resultPublishedAt: string | null; // null이면 관리자 전용
+  questions: Array<{
+    id?: number;                    // 수정 시 기존 ID
+    text: string;
+    type: PollQuestionType;
+    required: boolean;
+    options: Array<{ id?: number; text: string }>;
+  }>;
+};
+```
+
+| Method | Path | 설명 |
+|---|---|---|
+| `GET` | `/api/admin/polls` | 전체 투표 목록 |
+| `GET` | `/api/admin/polls/{id}?page=0&size=50` | 실시간 집계와 제출 내역, size 최대 100 |
+| `POST` | `/api/admin/polls` | 투표 생성, `201` |
+| `PUT` | `/api/admin/polls/{id}` | 응답 전 질문·선택지 포함 전체 수정 |
+| `PATCH` | `/api/admin/polls/{id}/settings` | 제목·설명·종료·결과 공개 시각 수정 |
+| `POST` | `/api/admin/polls/{id}/close` | 되돌릴 수 없는 즉시 종료 |
+| `POST` | `/api/admin/polls/{id}/questions/{questionId}/media` | 질문 이미지·동영상 업로드 |
+| `PATCH` | `/api/admin/polls/{id}/questions/{questionId}/media/order` | 질문 미디어 통합 순서 변경 |
+| `DELETE` | `/api/admin/polls/{id}/questions/{questionId}/media/{mediaId}` | 질문 미디어 삭제 |
+| `DELETE` | `/api/admin/polls/{id}` | 응답 없는 투표 삭제 |
+| `DELETE` | `/api/admin/polls/{id}?force=true` | `SUPER_ADMIN`의 응답 포함 강제 삭제 |
+
+응답이 하나라도 생긴 뒤 `PUT` 또는 질문 미디어 변경 API를 호출하면 `409 POLL_STRUCTURE_LOCKED`입니다. 그 이후에는 settings API만 사용합니다.
+
+익명 투표 관리자 상세의 제출자 필드:
+
+| 조회 권한 | `userUuid`, `userName`, `studentNo`, `department` |
+|---|---|
+| `ADMIN` | 모두 null |
+| `SUPER_ADMIN` | 원본 사용자 정보 |
+
+기명 투표는 `ADMIN` 이상에게 사용자 정보를 표시합니다.
+
+## 선택지 이미지
+
+투표를 먼저 생성한 뒤 응답의 `option.id`로 업로드합니다.
+
+```http
+POST /api/admin/polls/{pollId}/options/{optionId}/image
+Content-Type: multipart/form-data
+
+file: IMAGE_FILE
+```
+
+```http
+DELETE /api/admin/polls/{pollId}/options/{optionId}/image
+```
+
+선택지당 이미지 1개이며 JPG, PNG, WebP, 최대 10MB입니다. 새 이미지를 업로드하면 기존 파일을 교체합니다. FormData의 key는 `file`입니다.
+
+## 질문 이미지·동영상
+
+투표를 먼저 생성한 뒤 상세 응답의 `question.id`로 업로드합니다. 한 질문에는 이미지와 동영상을 합해 최대 3개를 둘 수 있습니다.
+
+```http
+POST /api/admin/polls/{pollId}/questions/{questionId}/media
+Content-Type: multipart/form-data
+
+files: IMAGE_OR_VIDEO_FILE
+files: IMAGE_OR_VIDEO_FILE
+```
+
+FormData key는 `files`이며 여러 파일을 같은 key로 보냅니다. 이미지는 JPG/PNG/WebP와 파일당 10MB, 동영상은 MP4/WebM/MOV와 파일당 200MB까지 허용합니다.
+
+```http
+PATCH /api/admin/polls/{pollId}/questions/{questionId}/media/order
+Content-Type: application/json
+
+{ "mediaIds": [31, 29, 30] }
+```
+
+현재 질문에 남아 있는 모든 미디어 ID를 중복 없이 원하는 순서대로 전송합니다. 응답의 `displayOrder`는 0부터 다시 매겨집니다.
+
+```http
+DELETE /api/admin/polls/{pollId}/questions/{questionId}/media/{mediaId}
+```
+
+질문 미디어는 투표 상세의 각 질문에 `media` 배열로 포함되므로 사용자 화면에서는 배열 순서대로 이미지 또는 `<video>`를 렌더링하면 됩니다. 응답이 한 건이라도 생긴 뒤에는 업로드·정렬·삭제가 모두 잠깁니다.
+
+## 주요 오류
+
+| HTTP | code | 처리 |
+|---|---|---|
+| `400` | `INVALID_POLL` | 질문 유형, 필수 답변, 선택지 소속, 일정 검증 |
+| `400` | `UNSUPPORTED_POLL_OPTION_IMAGE_TYPE` | JPG/PNG/WebP 안내 |
+| `400` | `POLL_OPTION_IMAGE_TOO_LARGE` | 10MB 이하 안내 |
+| `400` | `POLL_QUESTION_MEDIA_LIMIT_EXCEEDED` | 질문별 이미지·동영상 합계 3개 이하로 조정 |
+| `400` | `UNSUPPORTED_POLL_QUESTION_MEDIA_TYPE` | 허용 이미지·동영상 형식 안내 |
+| `400` | `POLL_QUESTION_MEDIA_TOO_LARGE` | 이미지 10MB, 동영상 200MB 이하 안내 |
+| `403` | `POLL_RESULT_NOT_AVAILABLE` | 결과 버튼 숨김 |
+| `403` | `POLL_MANAGE_FORBIDDEN` | 관리자 UI 접근 차단 |
+| `404` | `POLL_NOT_FOUND` | 목록으로 이동 |
+| `404` | `POLL_OPTION_NOT_FOUND` | 상세 재조회 |
+| `404` | `POLL_QUESTION_MEDIA_NOT_FOUND` | 상세 재조회 |
+| `409` | `POLL_NOT_OPEN` | 상태 재조회 후 제출 버튼 비활성화 |
+| `409` | `POLL_ALREADY_SUBMITTED` | 1회 투표 완료 상태 표시 |
+| `409` | `POLL_STRUCTURE_LOCKED` | 설정 전용 수정 UI로 전환 |
+| `409` | `POLL_ALREADY_ENDED` | 종료 상태 재조회 |
+| `409` | `POLL_DELETE_LOCKED` | 응답이 있어 일반 삭제 불가 |
+
+관리자 HTML 화면은 `/admin/polls`입니다.

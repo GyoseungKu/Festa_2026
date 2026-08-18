@@ -22,10 +22,11 @@ class EarlyMultipartSecurityIntegrationTests {
     @Test
     void everyProtectedMultipartEndpointRejectsBeforeBodyBinding() throws Exception {
         List<Request> requests = List.of(
-                new Request("POST", "/api/booths/1/media/images"),
-                new Request("POST", "/api/booths/1/media/videos"),
-                new Request("POST", "/api/performances/1/media/images"),
-                new Request("POST", "/api/performances/1/media/videos"),
+                new Request("POST", "/api/booths/1/images"),
+                new Request("POST", "/api/booths/1/videos"),
+                new Request("POST", "/api/performances/1/images"),
+                new Request("POST", "/api/performances/1/videos"),
+                new Request("POST", "/api/admin/polls/1/options/1/image"),
                 new Request("POST", "/api/lost-items"),
                 new Request("PATCH", "/api/lost-items/1"));
 

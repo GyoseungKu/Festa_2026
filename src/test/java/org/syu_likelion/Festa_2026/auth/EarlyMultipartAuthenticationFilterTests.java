@@ -30,7 +30,7 @@ class EarlyMultipartAuthenticationFilterTests {
 
     @Test
     void rejectsMissingBearerBeforeBoothMultipartContinues() throws Exception {
-        MockHttpServletRequest request = request("POST", "/api/booths/1/media/images");
+        MockHttpServletRequest request = request("POST", "/api/booths/1/images");
         MockHttpServletResponse response = new MockHttpServletResponse();
         FilterChain chain = mock(FilterChain.class);
 
@@ -43,7 +43,7 @@ class EarlyMultipartAuthenticationFilterTests {
 
     @Test
     void permitsAdminBoothMediaRequestAfterEarlyAuthentication() throws Exception {
-        MockHttpServletRequest request = request("POST", "/api/booths/1/media/videos");
+        MockHttpServletRequest request = request("POST", "/api/booths/1/videos");
         request.addHeader("Authorization", "Bearer valid-access");
         FilterChain chain = mock(FilterChain.class);
         authenticateAs(FestivalRole.ADMIN);
@@ -55,7 +55,7 @@ class EarlyMultipartAuthenticationFilterTests {
 
     @Test
     void rejectsStaffFromAdminOnlyPerformanceUpload() throws Exception {
-        MockHttpServletRequest request = request("POST", "/api/performances/1/media/images");
+        MockHttpServletRequest request = request("POST", "/api/performances/1/images");
         request.addHeader("Authorization", "Bearer staff-access");
         MockHttpServletResponse response = new MockHttpServletResponse();
         FilterChain chain = mock(FilterChain.class);
@@ -80,6 +80,30 @@ class EarlyMultipartAuthenticationFilterTests {
 
         verify(createChain).doFilter(any(), any());
         verify(updateChain).doFilter(any(), any());
+    }
+
+    @Test
+    void rejectsUnauthenticatedPollOptionImageBeforeMultipartParsing() throws Exception {
+        MockHttpServletRequest request = request("POST", "/api/admin/polls/3/options/9/image");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        FilterChain chain = mock(FilterChain.class);
+
+        filter.doFilter(request, response, chain);
+
+        verify(chain, never()).doFilter(any(), any());
+        verify(exceptions).resolveException(eq(request), eq(response), isNull(), isA(ApiException.class));
+    }
+
+    @Test
+    void rejectsUnauthenticatedPollQuestionMediaBeforeMultipartParsing() throws Exception {
+        MockHttpServletRequest request = request("POST", "/api/admin/polls/3/questions/11/media");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        FilterChain chain = mock(FilterChain.class);
+
+        filter.doFilter(request, response, chain);
+
+        verify(chain, never()).doFilter(any(), any());
+        verify(exceptions).resolveException(eq(request), eq(response), isNull(), isA(ApiException.class));
     }
 
     @Test

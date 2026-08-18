@@ -108,6 +108,23 @@ public class AdminPageController {
         return "admin/qr-scan";
     }
 
+    @PostMapping("/admin/qr/search")
+    String searchUsers(@RequestParam String query, HttpServletRequest request,
+                       HttpServletResponse response, Model model) {
+        AuthorizedResult<AdminIdentity> admin = authenticateOrNull(request, response);
+        if (admin == null) return "redirect:/admin/login";
+        addAdmin(model, admin.body());
+        model.addAttribute("searchQuery", query);
+        try {
+            model.addAttribute("searchResult", qrService.searchAs(admin.body().role(), query));
+        } catch (ApiException exception) {
+            model.addAttribute("error", exception.getMessage());
+        } catch (SsoException exception) {
+            model.addAttribute("error", "SSO 사용자 정보를 조회하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+        }
+        return "admin/qr-scan";
+    }
+
     private AuthorizedResult<AdminIdentity> authenticateOrNull(HttpServletRequest request,
                                                                HttpServletResponse response) {
         try {
@@ -133,6 +150,7 @@ public class AdminPageController {
         boolean canManagePerformances = admin.hasRole(org.syu_likelion.Festa_2026.user.FestivalRole.ADMIN)
                 || superAdmin;
         model.addAttribute("canManagePerformances", canManagePerformances);
+        model.addAttribute("canManagePolls", canManagePerformances);
         boolean canManageStamps = canManagePerformances
                 || admin.hasRole(org.syu_likelion.Festa_2026.user.FestivalRole.BOOTH_MANAGER);
         model.addAttribute("canManageStamps", canManageStamps);
@@ -142,6 +160,6 @@ public class AdminPageController {
         model.addAttribute("canManageBirthdayMessages", canManageStaffFeatures);
         model.addAttribute("canMonitorSystem", superAdmin);
         model.addAttribute("availableFeatureCount", 1 + (canManageStaffFeatures ? 2 : 0)
-                + (canManagePerformances ? 2 : 0) + (canManageStamps ? 1 : 0) + (superAdmin ? 1 : 0));
+                + (canManagePerformances ? 3 : 0) + (canManageStamps ? 1 : 0) + (superAdmin ? 1 : 0));
     }
 }
