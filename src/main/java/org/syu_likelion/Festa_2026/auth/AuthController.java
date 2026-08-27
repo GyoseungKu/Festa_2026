@@ -24,6 +24,8 @@ import org.syu_likelion.Festa_2026.auth.AuthDtos.FindIdVerifyRequest;
 import org.syu_likelion.Festa_2026.auth.AuthDtos.FindIdResponse;
 import org.syu_likelion.Festa_2026.auth.AuthDtos.ResetPasswordRequest;
 import org.syu_likelion.Festa_2026.sso.SsoResult;
+import org.syu_likelion.Festa_2026.schoolsso.SchoolAcademicProfile;
+import org.syu_likelion.Festa_2026.schoolsso.SchoolSsoSessionStore;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -32,12 +34,14 @@ public class AuthController {
     private final AuthService authService;
     private final TokenRefreshCoordinator refreshCoordinator;
     private final TokenCookieManager cookies;
+    private final SchoolSsoSessionStore schoolSsoSessions;
 
     public AuthController(AuthService authService, TokenRefreshCoordinator refreshCoordinator,
-                          TokenCookieManager cookies) {
+                          TokenCookieManager cookies, SchoolSsoSessionStore schoolSsoSessions) {
         this.authService = authService;
         this.refreshCoordinator = refreshCoordinator;
         this.cookies = cookies;
+        this.schoolSsoSessions = schoolSsoSessions;
     }
 
     @PostMapping("/signup/email/send")
@@ -83,9 +87,18 @@ public class AuthController {
 
     @PostMapping("/signup")
     @Operation(summary = "회원가입",
-            description = "SSO 계정을 생성합니다. 아이디, 이메일, 비밀번호, 이름, 학과, 학번은 필수이고 전화번호는 선택입니다. 학년, 재학 상태, 생년월일은 nullable입니다.")
-    SignupResponse signup(@Valid @RequestBody SignupRequest request) {
-        return authService.signup(request);
+            description = "SSO 계정을 생성합니다. academicInfoSource가 MANUAL이면 입력한 학적정보를, SCHOOL_SSO이면 학교 SSO에서 검증해 세션에 보관한 이름·학번·학과를 사용합니다.")
+    SignupResponse signup(@Valid @RequestBody SignupRequest request, HttpServletRequest servletRequest) {
+        SignupRequest effective = request;
+        if (request.effectiveAcademicInfoSource() == AuthDtos.AcademicInfoSource.SCHOOL_SSO) {
+            SchoolAcademicProfile profile = schoolSsoSessions.requireProfile(servletRequest);
+            effective = request.withVerifiedAcademicInfo(profile.name(), profile.studentNo(), profile.department());
+        }
+        SignupResponse response = authService.signup(effective);
+        if (request.effectiveAcademicInfoSource() == AuthDtos.AcademicInfoSource.SCHOOL_SSO) {
+            schoolSsoSessions.clearProfile(servletRequest);
+        }
+        return response;
     }
 
     @PostMapping("/login")

@@ -137,6 +137,9 @@ Origin은 경로나 마지막 `/` 없이 `scheme://host[:port]` 형식으로 입
 | POST | `/api/auth/signup/email/send` | 없음 | 회원가입 이메일 인증번호 발송 |
 | POST | `/api/auth/signup/email/verify` | 없음 | 회원가입 이메일 인증번호 확인 |
 | POST | `/api/auth/signup` | 없음 | SSO 회원가입 |
+| GET | `/api/auth/school/authorize` | 없음 | 학교 SSO 학적정보 인증 시작(Redirect) |
+| GET | `/api/auth/school/profile` | 학교 SSO 세션 | 검증된 이름·학번·학과 조회 |
+| DELETE | `/api/auth/school/profile` | 학교 SSO 세션 | 임시 학적정보 폐기 |
 | POST | `/api/auth/login` | 없음 | 로그인 및 토큰 발급 |
 | POST | `/api/auth/email/send` | 없음 | 아이디 찾기·비밀번호 재설정 인증번호 발송 |
 | POST | `/api/auth/email/find-id/verify` | 없음 | 아이디 찾기 인증번호 확인 |
@@ -144,7 +147,7 @@ Origin은 경로나 마지막 `/` 없이 `scheme://host[:port]` 형식으로 입
 | POST | `/api/auth/token/refresh` | Refresh 쿠키 | Access Token 갱신 |
 | POST | `/api/auth/logout` | 선택 | SSO 로그아웃 및 Refresh 쿠키 삭제 |
 
-회원가입의 `loginId`, `password`, `email`, `name`, `studentNo`, `department`는 필수이고 `phone`, `grade`, `enrollment`, `birthDate`는 nullable입니다. 학교 학생 인증 연동은 현재 포함하지 않습니다.
+회원가입의 `loginId`, `password`, `email`, `name`, `studentNo`, `department`는 필수이고 `phone`, `grade`, `enrollment`, `birthDate`는 nullable입니다. `academicInfoSource`는 직접입력 `MANUAL`(기본값) 또는 학교 SSO 자동입력 `SCHOOL_SSO`이며, 학교 방식에서는 서버가 RS256 검증을 마친 이름·학번·학과로 요청값을 강제 교체합니다.
 
 ### HTML 가입 환영 메일
 

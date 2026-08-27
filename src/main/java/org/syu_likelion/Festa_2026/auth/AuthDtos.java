@@ -28,7 +28,28 @@ public final class AuthDtos {
             @NotBlank @Size(max = 100) String department,
             Integer grade,
             @Size(max = 50) String enrollment,
-            LocalDate birthDate) { }
+            LocalDate birthDate,
+            AcademicInfoSource academicInfoSource) {
+        public SignupRequest(String loginId, String password, String email, String name, String phone,
+                             String studentNo, String department, Integer grade,
+                             String enrollment, LocalDate birthDate) {
+            this(loginId, password, email, name, phone, studentNo, department, grade,
+                    enrollment, birthDate, AcademicInfoSource.MANUAL);
+        }
+
+        public AcademicInfoSource effectiveAcademicInfoSource() {
+            return academicInfoSource == null ? AcademicInfoSource.MANUAL : academicInfoSource;
+        }
+
+        public SignupRequest withVerifiedAcademicInfo(String verifiedName, String verifiedStudentNo,
+                                                      String verifiedDepartment) {
+            return new SignupRequest(loginId, password, email, verifiedName, phone,
+                    verifiedStudentNo, verifiedDepartment, grade, enrollment, birthDate,
+                    AcademicInfoSource.SCHOOL_SSO);
+        }
+    }
+
+    public enum AcademicInfoSource { MANUAL, SCHOOL_SSO }
 
     public record LoginRequest(
             @NotBlank @Size(max = 100) String loginId,

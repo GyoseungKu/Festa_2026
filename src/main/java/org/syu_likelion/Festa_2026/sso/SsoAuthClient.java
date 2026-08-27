@@ -72,7 +72,10 @@ public class SsoAuthClient {
     }
 
     public SignupResponse register(SignupRequest request) {
-        return send("POST", "/api/auth/register", request, basicAuthorization, null, SignupResponse.class).body();
+        SsoSignupRequest body = new SsoSignupRequest(request.loginId(), request.password(), request.email(),
+                request.name(), request.phone(), request.studentNo(), request.department(), request.grade(),
+                request.enrollment(), request.birthDate());
+        return send("POST", "/api/auth/register", body, basicAuthorization, null, SignupResponse.class).body();
     }
 
     public SsoResult<TokenResponse> login(LoginRequest request) {
@@ -188,4 +191,8 @@ public class SsoAuthClient {
         log.info("SSO endpoint={} status={} durationMs={} correlationId={} success={}",
                 path, status, millis, correlationId, status >= 200 && status < 300);
     }
+
+    private record SsoSignupRequest(String loginId, String password, String email, String name,
+                                    String phone, String studentNo, String department, Integer grade,
+                                    String enrollment, java.time.LocalDate birthDate) { }
 }
