@@ -1,6 +1,8 @@
 package org.syu_likelion.Festa_2026.temporaryauth;
 
 import jakarta.servlet.http.HttpServletResponse;
+import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -23,6 +25,9 @@ public class TemporaryAuthUiController {
 
     @GetMapping({"/temporary-auth", "/syu-sso-test"})
     String page(HttpServletResponse response, Model model) {
+        response.setLocale(Locale.KOREAN);
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        response.setContentType("text/html;charset=UTF-8");
         response.setHeader("Cache-Control", "no-store");
         response.setHeader("Pragma", "no-cache");
         response.setHeader("Referrer-Policy", "no-referrer");
