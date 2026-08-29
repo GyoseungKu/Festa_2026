@@ -19,11 +19,14 @@ public class BambooApiService {
     private final BambooService bamboo;
     private final UserService users;
     private final BambooIdentityCache identities;
+    private final BambooReportNotifier notifier;
 
-    public BambooApiService(BambooService bamboo, UserService users, BambooIdentityCache identities) {
+    public BambooApiService(BambooService bamboo, UserService users, BambooIdentityCache identities,
+                            BambooReportNotifier notifier) {
         this.bamboo = bamboo;
         this.users = users;
         this.identities = identities;
+        this.notifier = notifier;
     }
 
     /**
@@ -77,7 +80,9 @@ public class BambooApiService {
     public AuthorizedResult<Void> report(String access, String refresh, Long messageId,
                                          BambooReportReason reason) {
         AuthorizedResult<UUID> authenticated = authenticate(access, refresh);
-        bamboo.reportAs(authenticated.body(), messageId, reason);
+        long reportCount = bamboo.reportAs(authenticated.body(), messageId, reason);
+        // 신고 트랜잭션이 끝난 뒤에 알린다. 알림 실패가 신고를 되돌리면 안 된다.
+        notifier.notifyIfThresholdReached(messageId, reportCount);
         return rotated(authenticated, null);
     }
 

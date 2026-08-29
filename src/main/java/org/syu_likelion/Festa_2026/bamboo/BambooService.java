@@ -258,8 +258,11 @@ public class BambooService {
 
     // ------------------------------------------------------------------ 신고
 
+    /**
+     * 신고를 기록하고 누적 수를 반환한다. 알림 발송은 호출자가 트랜잭션이 끝난 뒤에 한다.
+     */
     @Transactional
-    public void reportAs(UUID reporterUuid, Long messageId, BambooReportReason reason) {
+    public long reportAs(UUID reporterUuid, Long messageId, BambooReportReason reason) {
         requireEnabled();
         BambooMessage message = messages.findById(messageId)
                 .filter(BambooMessage::isVisible)
@@ -281,6 +284,7 @@ public class BambooService {
                     "이미 신고한 메시지입니다.");
         }
         messages.incrementReportCount(messageId);
+        return reports.countByMessageId(messageId);
     }
 
     @Transactional(readOnly = true)
