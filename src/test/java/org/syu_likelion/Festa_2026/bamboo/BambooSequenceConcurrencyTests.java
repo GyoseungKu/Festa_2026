@@ -32,7 +32,11 @@ import org.syu_likelion.Festa_2026.bamboo.BambooDtos.BambooStreamResponse;
         "spring.datasource.url=jdbc:h2:mem:bamboo-sequence;MODE=MySQL;DB_CLOSE_DELAY=-1",
         "spring.datasource.driver-class-name=org.h2.Driver",
         "spring.datasource.username=sa", "spring.datasource.password=",
-        "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect"
+        "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect",
+        // 이 테스트들은 연속 작성이 목적이므로 빈도 제한을 푼다. 제한 자체는 BambooRateLimiterTests 가 검증한다.
+        "bamboo.write-interval=0s",
+        "bamboo.writes-per-minute=1000000",
+        "bamboo.writes-per-hour=1000000"
 })
 class BambooSequenceConcurrencyTests {
     private static final UUID AUTHOR = UUID.fromString("123e4567-e89b-12d3-a456-4266141740b0");
@@ -43,12 +47,14 @@ class BambooSequenceConcurrencyTests {
     private static final int DRAIN_POLLS = 20;
 
     @Autowired BambooService service;
+    @Autowired BambooRateLimiter rateLimiter;
     @Autowired BambooMessageRepository messages;
     @Autowired BambooNicknameRepository nicknames;
     @Autowired BambooSettingsRepository settings;
 
     @BeforeEach
     void reset() {
+        rateLimiter.clear();
         messages.deleteAll();
         nicknames.deleteAll();
         settings.deleteAll();

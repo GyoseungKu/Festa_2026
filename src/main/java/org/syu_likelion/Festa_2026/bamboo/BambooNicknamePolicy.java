@@ -37,24 +37,41 @@ public final class BambooNicknamePolicy {
     private BambooNicknamePolicy() { }
 
     /**
-     * 중복·금칙어 판정용 정규화 키를 만든다.
+     * 닉네임 중복·금칙어 판정용 정규화 키를 만든다.
      *
      * <p>NFKC → 제로폭·제어·공백 문자 제거 → 소문자 → 호모글리프 매핑 순서로 처리한다.
      * 소문자 변환을 먼저 해야 대문자 {@code I}와 소문자 {@code l}이 같은 값으로 모인다.
+     * 닉네임에는 애초에 공백을 허용하지 않으므로 공백 제거가 부작용을 만들지 않는다.
      */
     public static String normalize(String raw) {
+        return fold(raw, true);
+    }
+
+    /**
+     * 본문 대조용 정규화. 대소문자·전각·제로폭·호모글리프만 접고 <b>공백은 남긴다</b>.
+     *
+     * <p>공백까지 지우면 한국어에서 오탐이 심하다. 예를 들어 "다시 발표"가 "다시발표"가 되어
+     * 짧은 금칙어에 걸린다. 공백 사이를 벌리는 회피는 막지 못하지만, 정상 문장을 막는 쪽이
+     * 훨씬 큰 문제라 이쪽을 택한다.
+     */
+    public static String normalizeText(String raw) {
+        return fold(raw, false);
+    }
+
+    private static String fold(String raw, boolean stripWhitespace) {
         if (raw == null) return "";
         String nfkc = Normalizer.normalize(raw, Normalizer.Form.NFKC);
         StringBuilder key = new StringBuilder(nfkc.length());
         nfkc.codePoints().forEach(codePoint -> {
-            if (isIgnorable(codePoint)) return;
+            if (isIgnorable(codePoint, stripWhitespace)) return;
             key.appendCodePoint(homoglyph(Character.toLowerCase(codePoint)));
         });
         return key.toString();
     }
 
-    private static boolean isIgnorable(int codePoint) {
-        if (Character.isWhitespace(codePoint) || Character.isISOControl(codePoint)) return true;
+    private static boolean isIgnorable(int codePoint, boolean stripWhitespace) {
+        if (Character.isISOControl(codePoint)) return true;
+        if (stripWhitespace && Character.isWhitespace(codePoint)) return true;
         return Character.getType(codePoint) == Character.FORMAT
                 || codePoint == 0x200B || codePoint == 0x200C || codePoint == 0x200D || codePoint == 0xFEFF;
     }

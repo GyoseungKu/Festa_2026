@@ -3,7 +3,9 @@ package org.syu_likelion.Festa_2026.bamboo;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -31,13 +33,22 @@ public class BambooService {
     private final BambooNicknameRepository nicknames;
     private final BambooSettingsRepository settings;
     private final BambooSequence sequence;
+    private final BambooRateLimiter rateLimiter;
+    /** 설정에 적힌 금칙어를 닉네임과 같은 방식으로 정규화해 둔다. 매 요청마다 다시 만들지 않는다. */
+    private final Set<String> blockedWords;
 
     public BambooService(BambooMessageRepository messages, BambooNicknameRepository nicknames,
-                         BambooSettingsRepository settings, BambooSequence sequence) {
+                         BambooSettingsRepository settings, BambooSequence sequence,
+                         BambooRateLimiter rateLimiter, BambooProperties properties) {
         this.messages = messages;
         this.nicknames = nicknames;
         this.settings = settings;
         this.sequence = sequence;
+        this.rateLimiter = rateLimiter;
+        this.blockedWords = properties.blockedWords().stream()
+                .map(BambooNicknamePolicy::normalizeText)
+                .filter(word -> !word.isEmpty())
+                .collect(Collectors.toUnmodifiableSet());
     }
 
     // ------------------------------------------------------------------ 방 상태
@@ -177,6 +188,8 @@ public class BambooService {
                 new ApiException(HttpStatus.CONFLICT, "BAMBOO_NICKNAME_REQUIRED",
                         "먼저 닉네임을 정해 주세요."));
         String content = normalizeContent(rawContent);
+        requireAllowedContent(content);
+        rateLimiter.checkWrite(userUuid, content);
         String anonName = nickname.getNickname();
         BambooMessage saved = sequence.writeInOrder(seq ->
                 messages.save(new BambooMessage(seq, userUuid, anonName, content, now)));
@@ -211,6 +224,21 @@ public class BambooService {
                     "메시지는 " + MAX_CONTENT_CODE_POINTS + "자까지 입력할 수 있습니다.");
         }
         return collapsed;
+    }
+
+    /**
+     * 금칙어를 부분 문자열로 검사한다. 대소문자·전각·호모글리프만 접고 공백은 유지한다.
+     *
+     * <p>짧은 금칙어는 정상 단어를 오탐한다("시발" ⊂ "시발점"). 목록에는 그 자체로 다른 뜻이
+     * 되기 어려운 긴 표현만 넣는다. 기본값이 비어 있는 것도 같은 이유다.
+     */
+    private void requireAllowedContent(String content) {
+        if (blockedWords.isEmpty()) return;
+        String key = BambooNicknamePolicy.normalizeText(content);
+        if (blockedWords.stream().anyMatch(key::contains)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "BAMBOO_CONTENT_BLOCKED",
+                    "사용할 수 없는 표현이 포함되어 있습니다.");
+        }
     }
 
     // ------------------------------------------------------------------ 공통

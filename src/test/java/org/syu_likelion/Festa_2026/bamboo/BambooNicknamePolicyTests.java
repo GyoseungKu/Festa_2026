@@ -68,6 +68,21 @@ class BambooNicknamePolicyTests {
     }
 
     @Test
+    void textNormalizationKeepsWhitespaceSoOrdinaryKoreanIsNotMangled() {
+        assertThat(BambooNicknamePolicy.normalizeText("다시 발표할게")).isEqualTo("다시 발표할게");
+        assertThat(BambooNicknamePolicy.normalizeText("다시 발표할게")).doesNotContain("시발");
+        assertThat(BambooNicknamePolicy.normalize("다시 발표할게")).contains("시발");
+    }
+
+    @Test
+    void textNormalizationStillFoldsCaseWidthAndZeroWidth() {
+        assertThat(BambooNicknamePolicy.normalizeText("ＢＡＮＮＥＤ"))
+                .isEqualTo(BambooNicknamePolicy.normalizeText("banned"));
+        assertThat(BambooNicknamePolicy.normalizeText("ban​ned"))
+                .isEqualTo(BambooNicknamePolicy.normalizeText("banned"));
+    }
+
+    @Test
     void wordListsAreTheDocumentedSize() {
         assertThat(BambooNicknamePolicy.adjectives()).hasSize(30).doesNotHaveDuplicates();
         assertThat(BambooNicknamePolicy.animals()).hasSize(30).doesNotHaveDuplicates();

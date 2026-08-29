@@ -1,5 +1,6 @@
 package org.syu_likelion.Festa_2026.bamboo;
 
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.syu_likelion.Festa_2026.auth.AuthorizedSsoExecutor.AuthorizedResult;
 import org.syu_likelion.Festa_2026.bamboo.BambooDtos.BambooMessageResponse;
@@ -17,46 +18,63 @@ import org.syu_likelion.Festa_2026.user.UserService;
 public class BambooApiService {
     private final BambooService bamboo;
     private final UserService users;
+    private final BambooIdentityCache identities;
 
-    public BambooApiService(BambooService bamboo, UserService users) {
+    public BambooApiService(BambooService bamboo, UserService users, BambooIdentityCache identities) {
         this.bamboo = bamboo;
         this.users = users;
+        this.identities = identities;
+    }
+
+    /**
+     * 사용자 식별자만 필요하므로 단기 캐시를 먼저 본다. 캐시가 맞으면 SSO 호출이 없고,
+     * 토큰 로테이션도 일어나지 않으므로 응답 헤더에 담을 새 토큰도 없다.
+     */
+    private AuthorizedResult<UUID> authenticate(String access, String refresh) {
+        UUID cached = identities.find(access);
+        if (cached != null) return new AuthorizedResult<>(cached, null, null);
+        AuthorizedResult<MeResponse> authenticated = users.getMe(access, refresh);
+        UUID userUuid = authenticated.body().userUuid();
+        // 토큰이 갱신됐다면 만료된 옛 토큰이 아니라 새 토큰을 캐시한다.
+        String rotated = authenticated.newAccessToken();
+        identities.store(rotated != null ? rotated : access, userUuid);
+        return new AuthorizedResult<>(userUuid, rotated, authenticated.newRefreshToken());
     }
 
     public AuthorizedResult<BambooRoomResponse> room(String access, String refresh) {
-        AuthorizedResult<MeResponse> authenticated = users.getMe(access, refresh);
-        return rotated(authenticated, bamboo.room(authenticated.body().userUuid()));
+        AuthorizedResult<UUID> authenticated = authenticate(access, refresh);
+        return rotated(authenticated, bamboo.room(authenticated.body()));
     }
 
     public AuthorizedResult<BambooNicknameResponse> suggestNickname(String access, String refresh) {
-        AuthorizedResult<MeResponse> authenticated = users.getMe(access, refresh);
+        AuthorizedResult<UUID> authenticated = authenticate(access, refresh);
         return rotated(authenticated, bamboo.suggestNickname());
     }
 
     public AuthorizedResult<BambooNicknameResponse> claimNickname(String access, String refresh,
                                                                   String nickname) {
-        AuthorizedResult<MeResponse> authenticated = users.getMe(access, refresh);
-        return rotated(authenticated, bamboo.claimNickname(authenticated.body().userUuid(), nickname));
+        AuthorizedResult<UUID> authenticated = authenticate(access, refresh);
+        return rotated(authenticated, bamboo.claimNickname(authenticated.body(), nickname));
     }
 
     public AuthorizedResult<BambooStreamResponse> stream(String access, String refresh,
                                                           Long after, Integer size) {
-        AuthorizedResult<MeResponse> authenticated = users.getMe(access, refresh);
-        return rotated(authenticated, bamboo.stream(authenticated.body().userUuid(), after, size));
+        AuthorizedResult<UUID> authenticated = authenticate(access, refresh);
+        return rotated(authenticated, bamboo.stream(authenticated.body(), after, size));
     }
 
     public AuthorizedResult<BambooStreamResponse> history(String access, String refresh,
                                                            Long before, Integer size) {
-        AuthorizedResult<MeResponse> authenticated = users.getMe(access, refresh);
-        return rotated(authenticated, bamboo.history(authenticated.body().userUuid(), before, size));
+        AuthorizedResult<UUID> authenticated = authenticate(access, refresh);
+        return rotated(authenticated, bamboo.history(authenticated.body(), before, size));
     }
 
     public AuthorizedResult<BambooMessageResponse> create(String access, String refresh, String content) {
-        AuthorizedResult<MeResponse> authenticated = users.getMe(access, refresh);
-        return rotated(authenticated, bamboo.createAs(authenticated.body().userUuid(), content));
+        AuthorizedResult<UUID> authenticated = authenticate(access, refresh);
+        return rotated(authenticated, bamboo.createAs(authenticated.body(), content));
     }
 
-    private <T> AuthorizedResult<T> rotated(AuthorizedResult<MeResponse> authenticated, T body) {
+    private <T> AuthorizedResult<T> rotated(AuthorizedResult<UUID> authenticated, T body) {
         return new AuthorizedResult<>(body, authenticated.newAccessToken(), authenticated.newRefreshToken());
     }
 }

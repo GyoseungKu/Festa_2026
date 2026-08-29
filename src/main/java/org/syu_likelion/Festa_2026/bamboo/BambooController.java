@@ -85,12 +85,13 @@ public class BambooController {
             @RequestParam(required = false) Integer size,
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
             @Parameter(hidden = true) HttpServletRequest request) {
+        // 인증을 파라미터 검증보다 먼저 한다. 비로그인 요청이 400 을 받으면 안 된다.
+        String access = BearerTokens.require(authorization);
+        String refresh = cookies.readRefreshToken(request);
         if (after != null && before != null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_PARAMETER",
                     "after 와 before 는 함께 사용할 수 없습니다.");
         }
-        String access = BearerTokens.require(authorization);
-        String refresh = cookies.readRefreshToken(request);
         if (before != null) return response(api.history(access, refresh, before, size));
         return response(api.stream(access, refresh, after, size));
     }
