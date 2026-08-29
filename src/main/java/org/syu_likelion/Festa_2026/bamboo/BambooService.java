@@ -298,7 +298,18 @@ public class BambooService {
     public BambooAdminPageResponse reportedMessages(int page, int size) {
         int safePage = Math.max(0, page);
         int safeSize = Math.max(1, Math.min(size, MAX_HISTORY_SIZE));
-        Page<BambooMessage> found = messages.findReported(PageRequest.of(safePage, safeSize));
+        return toAdminPage(messages.findReported(PageRequest.of(safePage, safeSize)));
+    }
+
+    @Transactional(readOnly = true)
+    public BambooAdminPageResponse recentMessages(int page, int size) {
+        int safePage = Math.max(0, page);
+        int safeSize = Math.max(1, Math.min(size, MAX_HISTORY_SIZE));
+        Page<BambooMessage> found = messages.findAllByOrderByIdDesc(PageRequest.of(safePage, safeSize));
+        return toAdminPage(found);
+    }
+
+    private BambooAdminPageResponse toAdminPage(Page<BambooMessage> found) {
         Map<Long, Map<BambooReportReason, Long>> reasons = reasonsFor(found.getContent());
         List<BambooAdminMessageResponse> items = found.getContent().stream()
                 .map(message -> new BambooAdminMessageResponse(message.getId(), message.getSeq(),

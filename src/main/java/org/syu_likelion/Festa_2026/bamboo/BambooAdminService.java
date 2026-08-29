@@ -106,6 +106,26 @@ public class BambooAdminService {
         }
     }
 
+    /**
+     * Thymeleaf 관리자 페이지 전용. 화면은 {@code AdminAccessService} 로 이미 인증을 마쳤으므로
+     * SSO 를 다시 호출하지 않고 역할만 확인한다. 감사 로그는 동일하게 남긴다.
+     */
+    public BambooAuthorResponse authorAs(FestivalRole role, UUID actorUuid, Long messageId) {
+        requireRole(Set.of(role), FestivalRole.SUPER_ADMIN);
+        UUID targetUuid = null;
+        try {
+            targetUuid = bamboo.authorUuidOf(messageId);
+            InternalUserProfile profile = profiles.getProfile(targetUuid);
+            audit(actorUuid, targetUuid, messageId, true);
+            return new BambooAuthorResponse(profile.userUuid(), bamboo.nicknameOf(targetUuid),
+                    profile.loginId(), profile.email(), profile.name(), profile.phone(),
+                    profile.studentNo(), profile.department(), profile.grade(), profile.enrollment());
+        } catch (RuntimeException failure) {
+            audit(actorUuid, targetUuid, messageId, false);
+            throw failure;
+        }
+    }
+
     private void audit(UUID actorUuid, UUID targetUuid, Long messageId, boolean success) {
         log.info("bamboo author lookup actorUuid={} actorRole={} targetUuid={} messageId={} success={} requestId={}",
                 actorUuid, FestivalRole.SUPER_ADMIN, targetUuid, messageId, success, MDC.get("requestId"));

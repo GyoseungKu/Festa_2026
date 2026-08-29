@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>대나무숲 운영 | 천보축전 관리자</title>
+    <link rel="icon" type="image/svg+xml" th:href="@{/images/favicon.svg}">
+    <link rel="stylesheet" th:href="@{/css/admin.css}">
+</head>
+<body>
+<header class="admin-header">
+    <a class="admin-logo" th:href="@{/admin}"><img class="brand-logo" th:src="@{/images/Logo.webp}" alt="천보축전 로고"></a>
+    <div class="admin-account">
+        <div><strong th:text="${adminName}">관리자</strong><span th:text="${adminRole}">STAFF</span></div>
+        <form method="post" th:action="@{/admin/logout}"><button class="button button-ghost button-small" type="submit">로그아웃</button></form>
+    </div>
+</header>
+
+<main class="admin-main">
+    <nav class="breadcrumb" aria-label="현재 위치"><a th:href="@{/admin}">관리자 홈</a><span>/</span><strong>대나무숲 운영</strong></nav>
+
+    <section class="management-toolbar">
+        <div>
+            <p class="eyebrow">BAMBOO</p>
+            <h1>대나무숲 운영</h1>
+            <p>신고된 메시지를 확인하고 가리거나 작성자를 차단합니다. 삭제해도 원문은 기록으로 남습니다.</p>
+        </div>
+        <button class="button button-secondary" type="button" id="bamboo-auto-refresh"
+                data-label-on="자동 새로고침 끄기" data-label-off="자동 새로고침 켜기">자동 새로고침 켜기</button>
+    </section>
+
+    <div class="alert alert-success" role="status" th:if="${message}" th:text="${message}"></div>
+    <div class="alert alert-danger" role="alert" th:if="${error}" th:text="${error}"></div>
+
+    <!-- SUPER_ADMIN 이 신원을 조회한 결과. 조회 사실은 감사 로그에 남는다. -->
+    <section class="empty-panel" th:if="${author}">
+        <strong th:text="|메시지 ${authorMessageId} 작성자|">작성자</strong>
+        <dl class="performance-meta">
+            <div><dt>닉네임</dt><dd th:text="${author.nickname}">졸린사자42</dd></div>
+            <div><dt>이름</dt><dd th:text="${author.name}">홍길동</dd></div>
+            <div><dt>학번</dt><dd th:text="${author.studentNo}">2024100920</dd></div>
+            <div><dt>학과</dt><dd th:text="${author.department}">컴퓨터공학부</dd></div>
+            <div><dt>연락처</dt><dd th:text="${author.phone}">01000000000</dd></div>
+            <div><dt>이메일</dt><dd th:text="${author.email}">student@example.com</dd></div>
+        </dl>
+        <p>이 조회는 감사 로그에 기록되었습니다.</p>
+    </section>
+
+    <!-- 운영 설정. 채팅이 폭주해 사용자 요청이 거절되는 상황에서도 이 화면은 동작한다. -->
+    <form class="lost-item-filter" method="post" th:action="@{/admin/bamboo/settings}">
+        <label class="field-group">
+            <span>대나무숲 열기</span>
+            <select name="enabled" th:disabled="${!canChangeSettings}">
+                <option value="true" th:selected="${settings.enabled}">열림</option>
+                <option value="false" th:selected="${!settings.enabled}">닫힘 (킬스위치)</option>
+            </select>
+        </label>
+        <label class="field-group">
+            <span>읽기 전용</span>
+            <select name="readOnly" th:disabled="${!canChangeSettings}">
+                <option value="false" th:selected="${!settings.readOnly}">작성 가능</option>
+                <option value="true" th:selected="${settings.readOnly}">읽기 전용</option>
+            </select>
+        </label>
+        <label class="field-group">
+            <span>자동 종료 시각 (KST)</span>
+            <input type="datetime-local" name="closesAt" th:value="${closesAtInput}" th:disabled="${!canChangeSettings}">
+        </label>
+        <button class="button button-primary" type="submit" th:if="${canChangeSettings}">설정 저장</button>
+        <span class="media-count" th:unless="${canChangeSettings}">설정 변경은 ADMIN 이상만 가능합니다.</span>
+    </form>
+
+    <nav class="breadcrumb" aria-label="목록 구분">
+        <a th:href="@{/admin/bamboo(tab='REPORTED')}" th:classappend="${tab == 'REPORTED'} ? ' is-current'">신고된 메시지</a>
+        <span>/</span>
+        <a th:href="@{/admin/bamboo(tab='RECENT')}" th:classappend="${tab == 'RECENT'} ? ' is-current'">최근 메시지</a>
+    </nav>
+
+    <section class="empty-panel" th:if="${#lists.isEmpty(messages)}">
+        <strong th:text="${tab == 'REPORTED'} ? '신고된 메시지가 없습니다.' : '아직 작성된 메시지가 없습니다.'">없음</strong>
+        <p>신고가 누적되면 등록된 주소로 알림 메일이 발송됩니다.</p>
+    </section>
+
+    <section class="lost-item-list" th:unless="${#lists.isEmpty(messages)}">
+        <article class="lost-item-admin-card" th:each="item : ${messages}">
+            <div class="lost-item-card-body">
+                <div class="lost-item-card-flags">
+                    <span class="category-chip" th:classappend="${item.status.name() != 'VISIBLE'} ? ' is-returned'"
+                          th:text="${item.status.name() == 'VISIBLE'} ? '표시 중' : (${item.status.name() == 'HIDDEN'} ? '가려짐' : '삭제됨')">표시 중</span>
+                    <span class="publish-chip is-public" th:if="${item.reportCount > 0}" th:text="|신고 ${item.reportCount}건|">신고 0건</span>
+                    <span class="media-count" th:each="reason : ${item.reasons}"
+                          th:text="|${reason.key} ${reason.value}|">ABUSE 1</span>
+                </div>
+                <h2 th:text="${item.anonName}">졸린사자42</h2>
+                <p class="member-summary lost-item-summary" th:text="${item.content}">메시지 내용</p>
+                <dl class="performance-meta">
+                    <div><dt>메시지 번호</dt><dd th:text="${item.id}">1</dd></div>
+                    <div><dt>작성</dt><dd th:text="${#temporals.format(item.createdAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm')} + ' KST'">2026-10-06 19:00 KST</dd></div>
+                </dl>
+
+                <div class="lost-item-quick-actions">
+                    <form method="post" th:action="@{/admin/bamboo/messages/{id}/status(id=${item.id})}">
+                        <input type="hidden" name="tab" th:value="${tab}">
+                        <input type="hidden" name="status" th:value="${item.status.name() == 'VISIBLE'} ? 'HIDDEN' : 'VISIBLE'">
+                        <button class="button button-secondary" type="submit"
+                                th:text="${item.status.name() == 'VISIBLE'} ? '가리기' : '다시 표시'">가리기</button>
+                    </form>
+                    <form method="post" th:action="@{/admin/bamboo/messages/{id}/status(id=${item.id})}"
+                          th:if="${item.status.name() != 'DELETED'}"
+                          onsubmit="return confirm('이 메시지를 삭제할까요? 원문은 기록으로 남습니다.');">
+                        <input type="hidden" name="tab" th:value="${tab}">
+                        <input type="hidden" name="status" value="DELETED">
+                        <button class="button button-danger" type="submit">삭제</button>
+                    </form>
+
+                    <form method="post" th:action="@{/admin/bamboo/messages/{id}/mute(id=${item.id})}">
+                        <input type="hidden" name="tab" th:value="${tab}">
+                        <label class="field-group">
+                            <span>작성 차단</span>
+                            <select name="minutes">
+                                <option value="10">10분</option>
+                                <option value="30" selected>30분</option>
+                                <option value="180">3시간</option>
+                                <option value="1440">하루</option>
+                                <option value="0">해제</option>
+                            </select>
+                        </label>
+                        <button class="button button-secondary" type="submit">적용</button>
+                    </form>
+
+                    <form method="post" th:action="@{/admin/bamboo/messages/{id}/nickname(id=${item.id})}">
+                        <input type="hidden" name="tab" th:value="${tab}">
+                        <label class="field-group">
+                            <span>닉네임 변경</span>
+                            <input type="text" name="nickname" maxlength="12" placeholder="새 닉네임" required>
+                        </label>
+                        <button class="button button-secondary" type="submit">변경</button>
+                    </form>
+
+                    <form method="post" th:action="@{/admin/bamboo/messages/{id}/author(id=${item.id})}"
+                          th:if="${canSeeAuthor}"
+                          onsubmit="return confirm('작성자 신원을 조회합니다. 조회 사실이 감사 로그에 기록됩니다. 계속할까요?');">
+                        <input type="hidden" name="tab" th:value="${tab}">
+                        <button class="button button-ghost" type="submit">작성자 확인</button>
+                    </form>
+                </div>
+            </div>
+        </article>
+    </section>
+
+    <nav class="number-pagination" th:if="${result.totalPages > 1}" aria-label="대나무숲 메시지 페이지">
+        <a th:if="${result.page > 0}" th:href="@{/admin/bamboo(tab=${tab},page=${result.page - 1})}" aria-label="이전 페이지">‹</a>
+        <a th:each="number : ${pageNumbers}" th:href="@{/admin/bamboo(tab=${tab},page=${number})}"
+           th:text="${number + 1}" th:classappend="${number == result.page} ? ' is-current'"
+           th:attr="aria-current=${number == result.page ? 'page' : null}">1</a>
+        <a th:if="${result.page + 1 < result.totalPages}" th:href="@{/admin/bamboo(tab=${tab},page=${result.page + 1})}" aria-label="다음 페이지">›</a>
+    </nav>
+</main>
+<div th:replace="~{admin/fragments/footer :: footer(true)}"></div>
+<script th:src="@{/js/admin-bamboo.js}" defer></script>
+</body>
+</html>

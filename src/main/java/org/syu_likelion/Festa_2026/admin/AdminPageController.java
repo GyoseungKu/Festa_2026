@@ -187,6 +187,7 @@ public class AdminPageController {
                 || canManagePerformances;
         model.addAttribute("canManageLostItems", canManageStaffFeatures);
         model.addAttribute("canManageBirthdayMessages", canManageStaffFeatures);
+        model.addAttribute("canManageBamboo", canManageStaffFeatures);
         model.addAttribute("canMonitorSystem", superAdmin);
         model.addAttribute("canManageUserRoles", canManagePerformances);
         model.addAttribute("managementRoleOptions", superAdmin

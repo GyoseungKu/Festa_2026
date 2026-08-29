@@ -104,6 +104,17 @@
                 <span class="feature-arrow" aria-hidden="true">&rarr;</span>
             </a>
 
+            <a class="feature-card" th:if="${canManageBamboo}" th:href="@{/admin/bamboo}">
+                <span class="feature-icon feature-icon-lost" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" role="img"><path d="M4 4h16v12H7l-3 3V4Zm3 4h10v2H7V8Zm0 4h7v2H7v-2Z"/></svg>
+                </span>
+                <div>
+                    <span class="feature-status">STAFF 이상</span>
+                    <h3>대나무숲 운영</h3>
+                    <p>신고된 메시지를 가리거나 삭제하고, 작성자 차단과 킬스위치를 관리합니다.</p>
+                </div>
+                <span class="feature-arrow" aria-hidden="true">→</span>
+            </a>
             <a class="feature-card" th:if="${canManageLostItems}" th:href="@{/admin/lost-items}">
                 <span class="feature-icon feature-icon-lost" aria-hidden="true">
                     <svg viewBox="0 0 24 24" role="img"><path d="M4 5h16v14H4V5Zm2 2v10h12V7H6Zm2 2h8v2H8V9Zm0 4h5v2H8v-2Z"/></svg>

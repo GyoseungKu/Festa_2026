@@ -20,6 +20,9 @@ public interface BambooMessageRepository extends JpaRepository<BambooMessage, Lo
     @Query("select coalesce(max(m.seq), 0) from BambooMessage m")
     long findMaxSeq();
 
+    /** 관리자 화면의 최근 메시지 탭. 상태와 무관하게 최신순으로 본다. */
+    Page<BambooMessage> findAllByOrderByIdDesc(Pageable pageable);
+
     /** 신고된 메시지. 처리 여부와 무관하게 보여주고 화면에서 상태로 구분한다. */
     @Query("select m from BambooMessage m where m.reportCount > 0 order by m.reportCount desc, m.id desc")
     Page<BambooMessage> findReported(Pageable pageable);
