@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,6 +23,7 @@ import org.syu_likelion.Festa_2026.auth.TokenCookieManager;
 import org.syu_likelion.Festa_2026.bamboo.BambooDtos.BambooMessageCreateRequest;
 import org.syu_likelion.Festa_2026.bamboo.BambooDtos.BambooMessageResponse;
 import org.syu_likelion.Festa_2026.bamboo.BambooDtos.BambooNicknameRequest;
+import org.syu_likelion.Festa_2026.bamboo.BambooDtos.BambooReportRequest;
 import org.syu_likelion.Festa_2026.bamboo.BambooDtos.BambooNicknameResponse;
 import org.syu_likelion.Festa_2026.bamboo.BambooDtos.BambooRoomResponse;
 import org.syu_likelion.Festa_2026.bamboo.BambooDtos.BambooStreamResponse;
@@ -106,6 +108,20 @@ public class BambooController {
         AuthorizedResult<BambooMessageResponse> result = api.create(BearerTokens.require(authorization),
                 cookies.readRefreshToken(request), body.content());
         return ResponseEntity.status(HttpStatus.CREATED).headers(headers(result)).body(result.body());
+    }
+
+    @PostMapping("/messages/{id}/report")
+    @Operation(summary = "메시지 신고",
+            description = "본인이 작성한 메시지는 신고할 수 없고, 같은 메시지를 두 번 신고할 수 없습니다.")
+    @SecurityRequirement(name = "bearerAuth")
+    ResponseEntity<Void> report(
+            @PathVariable Long id,
+            @Valid @RequestBody BambooReportRequest body,
+            @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
+            @Parameter(hidden = true) HttpServletRequest request) {
+        AuthorizedResult<Void> result = api.report(BearerTokens.require(authorization),
+                cookies.readRefreshToken(request), id, body.reason());
+        return ResponseEntity.noContent().headers(headers(result)).build();
     }
 
     private <T> ResponseEntity<T> response(AuthorizedResult<T> result) {

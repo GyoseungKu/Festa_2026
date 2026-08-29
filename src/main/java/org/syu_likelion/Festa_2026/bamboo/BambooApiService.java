@@ -74,6 +74,13 @@ public class BambooApiService {
         return rotated(authenticated, bamboo.createAs(authenticated.body(), content));
     }
 
+    public AuthorizedResult<Void> report(String access, String refresh, Long messageId,
+                                         BambooReportReason reason) {
+        AuthorizedResult<UUID> authenticated = authenticate(access, refresh);
+        bamboo.reportAs(authenticated.body(), messageId, reason);
+        return rotated(authenticated, null);
+    }
+
     private <T> AuthorizedResult<T> rotated(AuthorizedResult<UUID> authenticated, T body) {
         return new AuthorizedResult<>(body, authenticated.newAccessToken(), authenticated.newRefreshToken());
     }
