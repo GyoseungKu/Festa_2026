@@ -11,16 +11,20 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.http.HttpStatus;
 import org.syu_likelion.Festa_2026.error.ApiException;
+import org.syu_likelion.Festa_2026.schoolsso.SchoolAcademicProfile;
+import org.syu_likelion.Festa_2026.schoolsso.SchoolSubjectHasher;
 
 @Service
 public class FestivalUserService {
     private static final Duration WELCOME_EMAIL_CLAIM_TIMEOUT = Duration.ofMinutes(15);
     private final FestivalUserRepository repository;
     private final Clock clock;
+    private final SchoolSubjectHasher schoolSubjects;
 
-    public FestivalUserService(FestivalUserRepository repository, Clock clock) {
+    public FestivalUserService(FestivalUserRepository repository, Clock clock, SchoolSubjectHasher schoolSubjects) {
         this.repository = repository;
         this.clock = clock;
+        this.schoolSubjects = schoolSubjects;
     }
 
     @Transactional
@@ -32,6 +36,32 @@ public class FestivalUserService {
     @Transactional(readOnly = true)
     public Set<FestivalRole> getRoles(UUID userUuid) {
         return repository.findByUserUuid(userUuid).map(FestivalUser::getRoles).orElseGet(Set::of);
+    }
+
+    @Transactional
+    public UserFestivalProfile linkAndGetProfile(UUID userUuid) {
+        if (userUuid == null) throw new IllegalArgumentException("SSO response did not contain userUuid");
+        return toProfile(repository.findByUserUuid(userUuid).orElseGet(() -> create(userUuid)));
+    }
+
+    @Transactional(readOnly = true)
+    public UserFestivalProfile getProfile(UUID userUuid) {
+        return repository.findByUserUuid(userUuid).map(this::toProfile)
+                .orElse(new UserFestivalProfile(Set.of(), SchoolVerificationStatus.UNVERIFIED, null));
+    }
+
+    @Transactional
+    public UserFestivalProfile verifySchool(UUID userUuid, SchoolAcademicProfile schoolProfile) {
+        if (schoolProfile == null) throw new IllegalArgumentException("School profile is required");
+        FestivalUser user = repository.findByUserUuidForUpdate(userUuid).orElseGet(() -> create(userUuid));
+        try {
+            user.verifySchool(schoolSubjects.hash(schoolProfile.studentNo()), schoolProfile.verifiedAt());
+            repository.saveAndFlush(user);
+            return toProfile(user);
+        } catch (DataIntegrityViolationException duplicateSchoolSubject) {
+            throw new ApiException(HttpStatus.CONFLICT, "SCHOOL_IDENTITY_ALREADY_LINKED",
+                    "이미 다른 축제 계정에 연결된 학교 인증정보입니다.");
+        }
     }
 
     @Transactional(readOnly = true)
@@ -100,6 +130,19 @@ public class FestivalUserService {
             return repository.saveAndFlush(new FestivalUser(userUuid));
         } catch (DataIntegrityViolationException concurrentInsert) {
             return repository.findByUserUuid(userUuid).orElseThrow(() -> concurrentInsert);
+        }
+    }
+
+    private UserFestivalProfile toProfile(FestivalUser user) {
+        return new UserFestivalProfile(user.getRoles(), user.getSchoolVerificationStatus(),
+                user.getSchoolVerifiedAt());
+    }
+
+    public record UserFestivalProfile(Set<FestivalRole> roles,
+                                      SchoolVerificationStatus schoolVerificationStatus,
+                                      Instant schoolVerifiedAt) {
+        public boolean schoolVerified() {
+            return schoolVerificationStatus == SchoolVerificationStatus.VERIFIED;
         }
     }
 }

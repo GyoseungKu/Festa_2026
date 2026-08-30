@@ -105,6 +105,23 @@ Content-Type: application/json
 
 ## 회원가입
 
+### 중복 확인
+
+회원가입 전에 Festa 백엔드를 통해 동아리 SSO의 중복 여부를 확인합니다. 세 API 모두 `{ "available": true }`이면 사용할 수 있는 값입니다.
+
+```http
+GET /api/auth/check/login-id?loginId=festival01
+GET /api/auth/check/email?email=student%40example.com
+GET /api/auth/check/student-no?studentNo=20260001
+GET /api/auth/check/phone?phone=01012345678
+```
+
+```json
+{ "available": true }
+```
+
+전화번호를 입력하지 않는 가입에서는 전화번호 중복 확인을 호출하지 않습니다. 중복 확인 이후 다른 사용자가 먼저 가입할 수 있으므로 최종 가입 요청의 `409 ACCOUNT_CONFLICT`도 처리해야 합니다.
+
 ```http
 POST /api/auth/signup
 Content-Type: application/json

@@ -84,4 +84,7 @@ public final class AuthDtos {
     public record SignupResponse(UUID userUuid) { }
 
     public record MessageResponse(String message) { }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record AvailabilityResponse(boolean available) { }
 }

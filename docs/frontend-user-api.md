@@ -28,6 +28,9 @@ type MeResponse = {
   createdAt: string | null;
   updatedAt: string | null;
   festivalRoles: FestivalRole[];
+  schoolVerificationStatus: "UNVERIFIED" | "VERIFIED" | "REVOKED";
+  schoolVerified: boolean;
+  schoolVerifiedAt: string | null;
 };
 ```
 
@@ -94,3 +97,33 @@ Authorization: Bearer ACCESS_TOKEN
 ```
 
 성공은 `204 No Content`입니다. 이 요청은 축제 서비스 연결만 삭제하는 것이 아니라 SSO 계정 자체를 탈퇴시킵니다. 확인 모달에서 이 점을 명확히 표시하고 성공 후 모든 메모리 토큰·캐시를 제거합니다.
+# 학교 학생 인증
+
+`GET /api/users/me` 응답에는 축제 서비스가 관리하는 다음 필드가 포함됩니다.
+
+```json
+{
+  "schoolVerificationStatus": "VERIFIED",
+  "schoolVerified": true,
+  "schoolVerifiedAt": "2026-08-29T10:30:00Z"
+}
+```
+
+직접 입력으로 가입한 회원의 초기 상태는 `UNVERIFIED`입니다. 학교 SSO로 가입했거나 가입 후 학교 인증을 완료한 회원은 `VERIFIED`입니다.
+
+가입 후 인증을 시작하려면 로그인 상태에서 다음 API를 호출합니다.
+
+```http
+POST /api/users/me/school-verification/authorize
+Authorization: Bearer ACCESS_TOKEN
+```
+
+```json
+{
+  "authorizeUrl": "https://www.syu.ac.kr/festa-sso/authorize?..."
+}
+```
+
+응답의 `authorizeUrl`로 브라우저를 이동합니다. 학교 인증 성공 후 `school-sso.return-url`로 `?schoolVerification=success`가 붙어 돌아옵니다. `access_denied`, `failed`, `invalid_state`도 같은 파라미터 값으로 반환될 수 있습니다.
+
+동일한 학교 학생은 하나의 축제 계정에만 연결할 수 있습니다. 가입 후 중복 연결이면 콜백 결과가 `?schoolVerification=already_linked`로 반환됩니다. 축제 DB에는 학교 식별자 원문 대신 HMAC-SHA256 해시만 저장합니다.

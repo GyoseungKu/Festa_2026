@@ -101,6 +101,37 @@ class SsoAuthIntegrationTests {
     }
 
     @Test
+    void signupAvailabilityChecksAreValidatedAndForwardedWithClientAuthentication() throws Exception {
+        enqueue(200, "{\"available\":true}");
+        mvc.perform(get("/api/auth/check/login-id").param("loginId", "festival01"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.available").value(true));
+        enqueue(200, "{\"available\":true}");
+        mvc.perform(get("/api/auth/check/email").param("email", "student@example.com"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.available").value(true));
+        enqueue(200, "{\"available\":false}");
+        mvc.perform(get("/api/auth/check/student-no").param("studentNo", "20260001"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.available").value(false));
+        enqueue(200, "{\"available\":true}");
+        mvc.perform(get("/api/auth/check/phone").param("phone", "01012345678"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.available").value(true));
+
+        org.assertj.core.api.Assertions.assertThat(REQUESTS).extracting(RecordedRequest::path)
+                .containsExactly("/api/auth/check/login-id", "/api/auth/check/email",
+                        "/api/auth/check/student-no", "/api/auth/check/phone");
+        org.assertj.core.api.Assertions.assertThat(REQUESTS).extracting(RecordedRequest::query)
+                .containsExactly("value=festival01", "value=student%40example.com",
+                        "value=20260001", "value=01012345678");
+        org.assertj.core.api.Assertions.assertThat(REQUESTS)
+                .allSatisfy(request -> org.assertj.core.api.Assertions.assertThat(request.authorization())
+                        .startsWith("Basic "));
+
+        mvc.perform(get("/api/auth/check/phone").param("phone", "010-1234-5678"))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+        mvc.perform(get("/api/auth/check/email").param("email", "not-an-email"))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+    }
+
+    @Test
     void signupSuccessLinksOnlyUserUuid() throws Exception {
         enqueue(201, "{\"userUuid\":\"" + UUID + "\"}");
         mvc.perform(post("/api/auth/signup").contentType(MediaType.APPLICATION_JSON)

@@ -22,6 +22,8 @@ import org.syu_likelion.Festa_2026.sso.SsoResult;
 import org.syu_likelion.Festa_2026.user.UserDtos.MeResponse;
 import org.syu_likelion.Festa_2026.user.FestivalUserService;
 import org.syu_likelion.Festa_2026.logging.ApiRequestContext;
+import org.syu_likelion.Festa_2026.schoolsso.SchoolAcademicProfile;
+import org.syu_likelion.Festa_2026.auth.AuthDtos.AvailabilityResponse;
 
 @Service
 public class AuthService {
@@ -42,6 +44,10 @@ public class AuthService {
 
     public void sendSignupEmailCode(EmailRequest request) { client.sendSignupEmailCode(request); }
     public void verifySignupEmailCode(EmailCodeRequest request) { client.verifySignupEmailCode(request); }
+    public AvailabilityResponse checkLoginId(String loginId) { return client.checkLoginId(loginId); }
+    public AvailabilityResponse checkEmail(String email) { return client.checkEmail(email); }
+    public AvailabilityResponse checkStudentNo(String studentNo) { return client.checkStudentNo(studentNo); }
+    public AvailabilityResponse checkPhone(String phone) { return client.checkPhone(phone); }
 
     public void sendRecoveryEmailCode(RecoveryEmailSendRequest request) {
         if (request.purpose() == RecoveryPurpose.RESET_PASSWORD
@@ -88,9 +94,14 @@ public class AuthService {
     }
 
     public SignupResponse signup(SignupRequest request) {
+        return signup(request, null);
+    }
+
+    public SignupResponse signup(SignupRequest request, SchoolAcademicProfile schoolProfile) {
         SignupResponse response = client.register(request);
         if (response == null || response.userUuid() == null) throw new SsoException(502, "SSO response did not contain userUuid");
-        festivalUsers.linkAndGetRoles(response.userUuid());
+        if (schoolProfile == null) festivalUsers.linkAndGetRoles(response.userUuid());
+        else festivalUsers.verifySchool(response.userUuid(), schoolProfile);
         welcomeEmails.sendLater(response.userUuid(), request.email(), request.name());
         return response;
     }

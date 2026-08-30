@@ -137,6 +137,10 @@ Origin은 경로나 마지막 `/` 없이 `scheme://host[:port]` 형식으로 입
 | POST | `/api/auth/signup/email/send` | 없음 | 회원가입 이메일 인증번호 발송 |
 | POST | `/api/auth/signup/email/verify` | 없음 | 회원가입 이메일 인증번호 확인 |
 | POST | `/api/auth/signup` | 없음 | SSO 회원가입 |
+| GET | `/api/auth/check/login-id` | 없음 | 로그인 아이디 중복 확인 |
+| GET | `/api/auth/check/email` | 없음 | 이메일 중복 확인 |
+| GET | `/api/auth/check/student-no` | 없음 | 학번 중복 확인 |
+| GET | `/api/auth/check/phone` | 없음 | 전화번호 중복 확인 |
 | GET | `/api/auth/school/authorize` | 없음 | 학교 SSO 학적정보 인증 시작(Redirect) |
 | GET | `/api/auth/school/profile` | 학교 SSO 세션 | 검증된 이름·학번·학과 조회 |
 | DELETE | `/api/auth/school/profile` | 학교 SSO 세션 | 임시 학적정보 폐기 |
@@ -172,6 +176,7 @@ Origin은 경로나 마지막 `/` 없이 `scheme://host[:port]` 형식으로 입
 | Method | Path | 설명 |
 |---|---|---|
 | GET | `/api/users/me` | SSO 내 정보와 축제 역할 조회 |
+| POST | `/api/users/me/school-verification/authorize` | 로그인 | 가입 후 학교 학생 인증 URL 발급 |
 | PATCH | `/api/users/me/profile` | 이름·전화번호 수정 |
 | POST | `/api/users/me/email/verification` | 새 이메일 인증번호 발송 |
 | POST | `/api/users/me/email/verification/confirm` | 새 이메일 인증번호 확인 |

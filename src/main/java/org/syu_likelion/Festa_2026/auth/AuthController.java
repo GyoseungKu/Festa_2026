@@ -12,6 +12,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.validation.annotation.Validated;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Email;
+import org.syu_likelion.Festa_2026.auth.AuthDtos.AvailabilityResponse;
 import org.syu_likelion.Festa_2026.auth.AuthDtos.EmailCodeRequest;
 import org.syu_likelion.Festa_2026.auth.AuthDtos.EmailRequest;
 import org.syu_likelion.Festa_2026.auth.AuthDtos.LoginRequest;
@@ -30,6 +38,7 @@ import org.syu_likelion.Festa_2026.schoolsso.SchoolSsoSessionStore;
 @RestController
 @RequestMapping("/api/auth")
 @Tag(name = "Auth", description = "회원가입, 로그인과 토큰 관리")
+@Validated
 public class AuthController {
     private final AuthService authService;
     private final TokenRefreshCoordinator refreshCoordinator;
@@ -42,6 +51,36 @@ public class AuthController {
         this.refreshCoordinator = refreshCoordinator;
         this.cookies = cookies;
         this.schoolSsoSessions = schoolSsoSessions;
+    }
+
+    @GetMapping("/check/login-id")
+    @Operation(summary = "로그인 아이디 중복 확인")
+    AvailabilityResponse checkLoginId(
+            @RequestParam @NotBlank @Size(max = 100) String loginId) {
+        return authService.checkLoginId(loginId);
+    }
+
+    @GetMapping("/check/email")
+    @Operation(summary = "이메일 중복 확인")
+    AvailabilityResponse checkEmail(
+            @RequestParam @NotBlank @Email @Size(max = 254) String email) {
+        return authService.checkEmail(email);
+    }
+
+    @GetMapping("/check/student-no")
+    @Operation(summary = "학번 중복 확인")
+    AvailabilityResponse checkStudentNo(
+            @RequestParam @NotBlank @Size(max = 50) String studentNo) {
+        return authService.checkStudentNo(studentNo);
+    }
+
+    @GetMapping("/check/phone")
+    @Operation(summary = "전화번호 중복 확인")
+    AvailabilityResponse checkPhone(
+            @RequestParam @NotBlank
+            @Pattern(regexp = "^[0-9]{10,11}$", message = "전화번호는 숫자 10~11자리여야 합니다.")
+            String phone) {
+        return authService.checkPhone(phone);
     }
 
     @PostMapping("/signup/email/send")
@@ -90,11 +129,13 @@ public class AuthController {
             description = "SSO 계정을 생성합니다. academicInfoSource가 MANUAL이면 입력한 학적정보를, SCHOOL_SSO이면 학교 SSO에서 검증해 세션에 보관한 이름·학번·학과를 사용합니다.")
     SignupResponse signup(@Valid @RequestBody SignupRequest request, HttpServletRequest servletRequest) {
         SignupRequest effective = request;
+        SchoolAcademicProfile verifiedProfile = null;
         if (request.effectiveAcademicInfoSource() == AuthDtos.AcademicInfoSource.SCHOOL_SSO) {
-            SchoolAcademicProfile profile = schoolSsoSessions.requireProfile(servletRequest);
-            effective = request.withVerifiedAcademicInfo(profile.name(), profile.studentNo(), profile.department());
+            verifiedProfile = schoolSsoSessions.requireProfile(servletRequest);
+            effective = request.withVerifiedAcademicInfo(verifiedProfile.name(), verifiedProfile.studentNo(),
+                    verifiedProfile.department());
         }
-        SignupResponse response = authService.signup(effective);
+        SignupResponse response = authService.signup(effective, verifiedProfile);
         if (request.effectiveAcademicInfoSource() == AuthDtos.AcademicInfoSource.SCHOOL_SSO) {
             schoolSsoSessions.clearProfile(servletRequest);
         }

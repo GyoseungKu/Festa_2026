@@ -76,7 +76,7 @@ public class UserService {
     private AuthorizedResult<MeResponse> withRoles(AuthorizedResult<MeResponse> result) {
         MeResponse me = result.body();
         ApiRequestContext.markAuthenticatedUser(me.userUuid());
-        MeResponse enriched = me.withFestivalRoles(festivalUsers.linkAndGetRoles(me.userUuid()));
+        MeResponse enriched = me.withFestivalProfile(festivalUsers.linkAndGetProfile(me.userUuid()));
         return new AuthorizedResult<>(enriched, result.newAccessToken(), result.newRefreshToken());
     }
 

@@ -33,6 +33,17 @@ public class FestivalUser {
     @Column(name = "booth_manager", nullable = false, columnDefinition = "boolean default false")
     private boolean boothManager;
 
+    @Column(name = "school_verification_status", nullable = false,
+            columnDefinition = "enum('UNVERIFIED','VERIFIED','REVOKED') default 'UNVERIFIED'")
+    @Enumerated(EnumType.STRING)
+    private SchoolVerificationStatus schoolVerificationStatus = SchoolVerificationStatus.UNVERIFIED;
+
+    @Column(name = "school_verified_at")
+    private Instant schoolVerifiedAt;
+
+    @Column(name = "school_subject_hash", length = 64, unique = true)
+    private String schoolSubjectHash;
+
     @Column(name = "welcome_email_sent_at")
     private Instant welcomeEmailSentAt;
 
@@ -77,11 +88,19 @@ public class FestivalUser {
     public Long getId() { return id; }
     public FestivalRole getManagementRole() { return managementRole; }
     public boolean isBoothManager() { return boothManager; }
+    public SchoolVerificationStatus getSchoolVerificationStatus() { return schoolVerificationStatus; }
+    public Instant getSchoolVerifiedAt() { return schoolVerifiedAt; }
     public Instant getWelcomeEmailSentAt() { return welcomeEmailSentAt; }
     public boolean isWelcomeEmailPending() { return welcomeEmailPending; }
     public String getWelcomeEmailClaimToken() { return welcomeEmailClaimToken; }
     public Instant getWelcomeEmailClaimedAt() { return welcomeEmailClaimedAt; }
     public void changeManagementRole(FestivalRole role) { managementRole = role; }
+
+    public void verifySchool(String subjectHash, Instant verifiedAt) {
+        schoolVerificationStatus = SchoolVerificationStatus.VERIFIED;
+        schoolSubjectHash = subjectHash;
+        schoolVerifiedAt = verifiedAt;
+    }
 
     public void claimWelcomeEmail(UUID claimToken, Instant claimedAt) {
         welcomeEmailClaimToken = claimToken.toString();

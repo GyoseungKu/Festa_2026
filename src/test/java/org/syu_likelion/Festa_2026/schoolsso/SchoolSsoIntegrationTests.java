@@ -47,6 +47,10 @@ import org.springframework.web.util.UriComponentsBuilder;
 import org.syu_likelion.Festa_2026.auth.AuthDtos.SignupRequest;
 import org.syu_likelion.Festa_2026.auth.AuthDtos.SignupResponse;
 import org.syu_likelion.Festa_2026.auth.AuthService;
+import org.syu_likelion.Festa_2026.auth.AuthorizedSsoExecutor.AuthorizedResult;
+import org.syu_likelion.Festa_2026.user.FestivalUserService;
+import org.syu_likelion.Festa_2026.user.UserDtos.MeResponse;
+import org.syu_likelion.Festa_2026.user.UserService;
 
 @SpringBootTest(properties = {
         "school-sso.enabled=true",
@@ -68,6 +72,8 @@ class SchoolSsoIntegrationTests {
 
     @Autowired MockMvc mvc;
     @MockitoBean AuthService authService;
+    @MockitoBean UserService userService;
+    @MockitoBean FestivalUserService festivalUsers;
 
     @DynamicPropertySource
     static void schoolProperties(DynamicPropertyRegistry registry) {
@@ -78,7 +84,7 @@ class SchoolSsoIntegrationTests {
     @BeforeEach
     void reset() {
         REQUESTS.clear();
-        when(authService.signup(any())).thenReturn(new SignupResponse(
+        when(authService.signup(any(), any())).thenReturn(new SignupResponse(
                 UUID.fromString("123e4567-e89b-12d3-a456-426614174000")));
     }
 
@@ -110,7 +116,7 @@ class SchoolSsoIntegrationTests {
                 .andExpect(status().isOk());
 
         ArgumentCaptor<SignupRequest> captor = ArgumentCaptor.forClass(SignupRequest.class);
-        org.mockito.Mockito.verify(authService).signup(captor.capture());
+        org.mockito.Mockito.verify(authService).signup(captor.capture(), any());
         assertThat(captor.getValue().name()).isEqualTo("학교홍길동");
         assertThat(captor.getValue().studentNo()).isEqualTo("20260001");
         assertThat(captor.getValue().department()).isEqualTo("컴퓨터공학과");
@@ -125,6 +131,30 @@ class SchoolSsoIntegrationTests {
             assertThat(request.body()).contains("code=valid-one-time-code")
                     .contains("redirect_uri=https%3A%2F%2Ffesta.syu-likelion.org%2Fauth%2Fsso%2Fcallback");
         });
+    }
+
+    @Test
+    void loggedInUserCanCompleteSchoolVerificationAfterSignup() throws Exception {
+        UUID userUuid = UUID.fromString("123e4567-e89b-12d3-a456-426614174099");
+        MeResponse me = new MeResponse(userUuid, "festival01", "student@example.com", "USER", "ACTIVE",
+                "학생", null, "20260001", "컴퓨터공학과", null, null, null, null, null, null);
+        when(userService.getMe(any(), any())).thenReturn(new AuthorizedResult<>(me, null, null));
+
+        MvcResult authorize = mvc.perform(post("/api/users/me/school-verification/authorize")
+                        .header("Authorization", "Bearer access-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.authorizeUrl").isNotEmpty())
+                .andReturn();
+        MockHttpSession session = (MockHttpSession) authorize.getRequest().getSession(false);
+        String authorizeUrl = tools.jackson.databind.json.JsonMapper.builder().build()
+                .readTree(authorize.getResponse().getContentAsString()).get("authorizeUrl").asText();
+        String state = UriComponentsBuilder.fromUriString(authorizeUrl).build().getQueryParams().getFirst("state");
+
+        mvc.perform(get("/auth/sso/callback").session(session)
+                        .param("state", state).param("code", "valid-one-time-code"))
+                .andExpect(redirectedUrl("/temporary-auth?schoolVerification=success"));
+
+        org.mockito.Mockito.verify(festivalUsers).verifySchool(org.mockito.ArgumentMatchers.eq(userUuid), any());
     }
 
     @Test

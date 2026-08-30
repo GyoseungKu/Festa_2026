@@ -7,7 +7,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -35,8 +34,9 @@ class UserServiceRequestCacheTests {
         MeResponse enriched = mock(MeResponse.class);
         UUID userUuid = UUID.randomUUID();
         when(raw.userUuid()).thenReturn(userUuid);
-        when(raw.withFestivalRoles(any())).thenReturn(enriched);
-        when(festivalUsers.linkAndGetRoles(userUuid)).thenReturn(Set.of(FestivalRole.ADMIN));
+        FestivalUserService.UserFestivalProfile festivalProfile = mock(FestivalUserService.UserFestivalProfile.class);
+        when(raw.withFestivalProfile(festivalProfile)).thenReturn(enriched);
+        when(festivalUsers.linkAndGetProfile(userUuid)).thenReturn(festivalProfile);
         when(executor.execute(eq("access"), eq("refresh"), any()))
                 .thenReturn(new AuthorizedResult<>(raw, null, null));
         MockHttpServletRequest request = new MockHttpServletRequest();
@@ -47,6 +47,6 @@ class UserServiceRequestCacheTests {
 
         org.assertj.core.api.Assertions.assertThat(second).isSameAs(first);
         verify(executor, times(1)).execute(eq("access"), eq("refresh"), any());
-        verify(festivalUsers, times(1)).linkAndGetRoles(userUuid);
+        verify(festivalUsers, times(1)).linkAndGetProfile(userUuid);
     }
 }

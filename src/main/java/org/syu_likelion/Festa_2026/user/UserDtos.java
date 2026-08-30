@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Set;
 import java.util.UUID;
 
@@ -29,12 +30,27 @@ public final class UserDtos {
             LocalDate birthDate,
             LocalDateTime createdAt,
             LocalDateTime updatedAt,
-            Set<FestivalRole> festivalRoles) {
+            Set<FestivalRole> festivalRoles,
+            SchoolVerificationStatus schoolVerificationStatus,
+            Instant schoolVerifiedAt) {
 
-        public MeResponse withFestivalRoles(Set<FestivalRole> roles) {
-            return new MeResponse(userUuid, loginId, email, ssoRole, status, name, phone,
-                    studentNo, department, grade, enrollment, birthDate, createdAt, updatedAt, roles);
+        public MeResponse(UUID userUuid, String loginId, String email, String ssoRole, String status,
+                          String name, String phone, String studentNo, String department, Integer grade,
+                          String enrollment, LocalDate birthDate, LocalDateTime createdAt,
+                          LocalDateTime updatedAt, Set<FestivalRole> festivalRoles) {
+            this(userUuid, loginId, email, ssoRole, status, name, phone, studentNo, department, grade,
+                    enrollment, birthDate, createdAt, updatedAt, festivalRoles,
+                    SchoolVerificationStatus.UNVERIFIED, null);
         }
+
+        public MeResponse withFestivalProfile(FestivalUserService.UserFestivalProfile profile) {
+            return new MeResponse(userUuid, loginId, email, ssoRole, status, name, phone,
+                    studentNo, department, grade, enrollment, birthDate, createdAt, updatedAt,
+                    profile.roles(), profile.schoolVerificationStatus(), profile.schoolVerifiedAt());
+        }
+
+        @com.fasterxml.jackson.annotation.JsonProperty("schoolVerified")
+        public boolean schoolVerified() { return schoolVerificationStatus == SchoolVerificationStatus.VERIFIED; }
     }
 
     public record ProfileUpdateRequest(
