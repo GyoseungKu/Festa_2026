@@ -19,6 +19,10 @@ public class SchoolSsoSessionStore {
     private static final String PROFILE = PREFIX + ".profile";
     private static final String FLOW = PREFIX + ".flow";
     private static final String USER_UUID = PREFIX + ".userUuid";
+    private static final String ACCOUNT_NAME = PREFIX + ".accountName";
+    private static final String ACCOUNT_STUDENT_NO = PREFIX + ".accountStudentNo";
+    private static final String ACCOUNT_DEPARTMENT = PREFIX + ".accountDepartment";
+    private static final String PROFILE_USER_UUID = PREFIX + ".profileUserUuid";
     private static final int MAX_STATE_LENGTH = 256;
 
     private final Clock clock;
@@ -33,8 +37,13 @@ public class SchoolSsoSessionStore {
         saveAuthorization(request, state, AuthorizationFlow.SIGNUP, null);
     }
 
-    public void saveAccountState(HttpServletRequest request, String state, UUID userUuid) {
+    public void saveAccountState(HttpServletRequest request, String state, UUID userUuid,
+                                 String name, String studentNo, String department) {
         saveAuthorization(request, state, AuthorizationFlow.ACCOUNT_VERIFICATION, userUuid);
+        HttpSession session = request.getSession(true);
+        session.setAttribute(ACCOUNT_NAME, name);
+        session.setAttribute(ACCOUNT_STUDENT_NO, studentNo);
+        session.setAttribute(ACCOUNT_DEPARTMENT, department);
     }
 
     private void saveAuthorization(HttpServletRequest request, String state, AuthorizationFlow flow, UUID userUuid) {
@@ -45,6 +54,7 @@ public class SchoolSsoSessionStore {
         if (userUuid == null) session.removeAttribute(USER_UUID);
         else session.setAttribute(USER_UUID, userUuid);
         session.removeAttribute(PROFILE);
+        session.removeAttribute(PROFILE_USER_UUID);
     }
 
     public boolean consumeAndVerifyState(HttpServletRequest request, String received) {
@@ -57,11 +67,17 @@ public class SchoolSsoSessionStore {
         Object issuedAtValue = session == null ? null : session.getAttribute(STATE_ISSUED_AT);
         Object flowValue = session == null ? null : session.getAttribute(FLOW);
         Object userUuidValue = session == null ? null : session.getAttribute(USER_UUID);
+        Object nameValue = session == null ? null : session.getAttribute(ACCOUNT_NAME);
+        Object studentNoValue = session == null ? null : session.getAttribute(ACCOUNT_STUDENT_NO);
+        Object departmentValue = session == null ? null : session.getAttribute(ACCOUNT_DEPARTMENT);
         if (session != null) {
             session.removeAttribute(STATE);
             session.removeAttribute(STATE_ISSUED_AT);
             session.removeAttribute(FLOW);
             session.removeAttribute(USER_UUID);
+            session.removeAttribute(ACCOUNT_NAME);
+            session.removeAttribute(ACCOUNT_STUDENT_NO);
+            session.removeAttribute(ACCOUNT_DEPARTMENT);
         }
         if (!(expectedValue instanceof String expected) || !(issuedAtValue instanceof Instant issuedAt)
                 || !(flowValue instanceof AuthorizationFlow flow)
@@ -72,11 +88,25 @@ public class SchoolSsoSessionStore {
         if (left.length != right.length || !MessageDigest.isEqual(left, right)) return null;
         UUID userUuid = userUuidValue instanceof UUID uuid ? uuid : null;
         if (flow == AuthorizationFlow.ACCOUNT_VERIFICATION && userUuid == null) return null;
-        return new PendingAuthorization(flow, userUuid);
+        return new PendingAuthorization(flow, userUuid, stringValue(nameValue), stringValue(studentNoValue),
+                stringValue(departmentValue));
     }
 
     public void saveProfile(HttpServletRequest request, SchoolAcademicProfile profile) {
         request.getSession(true).setAttribute(PROFILE, profile);
+    }
+
+    public void saveAccountProfile(HttpServletRequest request, UUID userUuid, SchoolAcademicProfile profile) {
+        HttpSession session = request.getSession(true);
+        session.setAttribute(PROFILE, profile);
+        session.setAttribute(PROFILE_USER_UUID, userUuid);
+    }
+
+    public SchoolAcademicProfile requireAccountProfile(HttpServletRequest request, UUID userUuid) {
+        HttpSession session = request.getSession(false);
+        Object owner = session == null ? null : session.getAttribute(PROFILE_USER_UUID);
+        if (!userUuid.equals(owner)) throw missingProfile();
+        return requireProfile(request);
     }
 
     public SchoolAcademicProfile requireProfile(HttpServletRequest request) {
@@ -93,6 +123,7 @@ public class SchoolSsoSessionStore {
     public void clearProfile(HttpServletRequest request) {
         HttpSession session = request.getSession(false);
         if (session != null) session.removeAttribute(PROFILE);
+        if (session != null) session.removeAttribute(PROFILE_USER_UUID);
     }
 
     private ApiException missingProfile() {
@@ -107,5 +138,8 @@ public class SchoolSsoSessionStore {
     }
 
     public enum AuthorizationFlow { SIGNUP, ACCOUNT_VERIFICATION }
-    public record PendingAuthorization(AuthorizationFlow flow, UUID userUuid) { }
+    public record PendingAuthorization(AuthorizationFlow flow, UUID userUuid, String name,
+                                       String studentNo, String department) { }
+
+    private String stringValue(Object value) { return value instanceof String text ? text : null; }
 }

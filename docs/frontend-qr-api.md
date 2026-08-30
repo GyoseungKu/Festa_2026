@@ -57,10 +57,20 @@ Content-Type: application/json
 
 | 조회 권한 | 제공 범위 |
 |---|---|
-| `BOOTH_MANAGER` | 마스킹 이름·학번, 학과, 학년 |
-| `STAFF` | 마스킹 이름·학번, 학과, 학년 |
-| `ADMIN` | 원본 이름·학번, 학과, 학년 + 전화번호, 이메일 |
-| `SUPER_ADMIN` | SSO 전체 프로필 + 축제 권한 |
+| `BOOTH_MANAGER` | 마스킹 이름·학번, 학과, 학년 + 학생 인증 상태·시각 |
+| `STAFF` | 마스킹 이름·학번, 학과, 학년 + 학생 인증 상태·시각 |
+| `ADMIN` | 원본 이름·학번, 학과, 학년 + 전화번호, 이메일 + 학생 인증 상태·시각 |
+| `SUPER_ADMIN` | SSO 전체 프로필 + 축제 권한 + 학생 인증 상태·시각 |
+
+모든 운영자 조회 응답에는 다음 학생 인증 필드가 포함됩니다.
+
+```ts
+type SchoolVerificationFields = {
+  schoolVerificationStatus: "UNVERIFIED" | "VERIFIED" | "REVOKED";
+  schoolVerified: boolean;
+  schoolVerifiedAt: string | null;
+};
+```
 
 이 API는 일반 정보 조회용입니다. 스탬프 지급 화면에서는 `/api/booths/{boothId}/stamps/qr/lookup`을 사용해야 담당 부스와 `stampEnabled`가 검증됩니다.
 

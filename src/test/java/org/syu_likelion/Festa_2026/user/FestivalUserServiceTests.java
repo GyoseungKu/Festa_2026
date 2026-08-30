@@ -124,4 +124,16 @@ class FestivalUserServiceTests {
         assertThat(result.schoolVerifiedAt()).isEqualTo(verifiedAt);
         assertThat(user.getSchoolVerificationStatus()).isEqualTo(SchoolVerificationStatus.VERIFIED);
     }
+
+    @Test void departmentEditRevokesVerificationButKeepsVerifiedAt() {
+        FestivalUser user = new FestivalUser(TARGET);
+        Instant verifiedAt = Instant.parse("2026-08-18T11:55:00Z");
+        user.verifySchool("a".repeat(64), verifiedAt);
+        when(repository.findByUserUuidForUpdate(TARGET)).thenReturn(Optional.of(user));
+
+        service.revokeSchoolVerification(TARGET);
+
+        assertThat(user.getSchoolVerificationStatus()).isEqualTo(SchoolVerificationStatus.REVOKED);
+        assertThat(user.getSchoolVerifiedAt()).isEqualTo(verifiedAt);
+    }
 }

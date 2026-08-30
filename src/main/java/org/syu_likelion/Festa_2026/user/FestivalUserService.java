@@ -64,6 +64,11 @@ public class FestivalUserService {
         }
     }
 
+    @Transactional
+    public void revokeSchoolVerification(UUID userUuid) {
+        repository.findByUserUuidForUpdate(userUuid).ifPresent(FestivalUser::revokeSchoolVerification);
+    }
+
     @Transactional(readOnly = true)
     public List<UUID> getLinkedUserUuids() { return repository.findAllUserUuids(); }
 

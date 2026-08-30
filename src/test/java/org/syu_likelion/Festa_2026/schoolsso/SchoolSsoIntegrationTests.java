@@ -49,6 +49,9 @@ import org.syu_likelion.Festa_2026.auth.AuthDtos.SignupResponse;
 import org.syu_likelion.Festa_2026.auth.AuthService;
 import org.syu_likelion.Festa_2026.auth.AuthorizedSsoExecutor.AuthorizedResult;
 import org.syu_likelion.Festa_2026.user.FestivalUserService;
+import org.syu_likelion.Festa_2026.user.FestivalUserService.UserFestivalProfile;
+import org.syu_likelion.Festa_2026.user.SchoolVerificationRequestRepository;
+import org.syu_likelion.Festa_2026.user.SchoolVerificationStatus;
 import org.syu_likelion.Festa_2026.user.UserDtos.MeResponse;
 import org.syu_likelion.Festa_2026.user.UserService;
 
@@ -71,6 +74,7 @@ class SchoolSsoIntegrationTests {
     private static final HttpServer SCHOOL = server();
 
     @Autowired MockMvc mvc;
+    @Autowired SchoolVerificationRequestRepository verificationRequests;
     @MockitoBean AuthService authService;
     @MockitoBean UserService userService;
     @MockitoBean FestivalUserService festivalUsers;
@@ -84,6 +88,7 @@ class SchoolSsoIntegrationTests {
     @BeforeEach
     void reset() {
         REQUESTS.clear();
+        verificationRequests.deleteAll();
         when(authService.signup(any(), any())).thenReturn(new SignupResponse(
                 UUID.fromString("123e4567-e89b-12d3-a456-426614174000")));
     }
@@ -137,7 +142,7 @@ class SchoolSsoIntegrationTests {
     void loggedInUserCanCompleteSchoolVerificationAfterSignup() throws Exception {
         UUID userUuid = UUID.fromString("123e4567-e89b-12d3-a456-426614174099");
         MeResponse me = new MeResponse(userUuid, "festival01", "student@example.com", "USER", "ACTIVE",
-                "학생", null, "20260001", "컴퓨터공학과", null, null, null, null, null, null);
+                "학교홍길동", null, "20260001", "컴퓨터공학과", null, null, null, null, null, null);
         when(userService.getMe(any(), any())).thenReturn(new AuthorizedResult<>(me, null, null));
 
         MvcResult authorize = mvc.perform(post("/api/users/me/school-verification/authorize")
@@ -155,6 +160,73 @@ class SchoolSsoIntegrationTests {
                 .andExpect(redirectedUrl("/temporary-auth?schoolVerification=success"));
 
         org.mockito.Mockito.verify(festivalUsers).verifySchool(org.mockito.ArgumentMatchers.eq(userUuid), any());
+    }
+
+    @Test
+    void identityMismatchCreatesPendingSuperAdminApproval() throws Exception {
+        UUID userUuid = UUID.fromString("123e4567-e89b-12d3-a456-426614174098");
+        MeResponse me = new MeResponse(userUuid, "festival01", "student@example.com", "USER", "ACTIVE",
+                "다른이름", null, "2026-OTHER", "컴퓨터공학과", null, null, null, null, null, null);
+        when(userService.getMe(any(), any())).thenReturn(new AuthorizedResult<>(me, null, null));
+
+        MvcResult authorize = mvc.perform(post("/api/users/me/school-verification/authorize")
+                        .header("Authorization", "Bearer access-token"))
+                .andExpect(status().isOk()).andReturn();
+        MockHttpSession session = (MockHttpSession) authorize.getRequest().getSession(false);
+        String authorizeUrl = tools.jackson.databind.json.JsonMapper.builder().build()
+                .readTree(authorize.getResponse().getContentAsString()).get("authorizeUrl").asText();
+        String state = UriComponentsBuilder.fromUriString(authorizeUrl).build().getQueryParams().getFirst("state");
+
+        mvc.perform(get("/auth/sso/callback").session(session)
+                        .param("state", state).param("code", "valid-one-time-code"))
+                .andExpect(redirectedUrl("/temporary-auth?schoolVerification=pending_approval"));
+
+        assertThat(verificationRequests.findByUserUuid(userUuid)).get().satisfies(request -> {
+            assertThat(request.getCurrentName()).isEqualTo("다른이름");
+            assertThat(request.getSchoolName()).isEqualTo("학교홍길동");
+            assertThat(request.getSchoolStudentNo()).isEqualTo("20260001");
+        });
+        org.mockito.Mockito.verify(festivalUsers, org.mockito.Mockito.never()).verifySchool(any(), any());
+    }
+
+    @Test
+    void departmentMismatchRequiresConfirmationThenUpdatesAndVerifies() throws Exception {
+        UUID userUuid = UUID.fromString("123e4567-e89b-12d3-a456-426614174097");
+        MeResponse current = new MeResponse(userUuid, "festival01", "student@example.com", "USER", "ACTIVE",
+                "학교홍길동", null, "20260001", "경영학과", null, null, null, null, null, null);
+        MeResponse updated = new MeResponse(userUuid, "festival01", "student@example.com", "USER", "ACTIVE",
+                "학교홍길동", null, "20260001", "컴퓨터공학과", null, null, null, null, null, null);
+        when(userService.getMe(any(), any())).thenReturn(new AuthorizedResult<>(current, null, null));
+        when(userService.updateProfile(any(), any(), any())).thenReturn(new AuthorizedResult<>(updated, null, null));
+        when(festivalUsers.verifySchool(org.mockito.ArgumentMatchers.eq(userUuid), any())).thenReturn(
+                new UserFestivalProfile(java.util.Set.of(), SchoolVerificationStatus.VERIFIED, Instant.now()));
+
+        MvcResult authorize = mvc.perform(post("/api/users/me/school-verification/authorize")
+                        .header("Authorization", "Bearer access-token"))
+                .andExpect(status().isOk()).andReturn();
+        MockHttpSession session = (MockHttpSession) authorize.getRequest().getSession(false);
+        String authorizeUrl = tools.jackson.databind.json.JsonMapper.builder().build()
+                .readTree(authorize.getResponse().getContentAsString()).get("authorizeUrl").asText();
+        String state = UriComponentsBuilder.fromUriString(authorizeUrl).build().getQueryParams().getFirst("state");
+
+        mvc.perform(get("/auth/sso/callback").session(session)
+                        .param("state", state).param("code", "valid-one-time-code"))
+                .andExpect(redirectedUrl("/temporary-auth?schoolVerification=department_update_required"));
+        mvc.perform(get("/api/users/me/school-verification/department").session(session)
+                        .header("Authorization", "Bearer access-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.currentDepartment").value("경영학과"))
+                .andExpect(jsonPath("$.schoolDepartment").value("컴퓨터공학과"));
+        mvc.perform(post("/api/users/me/school-verification/department/confirm").session(session)
+                        .header("Authorization", "Bearer access-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.department").value("컴퓨터공학과"))
+                .andExpect(jsonPath("$.schoolVerificationStatus").value("VERIFIED"));
+
+        ArgumentCaptor<org.syu_likelion.Festa_2026.user.UserDtos.ProfileUpdateRequest> update =
+                ArgumentCaptor.forClass(org.syu_likelion.Festa_2026.user.UserDtos.ProfileUpdateRequest.class);
+        org.mockito.Mockito.verify(userService).updateProfile(any(), any(), update.capture());
+        assertThat(update.getValue().department()).isEqualTo("컴퓨터공학과");
     }
 
     @Test

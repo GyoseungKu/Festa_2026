@@ -16,6 +16,7 @@ React 프런트에서 Festa API를 연동할 때 사용하는 문서 모음입�
 | 회원가입·로그인·로그아웃 | [인증 API](frontend-auth-api.md) |
 | 아이디 찾기·비밀번호 재설정 | [계정 복구](frontend-account-recovery-api.md) |
 | 내 정보·이메일·탈퇴 | [내 정보 API](frontend-user-api.md) |
+| 학생 인증·관리자 승인 | [학생 인증 기능](student-verification.md) |
 | 로그인 사용자 비밀번호 변경 | [비밀번호 변경](frontend-password-change-api.md) |
 | 부스 지도·찜·미디어 | [부스 API](frontend-booths-api.md) |
 | 스탬프판·지급·회수·이력 | [스탬프 API](frontend-stamps-api.md) |

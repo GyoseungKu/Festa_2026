@@ -322,6 +322,45 @@ class SsoAuthIntegrationTests {
     }
 
     @Test
+    void profileUpdateAllowsOnlyUserEditableSsoFieldsAndReturnsRefreshedProfile() throws Exception {
+        enqueue(200, "{\"success\":true}");
+        enqueue(200, "{\"userUuid\":\"" + UUID + "\",\"loginId\":\"festival01\"," +
+                "\"email\":\"student@example.com\",\"ssoRole\":\"USER\",\"status\":\"ACTIVE\"," +
+                "\"name\":\"홍길동\",\"phone\":\"01012345678\",\"studentNo\":\"20260001\"," +
+                "\"department\":\"소프트웨어학과\",\"grade\":3,\"enrollment\":\"ENROLLED\"}");
+
+        mvc.perform(patch("/api/users/me/profile").header("Authorization", "Bearer access-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"phone\":\"01012345678\",\"department\":\"소프트웨어학과\"," +
+                                "\"grade\":3,\"enrollment\":\"ENROLLED\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.phone").value("01012345678"))
+                .andExpect(jsonPath("$.department").value("소프트웨어학과"))
+                .andExpect(jsonPath("$.grade").value(3))
+                .andExpect(jsonPath("$.enrollment").value("ENROLLED"));
+
+        org.assertj.core.api.Assertions.assertThat(REQUESTS.getFirst().path()).isEqualTo("/api/users/me/profile");
+        org.assertj.core.api.Assertions.assertThat(REQUESTS.getFirst().body())
+                .contains("\"phone\":\"01012345678\"", "\"department\":\"소프트웨어학과\"",
+                        "\"grade\":3", "\"enrollment\":\"ENROLLED\"")
+                .doesNotContain("\"name\"", "\"studentNo\"", "\"birthDate\"");
+    }
+
+    @Test
+    void profileUpdateRejectsEmptyOrInvalidEditableFieldsBeforeSsoCall() throws Exception {
+        mvc.perform(patch("/api/users/me/profile").header("Authorization", "Bearer access-token")
+                        .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("PROFILE_UPDATE_REQUIRED"));
+        mvc.perform(patch("/api/users/me/profile").header("Authorization", "Bearer access-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"phone\":\"010-1234-5678\",\"grade\":7}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+        org.assertj.core.api.Assertions.assertThat(REQUESTS).isEmpty();
+    }
+
+    @Test
     void passwordFailureIsMappedAndSuccessClearsTokens() throws Exception {
         String body = "{\"currentPassword\":\"wrong-password\",\"newPassword\":\"new-password123\"}";
         enqueue(400, "{}");

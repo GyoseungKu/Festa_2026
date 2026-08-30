@@ -102,6 +102,12 @@ public class FestivalUser {
         schoolVerifiedAt = verifiedAt;
     }
 
+    public void revokeSchoolVerification() {
+        if (schoolVerificationStatus == SchoolVerificationStatus.VERIFIED) {
+            schoolVerificationStatus = SchoolVerificationStatus.REVOKED;
+        }
+    }
+
     public void claimWelcomeEmail(UUID claimToken, Instant claimedAt) {
         welcomeEmailClaimToken = claimToken.toString();
         welcomeEmailClaimedAt = claimedAt;

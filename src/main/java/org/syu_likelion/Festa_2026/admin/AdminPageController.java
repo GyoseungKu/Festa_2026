@@ -17,6 +17,7 @@ import org.syu_likelion.Festa_2026.auth.AuthorizedSsoExecutor.AuthorizedResult;
 import org.syu_likelion.Festa_2026.error.ApiException;
 import org.syu_likelion.Festa_2026.qr.QrService;
 import org.syu_likelion.Festa_2026.user.FestivalRole;
+import org.syu_likelion.Festa_2026.user.SchoolVerificationApprovalService;
 import org.syu_likelion.Festa_2026.sso.SsoException;
 
 @Controller
@@ -25,13 +26,16 @@ public class AdminPageController {
     private final AdminAccessService adminAccess;
     private final AdminCookieManager cookies;
     private final QrService qrService;
+    private final SchoolVerificationApprovalService schoolVerifications;
 
     public AdminPageController(AuthService auth, AdminAccessService adminAccess,
-                               AdminCookieManager cookies, QrService qrService) {
+                               AdminCookieManager cookies, QrService qrService,
+                               SchoolVerificationApprovalService schoolVerifications) {
         this.auth = auth;
         this.adminAccess = adminAccess;
         this.cookies = cookies;
         this.qrService = qrService;
+        this.schoolVerifications = schoolVerifications;
     }
 
     @GetMapping("/admin/login")
@@ -188,12 +192,15 @@ public class AdminPageController {
         model.addAttribute("canManageLostItems", canManageStaffFeatures);
         model.addAttribute("canManageBirthdayMessages", canManageStaffFeatures);
         model.addAttribute("canMonitorSystem", superAdmin);
+        model.addAttribute("canManageSchoolVerifications", superAdmin);
+        model.addAttribute("schoolVerificationRequestCount",
+                superAdmin ? schoolVerifications.list().size() : 0);
         model.addAttribute("canManageUserRoles", canManagePerformances);
         model.addAttribute("managementRoleOptions", superAdmin
                 ? List.of(FestivalRole.USER, FestivalRole.STAFF, FestivalRole.ADMIN, FestivalRole.SUPER_ADMIN)
                 : canManagePerformances ? List.of(FestivalRole.USER, FestivalRole.STAFF) : List.of());
         model.addAttribute("availableFeatureCount", 1 + (canManageStaffFeatures ? 2 : 0)
-                + (canManagePerformances ? 3 : 0) + (canManageStamps ? 1 : 0) + (superAdmin ? 1 : 0));
+                + (canManagePerformances ? 3 : 0) + (canManageStamps ? 1 : 0) + (superAdmin ? 2 : 0));
     }
 
     private void addSearchResult(Model model, org.syu_likelion.Festa_2026.qr.QrDtos.UserSearchResponse result) {

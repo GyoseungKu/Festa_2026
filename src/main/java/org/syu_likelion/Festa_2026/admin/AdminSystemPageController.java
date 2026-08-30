@@ -3,9 +3,11 @@ package org.syu_likelion.Festa_2026.admin;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.syu_likelion.Festa_2026.admin.AdminAccessService.AdminIdentity;
 import org.syu_likelion.Festa_2026.auth.AuthorizedSsoExecutor.AuthorizedResult;
@@ -42,15 +44,15 @@ public class AdminSystemPageController {
         return "admin/system";
     }
 
-    @GetMapping("/admin/system/snapshot")
+    @GetMapping(value = "/admin/system/snapshot", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
-    SystemSnapshot snapshot(HttpServletRequest request, HttpServletResponse response) {
+    ResponseEntity<SystemSnapshot> snapshot(HttpServletRequest request, HttpServletResponse response) {
         AuthorizedResult<AdminIdentity> authenticated = authenticate(request, response);
         if (authenticated.body().role() != FestivalRole.SUPER_ADMIN) {
             throw new ApiException(HttpStatus.FORBIDDEN, "SUPER_ADMIN_REQUIRED",
                     "시스템 모니터링은 최고 관리자만 사용할 수 있습니다.");
         }
-        return monitoring.snapshot();
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(monitoring.snapshot());
     }
 
     private AuthorizedResult<AdminIdentity> authenticate(HttpServletRequest request,
@@ -60,4 +62,5 @@ public class AdminSystemPageController {
         cookies.applyRotation(response, result.newAccessToken(), result.newRefreshToken());
         return result;
     }
+
 }

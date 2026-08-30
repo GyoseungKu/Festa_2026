@@ -36,7 +36,7 @@ type MeResponse = {
 
 기존 SSO 계정은 프로필·학적 필드가 `null`일 수 있습니다. 화면에서 빈 값 처리를 반드시 합니다.
 
-## 이름·전화번호 수정
+## 개인정보 수정
 
 ```http
 PATCH /api/users/me/profile
@@ -45,11 +45,20 @@ Authorization: Bearer ACCESS_TOKEN
 ```
 
 ```json
-{ "name": "홍길동", "phone": "01012345678" }
+{
+  "phone": "01012345678",
+  "department": "소프트웨어학과",
+  "grade": 3,
+  "enrollment": "ENROLLED"
+}
 ```
 
-- `name`: 선택, 최대 100자
-- `phone`: 선택, 빈 문자열 또는 숫자 10~11자리
+- `phone`: 선택, 숫자 9~15자리; 다른 회원과 중복 불가
+- `department`: 선택, 공백 불가, 최대 100자
+- `grade`: 선택, 1~6
+- `enrollment`: 선택, `ENROLLED` 또는 `LEAVE`
+- 필드를 생략하면 기존 값이 유지되며, 최소 하나의 필드를 보내야 합니다.
+- 이름, 학번, 생년월일은 본인이 변경할 수 없습니다.
 - 성공 시 갱신된 `MeResponse`를 반환하므로 사용자 캐시를 이 값으로 교체합니다.
 
 ## 이메일 변경
@@ -124,6 +133,44 @@ Authorization: Bearer ACCESS_TOKEN
 }
 ```
 
-응답의 `authorizeUrl`로 브라우저를 이동합니다. 학교 인증 성공 후 `school-sso.return-url`로 `?schoolVerification=success`가 붙어 돌아옵니다. `access_denied`, `failed`, `invalid_state`도 같은 파라미터 값으로 반환될 수 있습니다.
+응답의 `authorizeUrl`로 브라우저를 이동합니다. 콜백 결과는 `school-sso.return-url`의 `schoolVerification` 쿼리로 전달됩니다.
 
-동일한 학교 학생은 하나의 축제 계정에만 연결할 수 있습니다. 가입 후 중복 연결이면 콜백 결과가 `?schoolVerification=already_linked`로 반환됩니다. 축제 DB에는 학교 식별자 원문 대신 HMAC-SHA256 해시만 저장합니다.
+| 값 | 프런트 처리 |
+|---|---|
+| `success` | 인증 완료 후 내 정보 다시 조회 |
+| `pending_approval` | 이름 또는 학번 불일치, 관리자 승인 대기 안내 |
+| `department_update_required` | 학과 변경 확인 화면 표시 |
+| `already_linked` | 다른 축제 계정에 연결된 학교 정보 안내 |
+| `access_denied`, `failed`, `invalid_state` | 취소·실패 안내 |
+
+학과 변경 확인 화면에서는 다음 API로 현재 회원정보와 학교 학적정보를 조회합니다.
+
+```http
+GET /api/users/me/school-verification/department
+Authorization: Bearer ACCESS_TOKEN
+```
+
+```json
+{
+  "currentDepartment": "경영학과",
+  "schoolDepartment": "컴퓨터공학과"
+}
+```
+
+사용자가 변경에 동의하면 `POST /api/users/me/school-verification/department/confirm`을 호출합니다. 요청 본문은 없으며, 서버가 학교 학과로 SSO 회원정보를 수정한 뒤 학생 인증까지 완료하고 갱신된 `MeResponse`를 반환합니다.
+
+인증 완료 후 사용자가 `PATCH /api/users/me/profile`에 `department` 필드를 포함해 수정하면 학생 인증 상태가 `REVOKED`로 변경됩니다. 프런트는 `REVOKED`일 때 **학생 인증이 취소되었습니다. 다시 인증을 진행하세요.** 안내와 재인증 버튼을 표시합니다. 기존 인증 시각인 `schoolVerifiedAt`은 감사 이력으로 유지됩니다.
+
+동일한 학교 학생은 하나의 축제 계정에만 연결할 수 있습니다. 가입 후 중복 연결이면 콜백 결과가 `?schoolVerification=already_linked`로 반환됩니다. 인증 완료 계정에는 학교 식별자 원문 대신 HMAC-SHA256 해시만 저장합니다. 관리자 확인이 필요한 미승인 요청은 비교를 위해 이름·학번·학과 원문을 별도 요청 테이블에 보관하고 승인 또는 삭제 시 제거합니다.
+
+## 학생 인증 승인 관리
+
+이름 또는 학번이 다른 인증 요청은 `SUPER_ADMIN`만 조회·처리할 수 있습니다.
+
+| Method | Path | 설명 |
+|---|---|---|
+| `GET` | `/api/admin/school-verifications` | 미승인 요청 목록 조회 |
+| `POST` | `/api/admin/school-verifications/{id}/approve` | 요청 승인 및 학생 인증 완료 |
+| `DELETE` | `/api/admin/school-verifications/{id}` | 미승인 요청 삭제 |
+
+목록에는 현재 동아리 SSO의 이름·학번·학과와 학교 SSO의 이름·학번·학과가 함께 반환됩니다. `ADMIN`과 `STAFF`는 접근할 수 없습니다.

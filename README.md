@@ -177,12 +177,16 @@ Origin은 경로나 마지막 `/` 없이 `scheme://host[:port]` 형식으로 입
 |---|---|---|
 | GET | `/api/users/me` | SSO 내 정보와 축제 역할 조회 |
 | POST | `/api/users/me/school-verification/authorize` | 로그인 | 가입 후 학교 학생 인증 URL 발급 |
-| PATCH | `/api/users/me/profile` | 이름·전화번호 수정 |
+| GET | `/api/users/me/school-verification/department` | 로그인 | 학교·회원 학과 불일치 내용 조회 |
+| POST | `/api/users/me/school-verification/department/confirm` | 로그인 | 학교 학과로 회원정보 수정 후 인증 |
+| PATCH | `/api/users/me/profile` | 전화번호·학과·학년·재학 상태 수정 |
 | POST | `/api/users/me/email/verification` | 새 이메일 인증번호 발송 |
 | POST | `/api/users/me/email/verification/confirm` | 새 이메일 인증번호 확인 |
 | PATCH | `/api/users/me/email` | 인증된 이메일로 변경 |
 | PATCH | `/api/users/me/password` | SSO 비밀번호 변경 후 인증 쿠키 제거 |
 | DELETE | `/api/users/me` | SSO 계정 탈퇴 |
+
+이름·학번 불일치 인증은 `/api/admin/school-verifications`에서 `SUPER_ADMIN`만 목록 조회, 승인, 삭제할 수 있습니다. 인증된 사용자가 프로필 API로 학과를 수정하면 학생 인증 상태는 `REVOKED`가 되며 기존 인증 시각은 유지됩니다.
 
 ### 부스 지도와 찜
 

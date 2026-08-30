@@ -28,6 +28,7 @@ import org.syu_likelion.Festa_2026.sso.SsoInternalProfileClient;
 import org.syu_likelion.Festa_2026.sso.SsoProfiles.InternalUserProfile;
 import org.syu_likelion.Festa_2026.user.FestivalRole;
 import org.syu_likelion.Festa_2026.user.FestivalUserService;
+import org.syu_likelion.Festa_2026.user.SchoolVerificationStatus;
 import org.syu_likelion.Festa_2026.user.UserDtos.MeResponse;
 import org.syu_likelion.Festa_2026.user.UserService;
 
@@ -51,6 +52,8 @@ class QrServiceTests {
                 new QrProperties(Duration.ofSeconds(60)), Clock.fixed(NOW, ZoneOffset.UTC));
         when(profiles.getProfile(TARGET_UUID)).thenReturn(targetProfile());
         when(festivalUsers.getRoles(TARGET_UUID)).thenReturn(Set.of(FestivalRole.USER));
+        when(festivalUsers.getProfile(TARGET_UUID)).thenReturn(new FestivalUserService.UserFestivalProfile(
+                Set.of(FestivalRole.USER), SchoolVerificationStatus.VERIFIED, NOW.minusSeconds(60)));
     }
 
     @Test
@@ -80,6 +83,9 @@ class QrServiceTests {
         assertThat(view.phone()).isNull();
         assertThat(view.email()).isNull();
         assertThat(view.userUuid()).isNull();
+        assertThat(view.schoolVerificationStatus()).isEqualTo(SchoolVerificationStatus.VERIFIED);
+        assertThat(view.schoolVerified()).isTrue();
+        assertThat(view.schoolVerifiedAt()).isEqualTo(NOW.minusSeconds(60));
     }
 
     @Test
@@ -139,6 +145,9 @@ class QrServiceTests {
             assertThat(view.studentNo()).isEqualTo("2024******");
             assertThat(view.phone()).isNull();
             assertThat(view.email()).isNull();
+            assertThat(view.schoolVerificationStatus()).isEqualTo(SchoolVerificationStatus.VERIFIED);
+            assertThat(view.schoolVerified()).isTrue();
+            assertThat(view.schoolVerifiedAt()).isEqualTo(NOW.minusSeconds(60));
         });
     }
 

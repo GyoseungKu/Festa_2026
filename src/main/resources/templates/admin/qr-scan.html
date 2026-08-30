@@ -43,12 +43,13 @@
     <div class="alert alert-success" role="status" th:if="${message}" th:text="${message}"></div>
 
     <section class="panel user-search-panel" th:if="${adminRole.name() == 'STAFF' || adminRole.name() == 'ADMIN' || adminRole.name() == 'SUPER_ADMIN'}">
-        <div class="panel-heading"><div><span class="step-number">01</span><h2>사용자 정보 검색</h2></div></div>
+        <div class="panel-heading"><div><span class="step-number">01</span><h2>사용자 검색 및 권한 관리</h2></div></div>
         <form class="user-search-form" method="post" th:action="@{/admin/qr/search}">
             <label class="field-group"><span>검색어</span><input type="search" name="query" minlength="2" maxlength="100" required th:value="${searchQuery}" placeholder="이름, 학번, 아이디, 이메일, 전화번호, 학과"></label>
             <button class="button button-primary" type="submit">검색</button>
         </form>
-        <p class="support-copy">검색은 원본 정보로 처리되지만 결과에는 현재 권한으로 볼 수 있는 정보만 표시됩니다. 최대 20명까지 표시합니다.</p>
+        <p class="support-copy" th:if="${canManageUserRoles}">사용자를 검색한 뒤 결과에서 관리 권한을 변경할 수 있습니다. 최대 20명까지 표시합니다.</p>
+        <p class="support-copy" th:unless="${canManageUserRoles}">검색 결과에는 현재 권한으로 볼 수 있는 정보만 표시됩니다. 권한 변경은 ADMIN 이상만 가능합니다.</p>
     </section>
 
     <section class="panel user-search-results" th:if="${searchResult != null}">
