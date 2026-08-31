@@ -11,6 +11,9 @@ import static org.mockito.Mockito.when;
 
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.Executor;
@@ -60,7 +63,21 @@ class WelcomeEmailServiceTests {
         verify(templates).process(eq("mail/welcome"), any(Context.class));
         verify(users).completeWelcomeEmail(USER_UUID, CLAIM);
         assertThat(message.getSubject()).contains("천보축전 홈페이지 가입을 환영합니다");
+        message.saveChanges();
+        assertThat(message.getHeader("Subject", null)).containsIgnoringCase("=?UTF-8?");
         assertThat(message.getAllRecipients()[0].toString()).isEqualTo("student@example.com");
+    }
+
+    @Test
+    void applicationPropertiesDefaultSubjectIsPortableAcrossPropertiesReaders() throws Exception {
+        Properties application = new Properties();
+        try (InputStream input = Files.newInputStream(Path.of("src/main/resources/application.properties"))) {
+            application.load(input);
+        }
+
+        assertThat(application.getProperty("festival.welcome-email.subject"))
+                .isEqualTo("${WELCOME_EMAIL_SUBJECT:[Likelion SYU] 삼육대학교 개교 120주년 "
+                        + "천보축전 홈페이지 가입을 환영합니다.}");
     }
 
     @Test

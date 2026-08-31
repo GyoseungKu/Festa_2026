@@ -31,6 +31,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -55,6 +56,7 @@ class SsoAuthIntegrationTests {
 
     @Autowired MockMvc mvc;
     @Autowired FestivalUserRepository users;
+    @Autowired JdbcTemplate jdbc;
     @Autowired SsoInternalProfileClient internalProfiles;
 
     @DynamicPropertySource
@@ -141,6 +143,8 @@ class SsoAuthIntegrationTests {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.userUuid").value(UUID));
         org.assertj.core.api.Assertions.assertThat(users.findAll()).singleElement()
                 .satisfies(user -> org.assertj.core.api.Assertions.assertThat(user.getUserUuid().toString()).isEqualTo(UUID));
+        org.assertj.core.api.Assertions.assertThat(
+                jdbc.queryForObject("select user_uuid from festival_users", String.class)).isEqualTo(UUID);
     }
 
     @Test

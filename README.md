@@ -168,7 +168,7 @@ Origin은 경로나 마지막 `/` 없이 `scheme://host[:port]` 형식으로 입
 | 환경변수 | 기본값/설명 |
 |---|---|
 | `WELCOME_EMAIL_ENABLED` | `true`, 환영 메일 기능 활성화 |
-| `WELCOME_EMAIL_FROM` | 기본값은 `MAIL_USERNAME`; Gmail에서는 인증 계정 또는 등록된 발신 별칭 사용 |
+| `WELCOME_EMAIL_FROM` | `no-reply@syu-likelion.org`; Gmail에서는 인증 계정 또는 등록된 발신 별칭으로 승인 필요 |
 | `WELCOME_EMAIL_FROM_NAME` | `Likelion SYU`, 발신자 표시 이름 |
 | `WELCOME_EMAIL_SUBJECT` | 환영 메일 제목 |
 | `WELCOME_EMAIL_SITE_URL` | `https://festa.syu-likelion.org` |

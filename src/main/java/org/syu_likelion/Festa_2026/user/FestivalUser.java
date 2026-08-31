@@ -14,6 +14,8 @@ import java.time.Instant;
 import java.util.EnumSet;
 import java.util.Set;
 import java.util.UUID;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "festival_users")
@@ -22,7 +24,9 @@ public class FestivalUser {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_uuid", nullable = false, unique = true, updatable = false, columnDefinition = "BINARY(16)")
+    @JdbcTypeCode(SqlTypes.CHAR)
+    @Column(name = "user_uuid", nullable = false, unique = true, updatable = false,
+            length = 36, columnDefinition = "CHAR(36)")
     private UUID userUuid;
 
     @Column(name = "management_role", nullable = false,
