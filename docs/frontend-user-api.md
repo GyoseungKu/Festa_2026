@@ -108,6 +108,8 @@ Authorization: Bearer ACCESS_TOKEN
 성공은 `204 No Content`입니다. 이 요청은 축제 서비스 연결만 삭제하는 것이 아니라 SSO 계정 자체를 탈퇴시킵니다. 확인 모달에서 이 점을 명확히 표시하고 성공 후 모든 메모리 토큰·캐시를 제거합니다.
 ## 학교 학생 인증
 
+> 마이페이지 연동 버튼, callback 결과 분기, 학과 불일치 UI와 TypeScript 예시는 [프런트엔드 학교 SSO 연동 가이드](frontend-school-sso.md)를 기준으로 합니다. 이 절은 내 정보 API에 표시되는 인증 상태 요약입니다.
+
 `GET /api/users/me` 응답에는 축제 서비스가 관리하는 다음 필드가 포함됩니다.
 
 ```json

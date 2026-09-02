@@ -63,7 +63,7 @@ import org.syu_likelion.Festa_2026.user.UserService;
         "school-sso.callback-url=https://festa.syu-likelion.org/auth/sso/callback",
         "school-sso.issuer=https://www.syu.ac.kr",
         "school-sso.audience=festa-2026",
-        "school-sso.return-url=/temporary-auth",
+        "school-sso.return-url=https://festa.syu-likelion.org/temporary-auth",
         "school-sso.read-timeout=2s",
         "spring.datasource.url=jdbc:h2:mem:school-sso-tests;MODE=MySQL;DB_CLOSE_DELAY=-1"
 })
@@ -105,7 +105,7 @@ class SchoolSsoIntegrationTests {
 
         mvc.perform(get("/auth/sso/callback").session(session)
                         .param("state", state).param("code", "valid-one-time-code"))
-                .andExpect(redirectedUrl("/temporary-auth?schoolSso=success"));
+                .andExpect(redirectedUrl("https://festa.syu-likelion.org/temporary-auth?schoolSso=success"));
 
         mvc.perform(get("/api/auth/school/profile").session(session))
                 .andExpect(status().isOk())
@@ -157,7 +157,7 @@ class SchoolSsoIntegrationTests {
 
         mvc.perform(get("/auth/sso/callback").session(session)
                         .param("state", state).param("code", "valid-one-time-code"))
-                .andExpect(redirectedUrl("/temporary-auth?schoolVerification=success"));
+                .andExpect(redirectedUrl("https://festa.syu-likelion.org/temporary-auth?schoolVerification=success"));
 
         org.mockito.Mockito.verify(festivalUsers).verifySchool(org.mockito.ArgumentMatchers.eq(userUuid), any());
     }
@@ -179,7 +179,7 @@ class SchoolSsoIntegrationTests {
 
         mvc.perform(get("/auth/sso/callback").session(session)
                         .param("state", state).param("code", "valid-one-time-code"))
-                .andExpect(redirectedUrl("/temporary-auth?schoolVerification=pending_approval"));
+                .andExpect(redirectedUrl("https://festa.syu-likelion.org/temporary-auth?schoolVerification=pending_approval"));
 
         assertThat(verificationRequests.findByUserUuid(userUuid)).get().satisfies(request -> {
             assertThat(request.getCurrentName()).isEqualTo("다른이름");
@@ -211,7 +211,7 @@ class SchoolSsoIntegrationTests {
 
         mvc.perform(get("/auth/sso/callback").session(session)
                         .param("state", state).param("code", "valid-one-time-code"))
-                .andExpect(redirectedUrl("/temporary-auth?schoolVerification=department_update_required"));
+                .andExpect(redirectedUrl("https://festa.syu-likelion.org/temporary-auth?schoolVerification=department_update_required"));
         mvc.perform(get("/api/users/me/school-verification/department").session(session)
                         .header("Authorization", "Bearer access-token"))
                 .andExpect(status().isOk())
@@ -241,6 +241,55 @@ class SchoolSsoIntegrationTests {
     }
 
     @Test
+    void authorizeRedirectUsesExactRegisteredCallbackAndClientId() throws Exception {
+        MvcResult authorize = mvc.perform(get("/api/auth/school/authorize"))
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+
+        var uri = UriComponentsBuilder.fromUriString(authorize.getResponse().getRedirectedUrl()).build();
+        assertThat(uri.getScheme()).isEqualTo("https");
+        assertThat(uri.getHost()).isEqualTo("www.syu.ac.kr");
+        assertThat(uri.getPath()).isEqualTo("/festa-sso/authorize");
+        assertThat(uri.getQueryParams().getFirst("client_id")).isEqualTo("festa-2026");
+        assertThat(uri.getQueryParams().getFirst("redirect_uri"))
+                .isEqualTo("https://festa.syu-likelion.org/auth/sso/callback");
+        assertThat(uri.getQueryParams().getFirst("state")).hasSize(43);
+    }
+
+    @Test
+    void callbackWithoutAuthorizationSessionReturnsInvalidState() throws Exception {
+        mvc.perform(get("/auth/sso/callback")
+                        .param("state", "untrusted-state").param("code", "untrusted-code"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("https://festa.syu-likelion.org/temporary-auth?schoolSso=invalid_state"));
+        assertThat(REQUESTS).isEmpty();
+    }
+
+    @Test
+    void accessDeniedCallbackConsumesMatchingStateWithoutTokenExchange() throws Exception {
+        MockHttpSession session = authorizeSession();
+        String state = stateFromSessionRedirect(session);
+
+        mvc.perform(get("/auth/sso/callback").session(session)
+                        .param("state", state).param("error", "access_denied"))
+                .andExpect(redirectedUrl("https://festa.syu-likelion.org/temporary-auth?schoolSso=access_denied"));
+        mvc.perform(get("/auth/sso/callback").session(session)
+                        .param("state", state).param("code", "valid-one-time-code"))
+                .andExpect(redirectedUrl("https://festa.syu-likelion.org/temporary-auth?schoolSso=invalid_state"));
+        assertThat(REQUESTS).isEmpty();
+    }
+
+    @Test
+    void callbackWithMatchingStateButMissingCodeFailsWithoutTokenExchange() throws Exception {
+        MockHttpSession session = authorizeSession();
+        String state = stateFromSessionRedirect(session);
+
+        mvc.perform(get("/auth/sso/callback").session(session).param("state", state))
+                .andExpect(redirectedUrl("https://festa.syu-likelion.org/temporary-auth?schoolSso=failed"));
+        assertThat(REQUESTS).isEmpty();
+    }
+
+    @Test
     void stateIsRandomAndOneTimeUse() throws Exception {
         MvcResult authorize = mvc.perform(get("/api/auth/school/authorize")).andReturn();
         MockHttpSession session = (MockHttpSession) authorize.getRequest().getSession(false);
@@ -250,10 +299,10 @@ class SchoolSsoIntegrationTests {
 
         mvc.perform(get("/auth/sso/callback").session(session)
                         .param("state", "wrong-state").param("code", "code"))
-                .andExpect(redirectedUrl("/temporary-auth?schoolSso=invalid_state"));
+                .andExpect(redirectedUrl("https://festa.syu-likelion.org/temporary-auth?schoolSso=invalid_state"));
         mvc.perform(get("/auth/sso/callback").session(session)
                         .param("state", state).param("code", "code"))
-                .andExpect(redirectedUrl("/temporary-auth?schoolSso=invalid_state"));
+                .andExpect(redirectedUrl("https://festa.syu-likelion.org/temporary-auth?schoolSso=invalid_state"));
         assertThat(REQUESTS).isEmpty();
     }
 
@@ -264,7 +313,7 @@ class SchoolSsoIntegrationTests {
 
         mvc.perform(get("/auth/sso/callback").session(session)
                         .param("state", state).param("code", "invalid-issuer"))
-                .andExpect(redirectedUrl("/temporary-auth?schoolSso=failed"));
+                .andExpect(redirectedUrl("https://festa.syu-likelion.org/temporary-auth?schoolSso=failed"));
         mvc.perform(get("/api/auth/school/profile").session(session))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("SCHOOL_SSO_VERIFICATION_REQUIRED"));

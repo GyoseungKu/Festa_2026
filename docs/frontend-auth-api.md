@@ -2,6 +2,8 @@
 
 공통 헤더와 오류 처리는 [공통 API 규약](frontend-api-common.md)을 먼저 확인합니다.
 
+> 학교 SSO를 이용한 회원가입 학적정보 자동입력과 callback 라우트 구현은 [프런트엔드 학교 SSO 연동 가이드](frontend-school-sso.md)를 기준으로 합니다. 이 문서의 학교 SSO 부분은 API 요약입니다.
+
 ## 전체 흐름
 
 ```text
@@ -21,6 +23,8 @@
 | `SCHOOL_SSO` | 학교 SSO에서 검증한 이름, 학번, 학과를 서버가 사용 |
 
 ### 학교 SSO 자동입력 흐름
+
+상세 UI 상태, TypeScript 예시, callback 결과별 처리와 세션 주의사항은 [프런트엔드 학교 SSO 연동 가이드](frontend-school-sso.md)를 참고합니다.
 
 ```text
 1. 브라우저를 GET /api/auth/school/authorize 로 이동

@@ -2,6 +2,8 @@
 
 이 문서는 Festa 2026에 구현된 삼육대학교 학생 인증 기능의 데이터 모델, 인증 흐름, API, 관리자 처리와 프런트 연동 규칙을 설명합니다.
 
+> 프런트엔드 구현만 필요하면 [프런트엔드 학교 SSO 연동 가이드](frontend-school-sso.md)를 먼저 보십시오. 이 문서는 백엔드·DB·관리자 승인과 운영 제약을 포함한 상세 문서입니다.
+
 ## 1. 기능 범위
 
 학생 인증은 동아리 SSO의 공통 인증 기능이 아니라 Festa 2026에서만 사용하는 축제 서비스 전용 상태입니다.
@@ -283,7 +285,7 @@ Content-Type: application/json
 | `SYU_SSO_CALLBACK_URL` | 학교 SSO 콜백 URL |
 | `SYU_SSO_ISSUER` | 허용 JWT Issuer |
 | `SYU_SSO_AUDIENCE` | 허용 JWT Audience |
-| `SYU_SSO_RETURN_URL` | 인증 후 프런트 복귀 URL |
+| `SYU_SSO_RETURN_URL` | 인증 후 프런트 복귀 절대 HTTPS URL (`https://festa.syu-likelion.org/temporary-auth`, 프런트엔드가 해당 경로 처리) |
 | `SYU_SSO_SUBJECT_HASH_SECRET` | 학교 학번 HMAC 비밀키 |
 
 기본 시간 설정:
@@ -335,4 +337,5 @@ Content-Type: application/json
 - 관리자 API: `user/SchoolVerificationAdminController.java`
 - 관리자 페이지: `admin/AdminSchoolVerificationPageController.java`
 - 프런트 사용자 API: [`frontend-user-api.md`](frontend-user-api.md)
+- 프런트 학교 SSO 구현: [`frontend-school-sso.md`](frontend-school-sso.md)
 - 운영자 QR·검색 API: [`frontend-qr-api.md`](frontend-qr-api.md)

@@ -426,6 +426,7 @@ frontend_event_logs
 - 프록시 헤더 신뢰는 기본 비활성화입니다.
 
 Nginx 뒤에서 실제 클라이언트 IP를 기록하려면 외부가 보낸 전달 헤더를 제거하고 프록시가 다시 설정한 뒤 `API_REQUEST_LOG_TRUST_FORWARDED_HEADERS=true`를 사용해야 합니다.
+서버는 `server.forward-headers-strategy=native`로 `X-Forwarded-Proto`/`X-Forwarded-Host`를 반영하므로, 아래처럼 Nginx가 외부 헤더를 덮어써야 리다이렉트 URL이 HTTPS로 생성됩니다.
 
 ```nginx
 location / {
@@ -438,6 +439,8 @@ location / {
     proxy_set_header Forwarded "";
 }
 ```
+
+학교 SSO 콜백 후 복귀 주소는 운영에서 `SYU_SSO_RETURN_URL=https://festa.syu-likelion.org/temporary-auth`처럼 절대 HTTPS URL로 설정합니다. `/temporary-auth`는 프런트엔드가 callback 결과 쿼리를 처리하는 경로이며, 백엔드는 해당 UI를 제공하지 않습니다.
 
 Actuator는 기본적으로 `127.0.0.1:9091`에서 `health`, `prometheus`만 노출합니다. `/admin/system`의 최근 5분 그래프는 해당 브라우저 메모리에만 유지되며, 다중 인스턴스 통합 모니터링은 외부 Prometheus/Grafana 구성이 필요합니다.
 
@@ -474,6 +477,7 @@ Swagger UI의 **Authorize**에는 SSO Access Token 원문만 입력합니다. `B
 - [프런트 API 문서 목차](docs/README.md)
 - [공통 API 규약](docs/frontend-api-common.md)
 - [인증·회원가입](docs/frontend-auth-api.md)
+- [프런트엔드 학교 SSO 연동](docs/frontend-school-sso.md)
 - [계정 복구](docs/frontend-account-recovery-api.md)
 - [내 정보·계정](docs/frontend-user-api.md)
 - [학생 인증 기능](docs/student-verification.md)
