@@ -10,6 +10,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,6 +52,7 @@ class BambooSequenceConcurrencyTests {
     @Autowired BambooMessageRepository messages;
     @Autowired BambooNicknameRepository nicknames;
     @Autowired BambooSettingsRepository settings;
+    @Autowired BambooSequence sequence;
 
     @BeforeEach
     void reset() {
@@ -158,6 +160,34 @@ class BambooSequenceConcurrencyTests {
         assertThat(tail).hasSize(WRITERS - (WRITERS / 2) - 1);
         assertThat(tail).extracting(BambooMessageResponse::id).doesNotHaveDuplicates();
         assertThat(tail).allSatisfy(message -> assertThat(message.seq()).isGreaterThan(midpoint));
+    }
+
+    @Test
+    void currentCursorDoesNotExposeAnUncommittedWrite() throws Exception {
+        long before = sequence.current();
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        AtomicLong issued = new AtomicLong();
+        Thread writer = new Thread(() -> sequence.writeInOrder(seq -> {
+            issued.set(seq);
+            entered.countDown();
+            try {
+                if (!release.await(10, TimeUnit.SECONDS)) throw new AssertionError("release timeout");
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                throw new AssertionError(interrupted);
+            }
+            return null;
+        }), "bamboo-blocked-writer");
+
+        writer.start();
+        assertThat(entered.await(10, TimeUnit.SECONDS)).isTrue();
+        assertThat(sequence.current()).as("커밋 전 번호가 외부에 보이면 안 됨").isEqualTo(before);
+        release.countDown();
+        writer.join(10_000);
+
+        assertThat(writer.isAlive()).isFalse();
+        assertThat(sequence.current()).isEqualTo(issued.get());
     }
 
     // ------------------------------------------------------------------ 헬퍼

@@ -2,7 +2,9 @@ package org.syu_likelion.Festa_2026.bamboo;
 
 import jakarta.annotation.PostConstruct;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
 import java.util.function.LongFunction;
+import java.util.function.LongSupplier;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -29,6 +31,8 @@ public class BambooSequence {
     //           스케일아웃하면 단일 writer 큐 또는 DB 시퀀스로 교체.
     private final Object writeLock = new Object();
     private final AtomicLong counter = new AtomicLong();
+    /** DB 커밋까지 끝난 마지막 커서. 진행 중인 트랜잭션 번호는 외부에 노출하지 않는다. */
+    private final AtomicLong committed = new AtomicLong();
     private final BambooMessageRepository messages;
     private final TransactionTemplate transactions;
 
@@ -42,20 +46,49 @@ public class BambooSequence {
 
     @PostConstruct
     void restore() {
-        counter.set(messages.findMaxSeq());
+        long restored = messages.findMaxSeq();
+        counter.set(restored);
+        committed.set(restored);
     }
 
     /**
      * 새 커서를 발급하고 그 값으로 쓰기 작업을 수행한 뒤 임계 구역 안에서 커밋한다.
      */
     public <T> T writeInOrder(LongFunction<T> work) {
+        return writeBatchInOrder(next -> work.apply(next.getAsLong()));
+    }
+
+    /**
+     * 하나의 트랜잭션에서 여러 변경 커서를 발급한다. 관리자 닉네임 변경처럼 여러 메시지가
+     * 한꺼번에 바뀌어도 각 메시지가 고유한 커서를 받아 기존 폴링 클라이언트에 전달된다.
+     */
+    public <T> T writeBatchInOrder(Function<LongSupplier, T> work) {
         synchronized (writeLock) {
-            return transactions.execute(status -> work.apply(counter.incrementAndGet()));
+            long[] lastIssued = {committed.get()};
+            LongSupplier next = () -> {
+                long issued = counter.incrementAndGet();
+                lastIssued[0] = issued;
+                return issued;
+            };
+            T result = transactions.execute(status -> work.apply(next));
+            // TransactionTemplate.execute가 정상 반환한 시점에는 커밋까지 완료되어 있다.
+            committed.set(lastIssued[0]);
+            return result;
+        }
+    }
+
+    /**
+     * 메시지 목록과 그 목록의 스트림 시작 커서를 같은 쓰기 경계에서 읽는다.
+     * 최초 과거 조회 도중 새 쓰기가 끼어 목록에는 없지만 커서에는 포함되는 유실을 막는다.
+     */
+    public <T> T readSnapshot(java.util.function.Supplier<T> work) {
+        synchronized (writeLock) {
+            return work.get();
         }
     }
 
     /** 현재까지 발급된 마지막 커서. 클라이언트 최초 진입 시 시작점으로 쓴다. */
     public long current() {
-        return counter.get();
+        return committed.get();
     }
 }

@@ -59,16 +59,19 @@ public class BambooReportNotifier {
         if (!notified.add(messageId)) return;
         JavaMailSender sender = mailSenders.getIfAvailable();
         if (sender == null) {
+            notified.remove(messageId);
             log.warn("Bamboo report alert skipped reason=mail_sender_unavailable messageId={}", messageId);
             return;
         }
         if (!withinSendingBudget()) {
+            notified.remove(messageId);
             log.warn("Bamboo report alert skipped reason=rate_limited messageId={}", messageId);
             return;
         }
         try {
             executor.execute(() -> send(sender, messageId, reportCount));
         } catch (RuntimeException rejected) {
+            notified.remove(messageId);
             log.warn("Bamboo report alert queue rejected messageId={}", messageId, rejected);
         }
     }
@@ -91,7 +94,10 @@ public class BambooReportNotifier {
     private void send(JavaMailSender sender, Long messageId, long reportCount) {
         try {
             BambooMessage message = messages.findById(messageId).orElse(null);
-            if (message == null) return;
+            if (message == null) {
+                notified.remove(messageId);
+                return;
+            }
             MimeMessage mail = sender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mail, false, StandardCharsets.UTF_8.name());
             helper.setFrom(properties.from());

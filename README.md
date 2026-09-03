@@ -14,6 +14,7 @@
 - 공연팀과 공개 일정, 링크·이미지·동영상 관리
 - 분실물 공지, 사진, 반환 상태, 상단 고정과 조회수
 - 생일축하 쪽지, 하트와 권한별 작성자 조회
+- 로그인 사용자용 대나무숲 익명 채팅, 신고·작성 제한과 운영자 관리
 - Thymeleaf 관리자 페이지와 실시간 운영 모니터링
 - API 요청 로그, 프런트 이벤트 로그와 익명 접속 heartbeat
 
@@ -64,8 +65,8 @@ SSO의 `ssoRole`과 축제 운영 권한은 별개입니다.
 | 역할 | 주요 권한 |
 |---|---|
 | `SUPER_ADMIN` | 전체 관리 및 시스템 모니터링 |
-| `ADMIN` | 부스·스탬프·공연·분실물·생일축하 관리 |
-| `STAFF` | 분실물·생일축하 관리 및 마스킹된 사용자 조회 |
+| `ADMIN` | 부스·스탬프·공연·분실물·생일축하·대나무숲 관리 |
+| `STAFF` | 분실물·생일축하·대나무숲 관리 및 마스킹된 사용자 조회 |
 | `USER` | 일반 사용자 기능 |
 
 부스 관리자 여부는 별도 `festival_users.booth_manager` boolean과 `festival_booth_managers` 담당 부스 관계로 관리합니다. 따라서 한 사용자가 `ADMIN`이면서 동시에 특정 부스의 `BOOTH_MANAGER`일 수 있습니다. 관리 권한 판정에서는 `SUPER_ADMIN`, `ADMIN`을 우선합니다.
@@ -320,6 +321,31 @@ QR에는 개인정보나 Access Token을 넣지 않습니다. 서버는 256비�
 
 사용자 관리 권한은 기존 ENUM(`USER`, `STAFF`, `ADMIN`, `SUPER_ADMIN`)으로 유지합니다. `ADMIN`은 USER·STAFF 범위만 변경하고 `SUPER_ADMIN`만 ADMIN 이상을 지정할 수 있습니다. `BOOTH_MANAGER`는 부스 담당자 관계와 별도로 관리하므로 사용자 권한 변경 API 대상이 아닙니다.
 
+### 대나무숲 익명 채팅
+
+모든 사용자 API는 로그인이 필요합니다. 사용자 UUID는 메시지와 신고의 내부 소유권 판정에만 사용하고 일반 응답에는 노출하지 않습니다.
+
+| Method | Path | 권한 | 설명 |
+|---|---|---|---|
+| GET | `/api/bamboo` | 로그인 | 운영 상태, 내 닉네임과 현재 커서 |
+| GET | `/api/bamboo/nickname/suggest` | 로그인 | 사용 가능한 임시 닉네임 제안 |
+| POST | `/api/bamboo/nickname` | 로그인 | 변경 불가능한 닉네임 확정 |
+| GET | `/api/bamboo/messages` | 로그인 | 과거 메시지 또는 커서 이후 변경 조회 |
+| POST | `/api/bamboo/messages` | 로그인 | 메시지 작성 |
+| POST | `/api/bamboo/messages/{id}/report` | 로그인 | 메시지 신고 |
+| GET/PATCH/POST | `/api/admin/bamboo/**` | `STAFF` 이상 | 신고 처리·차단·닉네임 변경, ADMIN 이상 운영 설정 |
+| GET | `/api/admin/bamboo/messages/{id}/author` | `SUPER_ADMIN` | 작성자 신원 확인 및 감사 로그 |
+
+상세 폴링 방식, 요청·응답과 오류 코드는 [대나무숲 프런트 API 문서](docs/frontend-bamboo-api.md)를 확인합니다. 운영 DB에는 [bamboo-schema.sql](docs/bamboo-schema.sql)을 먼저 적용해 `utf8mb4` 문자셋을 보장하는 것을 권장합니다.
+
+운영 전에는 다음 조건을 반드시 확인합니다.
+
+- `bamboo-schema.sql`을 애플리케이션보다 먼저 적용하여 네 테이블과 `utf8mb4` 문자셋을 보장합니다.
+- 현재 변경 커서 발급기는 단일 애플리케이션 인스턴스를 전제로 합니다. 동일 DB를 사용하는 Festa 서버를 두 대 이상 동시에 실행하지 않습니다.
+- 사용자 인증 캐시는 SSO 부하를 줄이기 위해 기본 60초간 유지됩니다. 로그아웃·토큰 폐기 직후에도 최대 이 시간 동안 대나무숲 요청이 통과할 수 있으므로 필요하면 `BAMBOO_IDENTITY_TTL`을 줄입니다.
+- 애플리케이션의 16KiB 본문 방어는 `Content-Length`가 있는 요청을 우선 차단합니다. Chunked 요청까지 제한하려면 Nginx 등 프록시에도 `/api/bamboo` 요청 크기 제한을 설정합니다.
+- 신고 메일을 사용하려면 `BAMBOO_ALERT_TO`를 실제 수신 주소로 설정합니다. 비어 있으면 신고 기록은 정상 저장되지만 메일은 발송되지 않습니다.
+
 ### 프런트 이벤트와 접속 현황
 
 | Method | Path | 인증 | 설명 |
@@ -344,6 +370,7 @@ QR에는 개인정보나 Access Token을 넣지 않습니다. 서버는 256비�
 | `/admin/polls` | `ADMIN` 이상 | 투표·응답 폼 생성과 실시간 현황 |
 | `/admin/lost-items` | `STAFF` 이상 | 분실물 관리 |
 | `/admin/birthday-messages` | `STAFF` 이상 | 생일축하 쪽지·하트 사용자 관리 |
+| `/admin/bamboo` | `STAFF` 이상 | 신고 메시지·작성 차단·운영 설정 관리 |
 | `/admin/system` | `SUPER_ADMIN` | 실시간 시스템 모니터링 |
 
 관리자 부스 담당자와 사용자 검색은 축제 서비스에 연결된 사용자만 대상으로 합니다. 일반 사용자 조회와 스탬프 임의 지급용 검색은 20명 단위 숫자 페이지를 사용합니다. 스탬프 페이지에서 `BOOTH_MANAGER`는 담당 부스만, `ADMIN` 이상은 모든 스탬프 지급 부스를 볼 수 있습니다.
@@ -410,6 +437,10 @@ lost_item_notices
 lost_item_notice_images
 birthday_messages
 birthday_message_hearts
+bamboo_messages
+bamboo_nicknames
+bamboo_reports
+bamboo_settings
 api_request_logs
 frontend_event_logs
 ```

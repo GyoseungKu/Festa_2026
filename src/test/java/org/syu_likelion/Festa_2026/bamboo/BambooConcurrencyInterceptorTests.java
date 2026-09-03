@@ -69,6 +69,19 @@ class BambooConcurrencyInterceptorTests {
         assertThat(interceptor.availablePermits()).isEqualTo(1);
     }
 
+    @Test
+    void rejectsAnOversizedBodyBeforeItConsumesAConcurrencyPermit() {
+        BambooConcurrencyInterceptor interceptor = interceptor(1);
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setContent(new byte[20_000]);
+
+        assertThatThrownBy(() -> interceptor.preHandle(request, new MockHttpServletResponse(), null))
+                .isInstanceOf(ApiException.class)
+                .extracting(exception -> ((ApiException) exception).code())
+                .isEqualTo("BAMBOO_REQUEST_TOO_LARGE");
+        assertThat(interceptor.availablePermits()).isEqualTo(1);
+    }
+
     private BambooConcurrencyInterceptor interceptor(int permits) {
         return new BambooConcurrencyInterceptor(new BambooProperties(permits, Duration.ofSeconds(5),
                 10, 200, 10, 100_000, Duration.ofSeconds(60), 20_000, List.of()));

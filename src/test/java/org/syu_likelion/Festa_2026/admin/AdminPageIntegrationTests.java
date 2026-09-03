@@ -142,6 +142,8 @@ class AdminPageIntegrationTests {
                 .andExpect(content().string(containsString("사용자 및 권한 관리")))
                 .andExpect(content().string(containsString("서버 장애 긴급 연락처")))
                 .andExpect(content().string(containsString("010-4953-5080")))
+                .andExpect(content().string(containsString("대나무숲 운영")))
+                .andExpect(content().string(containsString("4개 기능 사용 가능")))
                 .andExpect(content().string(containsString("STAFF")));
 
         mvc.perform(get("/admin/qr").cookie(new Cookie("festivalAdminAccess", "access-one")))

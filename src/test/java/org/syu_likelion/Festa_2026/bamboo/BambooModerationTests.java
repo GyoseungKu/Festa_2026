@@ -126,6 +126,14 @@ class BambooModerationTests {
     }
 
     @Test
+    void invalidMuteDurationIsRejected() {
+        var message = service.createAs(AUTHOR, "차단 전 메시지");
+
+        assertCode(() -> service.muteAuthorOf(message.id(), -1), "BAMBOO_INVALID_MUTE_DURATION");
+        assertCode(() -> service.muteAuthorOf(message.id(), 525_601), "BAMBOO_INVALID_MUTE_DURATION");
+    }
+
+    @Test
     void anExpiredMuteNoLongerBlocksWriting() {
         service.createAs(AUTHOR, "차단 전 메시지");
         BambooNickname nickname = nicknames.findById(AUTHOR).orElseThrow();
@@ -200,10 +208,15 @@ class BambooModerationTests {
     void renamingAnAuthorAlsoUpdatesTheirPastMessages() {
         var first = service.createAs(AUTHOR, "첫 번째");
         service.createAs(AUTHOR, "두 번째");
+        long cursor = service.stream(READER, 0L, 50).cursor();
 
         service.renameAuthorOf(first.id(), "차분한코알라11");
 
         assertThat(service.history(READER, null, 50).messages())
+                .extracting(BambooMessageResponse::anonName)
+                .containsOnly("차분한코알라11");
+        assertThat(service.stream(READER, cursor, 50).messages())
+                .hasSize(2)
                 .extracting(BambooMessageResponse::anonName)
                 .containsOnly("차분한코알라11");
         assertThat(service.nicknameOf(AUTHOR)).isEqualTo("차분한코알라11");

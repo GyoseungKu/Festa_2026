@@ -27,6 +27,7 @@ React 프런트에서 Festa API를 연동할 때 사용하는 문서 모음입�
 | 동적 사용자 QR | [QR API](frontend-qr-api.md) |
 | 분실물 공지 | [분실물 API](frontend-lost-items-api.md) |
 | 생일축하 쪽지·하트 | [생일축하 API](frontend-birthday-messages-api.md) |
+| 대나무숲 익명 채팅·신고 | [대나무숲 API](frontend-bamboo-api.md) |
 | 화면·행동 분석 이벤트 | [분석 이벤트](frontend-analytics-api.md) |
 | 현재 접속 추정 heartbeat | [Presence](frontend-presence-api.md) |
 

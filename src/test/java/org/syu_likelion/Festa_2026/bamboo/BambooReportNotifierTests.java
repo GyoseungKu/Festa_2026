@@ -121,6 +121,24 @@ class BambooReportNotifierTests {
     }
 
     @Test
+    void aRateLimitedMessageCanBeRetriedAfterTheBudgetRefills() {
+        BambooAlertProperties tight = new BambooAlertProperties(true, 1,
+                List.of("staff@example.com"), "festa@example.com", "https://example.com/admin", 1, 50);
+        BambooReportNotifier notifier = notifier(tight);
+        stubMessage(1L);
+        stubMessage(2L);
+
+        notifier.notifyIfThresholdReached(1L, 1);
+        notifier.notifyIfThresholdReached(2L, 1);
+        verify(sender, times(1)).send(any(MimeMessage.class));
+
+        clock.advance(Duration.ofMinutes(1));
+        notifier.notifyIfThresholdReached(2L, 2);
+
+        verify(sender, times(2)).send(any(MimeMessage.class));
+    }
+
+    @Test
     void aFailedSendCanBeRetriedLater() {
         BambooReportNotifier notifier = notifier(properties(5, List.of("staff@example.com")));
         doThrow(new RuntimeException("smtp down")).when(sender).send(any(MimeMessage.class));

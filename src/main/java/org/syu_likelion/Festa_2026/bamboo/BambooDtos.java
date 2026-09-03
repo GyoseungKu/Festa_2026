@@ -2,6 +2,10 @@ package org.syu_likelion.Festa_2026.bamboo;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -20,9 +24,9 @@ public final class BambooDtos {
     /** 스트림과 과거 조회가 같은 응답을 쓴다. {@code cursor}는 이어서 스트림을 받을 시작점이다. */
     public record BambooStreamResponse(long cursor, List<BambooMessageResponse> messages) { }
 
-    public record BambooMessageCreateRequest(@NotBlank String content) { }
+    public record BambooMessageCreateRequest(@NotBlank @Size(max = 400) String content) { }
 
-    public record BambooNicknameRequest(@NotBlank String nickname) { }
+    public record BambooNicknameRequest(@NotBlank @Size(min = 2, max = 12) String nickname) { }
 
     public record BambooNicknameResponse(String nickname) { }
 
@@ -38,13 +42,15 @@ public final class BambooDtos {
     public record BambooAdminPageResponse(List<BambooAdminMessageResponse> items, int page, int size,
                                           long totalElements, int totalPages) { }
 
-    public record BambooStatusChangeRequest(@NotNull List<Long> ids, @NotNull BambooMessageStatus status) { }
+    public record BambooStatusChangeRequest(
+            @NotNull @Size(min = 1, max = 100) List<@NotNull @Positive Long> ids,
+            @NotNull BambooMessageStatus status) { }
 
-    public record BambooMuteRequest(@NotNull Integer minutes) { }
+    public record BambooMuteRequest(@NotNull @Min(0) @Max(525_600) Integer minutes) { }
 
     public record BambooMuteResponse(Instant mutedUntil) { }
 
-    public record BambooRenameRequest(@NotBlank String nickname) { }
+    public record BambooRenameRequest(@NotBlank @Size(min = 2, max = 12) String nickname) { }
 
     public record BambooSettingsRequest(Boolean enabled, Boolean readOnly, Instant closesAt,
                                         Boolean clearClosesAt) { }

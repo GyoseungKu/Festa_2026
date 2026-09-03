@@ -28,7 +28,7 @@ import org.syu_likelion.Festa_2026.performance.KstInstantAttributeConverter;
         uniqueConstraints = @UniqueConstraint(name = "uk_bamboo_message_seq", columnNames = "seq"),
         indexes = {
                 @Index(name = "idx_bamboo_message_user", columnList = "user_uuid,created_at"),
-                @Index(name = "idx_bamboo_message_reports", columnList = "report_count,created_at")
+                @Index(name = "idx_bamboo_message_reports", columnList = "report_count,id")
         })
 public class BambooMessage {
     @Id
@@ -104,7 +104,10 @@ public class BambooMessage {
         }
     }
 
-    void renameAuthor(String anonName) { this.anonName = anonName; }
+    void renameAuthor(String anonName, long newSeq) {
+        this.anonName = anonName;
+        this.seq = newSeq;
+    }
 
     public Long getId() { return id; }
     public long getSeq() { return seq; }

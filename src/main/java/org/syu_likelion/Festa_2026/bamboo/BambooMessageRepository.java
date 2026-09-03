@@ -13,6 +13,8 @@ public interface BambooMessageRepository extends JpaRepository<BambooMessage, Lo
     /** 실시간 스트림. 신규 메시지와 상태 변경이 같은 커서로 흐른다. */
     List<BambooMessage> findBySeqGreaterThanOrderBySeqAsc(long seq, Pageable pageable);
 
+    List<BambooMessage> findByUserUuidOrderByIdAsc(java.util.UUID userUuid);
+
     /** 과거 조회. 삭제·숨김 메시지는 반환하지 않는다. */
     List<BambooMessage> findByIdLessThanAndStatusOrderByIdDesc(Long id, BambooMessageStatus status,
                                                                Pageable pageable);
@@ -32,8 +34,4 @@ public interface BambooMessageRepository extends JpaRepository<BambooMessage, Lo
     @Query("update BambooMessage m set m.reportCount = m.reportCount + 1 where m.id = :id")
     int incrementReportCount(@Param("id") Long id);
 
-    /** 닉네임 강제 변경 시 과거 메시지의 표시 이름을 함께 바꾼다. */
-    @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("update BambooMessage m set m.anonName = :anonName where m.userUuid = :userUuid")
-    int renameAuthor(@Param("userUuid") java.util.UUID userUuid, @Param("anonName") String anonName);
 }

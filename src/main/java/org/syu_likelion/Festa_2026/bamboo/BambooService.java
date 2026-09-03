@@ -45,6 +45,7 @@ public class BambooService {
     private final BambooSequence sequence;
     private final BambooRateLimiter rateLimiter;
     private final Clock clock;
+    private final Object settingsInitializationLock = new Object();
     /** 설정에 적힌 금칙어를 닉네임과 같은 방식으로 정규화해 둔다. 매 요청마다 다시 만들지 않는다. */
     private final Set<String> blockedWords;
 
@@ -67,7 +68,6 @@ public class BambooService {
 
     // ------------------------------------------------------------------ 방 상태
 
-    @Transactional(readOnly = true)
     public BambooRoomResponse room(UUID viewerUuid) {
         Instant now = Instant.now(clock);
         BambooSettings current = currentSettings();
@@ -150,7 +150,6 @@ public class BambooService {
      * 실시간 스트림. 신규 메시지와 상태 변경이 같은 커서로 흐른다.
      * {@code after}가 없으면 현재 커서를 기준으로 삼아 빈 결과를 돌려준다.
      */
-    @Transactional(readOnly = true)
     public BambooStreamResponse stream(UUID viewerUuid, Long after, Integer size) {
         requireEnabled();
         long cursor = after == null ? sequence.current() : Math.max(0, after);
@@ -170,18 +169,19 @@ public class BambooService {
      * 과거 조회. 오래된 것이 위에 오도록 오름차순으로 뒤집어 반환한다.
      * {@code cursor}에는 현재 커서를 담아, 최초 진입에서 과거 목록과 스트림 시작점을 한 번에 받게 한다.
      */
-    @Transactional(readOnly = true)
     public BambooStreamResponse history(UUID viewerUuid, Long before, Integer size) {
         requireEnabled();
         long cursor = before == null ? Long.MAX_VALUE : before;
         int safeSize = size == null ? DEFAULT_HISTORY_SIZE : Math.max(1, Math.min(size, MAX_HISTORY_SIZE));
-        List<BambooMessage> found = messages.findByIdLessThanAndStatusOrderByIdDesc(cursor,
-                BambooMessageStatus.VISIBLE, PageRequest.of(0, safeSize));
-        List<BambooMessageResponse> items = new ArrayList<>(found.size());
-        for (int index = found.size() - 1; index >= 0; index--) {
-            items.add(toResponse(found.get(index), viewerUuid));
-        }
-        return new BambooStreamResponse(sequence.current(), items);
+        return sequence.readSnapshot(() -> {
+            List<BambooMessage> found = messages.findByIdLessThanAndStatusOrderByIdDesc(cursor,
+                    BambooMessageStatus.VISIBLE, PageRequest.of(0, safeSize));
+            List<BambooMessageResponse> items = new ArrayList<>(found.size());
+            for (int index = found.size() - 1; index >= 0; index--) {
+                items.add(toResponse(found.get(index), viewerUuid));
+            }
+            return new BambooStreamResponse(sequence.current(), items);
+        });
     }
 
     // ------------------------------------------------------------------ 작성
@@ -191,23 +191,23 @@ public class BambooService {
      * 임계 구역 안에서 직접 열고 닫아야 커밋 순서와 커서 순서가 일치한다.
      */
     public BambooMessageResponse createAs(UUID userUuid, String rawContent) {
-        Instant now = Instant.now(clock);
-        BambooSettings current = currentSettings();
-        requireEnabled(current);
-        if (current.isReadOnlyAt(now)) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "BAMBOO_READ_ONLY",
-                    "지금은 새 메시지를 작성할 수 없습니다.");
-        }
-        BambooNickname nickname = nicknames.findById(userUuid).orElseThrow(() ->
-                new ApiException(HttpStatus.CONFLICT, "BAMBOO_NICKNAME_REQUIRED",
-                        "먼저 닉네임을 정해 주세요."));
-        requireNotMuted(nickname, now);
         String content = normalizeContent(rawContent);
         requireAllowedContent(content);
-        rateLimiter.checkWrite(userUuid, content);
-        String anonName = nickname.getNickname();
-        BambooMessage saved = sequence.writeInOrder(seq ->
-                messages.save(new BambooMessage(seq, userUuid, anonName, content, now)));
+        BambooMessage saved = sequence.writeInOrder(seq -> {
+            Instant now = Instant.now(clock);
+            BambooSettings current = currentSettings();
+            requireEnabled(current);
+            if (current.isReadOnlyAt(now)) {
+                throw new ApiException(HttpStatus.FORBIDDEN, "BAMBOO_READ_ONLY",
+                        "지금은 새 메시지를 작성할 수 없습니다.");
+            }
+            BambooNickname nickname = nicknames.findById(userUuid).orElseThrow(() ->
+                    new ApiException(HttpStatus.CONFLICT, "BAMBOO_NICKNAME_REQUIRED",
+                            "먼저 닉네임을 정해 주세요."));
+            requireNotMuted(nickname, now);
+            rateLimiter.checkWrite(userUuid, content);
+            return messages.save(new BambooMessage(seq, userUuid, nickname.getNickname(), content, now));
+        });
         return toResponse(saved, userUuid);
     }
 
@@ -357,18 +357,21 @@ public class BambooService {
      * 메시지를 지목해 그 작성자의 작성을 일정 시간 막는다.
      * 지목 대상이 메시지이므로 STAFF 는 작성자 신원을 몰라도 조치할 수 있다.
      */
-    @Transactional
     public BambooMuteResponse muteAuthorOf(Long messageId, int minutes) {
-        BambooNickname nickname = authorNicknameOf(messageId);
-        Instant until = minutes <= 0 ? null : Instant.now(clock).plus(Duration.ofMinutes(minutes));
-        nickname.mute(until);
-        nicknames.saveAndFlush(nickname);
-        return new BambooMuteResponse(until);
+        if (minutes < 0 || minutes > 525_600) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "BAMBOO_INVALID_MUTE_DURATION",
+                    "작성 차단 시간은 0분 이상 525600분 이하로 입력해 주세요.");
+        }
+        return sequence.writeBatchInOrder(unused -> {
+            BambooNickname nickname = authorNicknameOf(messageId);
+            Instant until = minutes <= 0 ? null : Instant.now(clock).plus(Duration.ofMinutes(minutes));
+            nickname.mute(until);
+            nicknames.saveAndFlush(nickname);
+            return new BambooMuteResponse(until);
+        });
     }
 
-    @Transactional
     public BambooNicknameResponse renameAuthorOf(Long messageId, String requested) {
-        BambooNickname current = authorNicknameOf(messageId);
         String nickname = requested == null ? "" : requested.strip();
         validateNickname(nickname);
         String key = BambooNicknamePolicy.normalize(nickname);
@@ -376,14 +379,26 @@ public class BambooService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "BAMBOO_NICKNAME_INVALID",
                     "사용할 수 없는 닉네임입니다.");
         }
-        if (!key.equals(current.getNicknameKey()) && nicknames.existsByNicknameKey(key)) {
+        try {
+            return sequence.writeBatchInOrder(nextSeq -> {
+                BambooNickname current = authorNicknameOf(messageId);
+                if (!key.equals(current.getNicknameKey()) && nicknames.existsByNicknameKey(key)) {
+                    throw new ApiException(HttpStatus.CONFLICT, "BAMBOO_NICKNAME_TAKEN",
+                            "이미 사용 중인 닉네임입니다.");
+                }
+                current.rename(nickname, key);
+                nicknames.saveAndFlush(current);
+                List<BambooMessage> authored = messages.findByUserUuidOrderByIdAsc(current.getUserUuid());
+                for (BambooMessage message : authored) {
+                    message.renameAuthor(nickname, nextSeq.getAsLong());
+                }
+                messages.saveAllAndFlush(authored);
+                return new BambooNicknameResponse(nickname);
+            });
+        } catch (DataIntegrityViolationException conflict) {
             throw new ApiException(HttpStatus.CONFLICT, "BAMBOO_NICKNAME_TAKEN",
-                    "이미 사용 중인 닉네임입니다.");
+                    "이미 사용 중인 닉네임입니다. 다른 닉네임을 입력해 주세요.");
         }
-        current.rename(nickname, key);
-        nicknames.saveAndFlush(current);
-        messages.renameAuthor(current.getUserUuid(), nickname);
-        return new BambooNicknameResponse(nickname);
     }
 
     @Transactional(readOnly = true)
@@ -399,17 +414,17 @@ public class BambooService {
         return nicknames.findById(userUuid).map(BambooNickname::getNickname).orElse(null);
     }
 
-    @Transactional
     public BambooSettingsResponse updateSettings(Boolean enabled, Boolean readOnly, Instant closesAt,
                                                  boolean clearClosesAt) {
-        BambooSettings current = currentSettings();
-        current.update(enabled, readOnly, closesAt, clearClosesAt, Instant.now(clock));
-        BambooSettings saved = settings.saveAndFlush(current);
-        return new BambooSettingsResponse(saved.isEnabled(), saved.isReadOnly(), saved.getClosesAt(),
-                saved.getUpdatedAt());
+        return sequence.writeBatchInOrder(unused -> {
+            BambooSettings current = currentSettings();
+            current.update(enabled, readOnly, closesAt, clearClosesAt, Instant.now(clock));
+            BambooSettings saved = settings.saveAndFlush(current);
+            return new BambooSettingsResponse(saved.isEnabled(), saved.isReadOnly(), saved.getClosesAt(),
+                    saved.getUpdatedAt());
+        });
     }
 
-    @Transactional(readOnly = true)
     public BambooSettingsResponse settingsView() {
         BambooSettings current = currentSettings();
         return new BambooSettingsResponse(current.isEnabled(), current.isReadOnly(), current.getClosesAt(),
@@ -452,7 +467,11 @@ public class BambooService {
     }
 
     BambooSettings currentSettings() {
-        return settings.findById(BambooSettings.SINGLETON_ID).orElseGet(this::createDefaultSettings);
+        return settings.findById(BambooSettings.SINGLETON_ID).orElseGet(() -> {
+            synchronized (settingsInitializationLock) {
+                return settings.findById(BambooSettings.SINGLETON_ID).orElseGet(this::createDefaultSettings);
+            }
+        });
     }
 
     private BambooSettings createDefaultSettings() {

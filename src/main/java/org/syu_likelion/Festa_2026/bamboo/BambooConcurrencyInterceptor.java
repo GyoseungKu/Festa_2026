@@ -21,6 +21,7 @@ import org.syu_likelion.Festa_2026.error.ApiException;
 @Component
 public class BambooConcurrencyInterceptor implements HandlerInterceptor {
     private static final String ACQUIRED = BambooConcurrencyInterceptor.class.getName() + ".acquired";
+    private static final long MAX_REQUEST_BYTES = 16 * 1024;
 
     private final Semaphore permits;
 
@@ -30,6 +31,11 @@ public class BambooConcurrencyInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
+        long contentLength = request.getContentLengthLong();
+        if (contentLength > MAX_REQUEST_BYTES) {
+            throw new ApiException(HttpStatus.CONTENT_TOO_LARGE, "BAMBOO_REQUEST_TOO_LARGE",
+                    "대나무숲 요청 본문이 너무 큽니다.");
+        }
         if (!permits.tryAcquire()) {
             response.setHeader("Retry-After", "1");
             throw new ApiException(HttpStatus.TOO_MANY_REQUESTS, "BAMBOO_BUSY",

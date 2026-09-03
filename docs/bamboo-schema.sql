@@ -35,7 +35,7 @@ CREATE TABLE bamboo_messages (
     PRIMARY KEY (id),
     UNIQUE KEY uk_bamboo_message_seq (seq),
     KEY idx_bamboo_message_user (user_uuid, created_at),
-    KEY idx_bamboo_message_reports (report_count, created_at)
+    KEY idx_bamboo_message_reports (report_count, id)
 ) ENGINE = InnoDB
   DEFAULT CHARACTER SET = utf8mb4
   COLLATE = utf8mb4_unicode_ci;
