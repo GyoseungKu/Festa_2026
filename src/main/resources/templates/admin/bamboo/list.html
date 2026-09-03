@@ -16,14 +16,15 @@
     </div>
 </header>
 
-<main class="admin-main">
+<main class="admin-main" id="bamboo-admin"
+      th:attr="data-tab=${tab},data-cursor=${liveCursor},data-cursor-url=@{/admin/bamboo/cursor}">
     <nav class="breadcrumb" aria-label="현재 위치"><a th:href="@{/admin}">관리자 홈</a><span>/</span><strong>대나무숲 운영</strong></nav>
 
     <section class="management-toolbar">
         <div>
             <p class="eyebrow">BAMBOO</p>
             <h1>대나무숲 운영</h1>
-            <p>신고된 메시지를 확인하고 가리거나 작성자를 차단합니다. 삭제해도 원문은 기록으로 남습니다.</p>
+            <p>실시간 채팅과 신고 내역을 확인하고 익명 참여자를 차단합니다. 삭제해도 원문은 기록으로 남습니다.</p>
         </div>
         <button class="button button-secondary" type="button" id="bamboo-auto-refresh"
                 data-label-on="자동 새로고침 끄기" data-label-off="자동 새로고침 켜기">자동 새로고침 켜기</button>
@@ -70,15 +71,112 @@
         <span class="media-count" th:unless="${canChangeSettings}">설정 변경은 ADMIN 이상만 가능합니다.</span>
     </form>
 
+    <section class="bamboo-participant-panel" th:if="${canManageBlocks}">
+        <div class="form-section-heading">
+            <span>참여자 관리</span>
+            <div>
+                <h2>익명 참여자 검색·차단</h2>
+                <p>ADMIN 이상은 실제 신원을 보지 않고 익명 닉네임으로 차단하거나 해제할 수 있습니다.</p>
+            </div>
+        </div>
+        <form class="bamboo-participant-search" method="get" th:action="@{/admin/bamboo}">
+            <input type="hidden" name="tab" th:value="${tab}">
+            <label class="field-group">
+                <span>익명 닉네임</span>
+                <input type="search" name="participantQuery" th:value="${participantQuery}"
+                       maxlength="12" placeholder="닉네임 일부 입력">
+            </label>
+            <button class="button button-primary" type="submit">검색</button>
+            <a class="button button-ghost" th:if="${!#strings.isEmpty(participantQuery)}"
+               th:href="@{/admin/bamboo(tab=${tab})}">초기화</a>
+        </form>
+
+        <p class="media-count" th:if="${#lists.isEmpty(participants.items)}">검색된 익명 참여자가 없습니다.</p>
+        <div class="bamboo-participant-list" th:unless="${#lists.isEmpty(participants.items)}">
+            <article th:each="participant : ${participants.items}">
+                <div>
+                    <strong th:text="${participant.nickname}">졸린사자42</strong>
+                    <span class="publish-chip" th:classappend="${participant.muted} ? ' is-scheduled' : ' is-public'"
+                          th:text="${participant.muted} ? '차단 중' : '작성 가능'">작성 가능</span>
+                    <small th:if="${participant.muted}"
+                           th:text="|${#temporals.format(participant.mutedUntil.atZone(seoulZone), 'yyyy-MM-dd HH:mm')} KST까지|">차단 종료</small>
+                </div>
+                <form method="post" th:action="@{/admin/bamboo/participants/mute}">
+                    <input type="hidden" name="nickname" th:value="${participant.nickname}">
+                    <input type="hidden" name="tab" th:value="${tab}">
+                    <input type="hidden" name="participantQuery" th:value="${participantQuery}">
+                    <input type="hidden" name="participantPage" th:value="${participants.page}">
+                    <input type="text" name="reason" maxlength="200" placeholder="차단·해제 사유" required
+                           aria-label="차단 또는 해제 사유">
+                    <select name="minutes" th:unless="${participant.muted}" aria-label="차단 시간">
+                        <option value="10">10분</option>
+                        <option value="30" selected>30분</option>
+                        <option value="180">3시간</option>
+                        <option value="1440">하루</option>
+                    </select>
+                    <input type="hidden" name="minutes" value="0" th:if="${participant.muted}">
+                    <button class="button" th:classappend="${participant.muted} ? ' button-secondary' : ' button-danger'"
+                            type="submit" th:text="${participant.muted} ? '차단 해제' : '차단'">차단</button>
+                </form>
+            </article>
+        </div>
+        <nav class="number-pagination" th:if="${participants.totalPages > 1}" aria-label="익명 참여자 페이지">
+            <a th:if="${participants.page > 0}"
+               th:href="@{/admin/bamboo(tab=${tab},participantQuery=${participantQuery},participantPage=${participants.page - 1})}"
+               aria-label="이전 참여자 페이지">‹</a>
+            <a th:each="number : ${participantPageNumbers}"
+               th:href="@{/admin/bamboo(tab=${tab},participantQuery=${participantQuery},participantPage=${number})}"
+               th:text="${number + 1}" th:classappend="${number == participants.page} ? ' is-current'"
+               th:attr="aria-current=${number == participants.page ? 'page' : null}">1</a>
+            <a th:if="${participants.page + 1 < participants.totalPages}"
+               th:href="@{/admin/bamboo(tab=${tab},participantQuery=${participantQuery},participantPage=${participants.page + 1})}"
+               aria-label="다음 참여자 페이지">›</a>
+        </nav>
+    </section>
+
+    <section class="bamboo-participant-panel" th:if="${canManageBlocks}">
+        <div class="form-section-heading">
+            <span>감사 이력</span>
+            <div>
+                <h2>참여자 차단·해제 기록</h2>
+                <p>처리자, 처리 시각, 대상, 기간과 사유가 영구 기록됩니다.</p>
+            </div>
+        </div>
+        <p class="media-count" th:if="${#lists.isEmpty(audits.items)}">아직 차단 감사 기록이 없습니다.</p>
+        <div class="bamboo-audit-list" th:unless="${#lists.isEmpty(audits.items)}">
+            <article th:each="audit : ${audits.items}">
+                <div>
+                    <strong th:text="${audit.targetNickname}">익명 닉네임</strong>
+                    <span class="publish-chip" th:classappend="${audit.action.name() == 'MUTE'} ? ' is-scheduled' : ' is-public'"
+                          th:text="${audit.action.name() == 'MUTE'} ? '차단' : '차단 해제'">차단</span>
+                </div>
+                <dl class="performance-meta">
+                    <div><dt>처리자</dt><dd th:text="|${audit.actorName} (${audit.actorRole})|">관리자</dd></div>
+                    <div><dt>처리 시각</dt><dd th:text="${#temporals.format(audit.occurredAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm:ss')} + ' KST'">시각</dd></div>
+                    <div th:if="${audit.durationMinutes != null}"><dt>차단 기간</dt><dd th:text="|${audit.durationMinutes}분|">30분</dd></div>
+                    <div th:if="${audit.sourceMessageId != null}"><dt>근거 메시지</dt><dd th:text="${audit.sourceMessageId}">1</dd></div>
+                    <div><dt>사유</dt><dd th:text="${audit.reason}">사유</dd></div>
+                </dl>
+            </article>
+        </div>
+        <nav class="number-pagination" th:if="${audits.totalPages > 1}" aria-label="차단 감사 이력 페이지">
+            <a th:if="${audits.page > 0}" th:href="@{/admin/bamboo(tab=${tab},auditPage=${audits.page - 1})}" aria-label="이전 감사 페이지">‹</a>
+            <a th:each="number : ${auditPageNumbers}" th:href="@{/admin/bamboo(tab=${tab},auditPage=${number})}"
+               th:text="${number + 1}" th:classappend="${number == audits.page} ? ' is-current'"
+               th:attr="aria-current=${number == audits.page ? 'page' : null}">1</a>
+            <a th:if="${audits.page + 1 < audits.totalPages}" th:href="@{/admin/bamboo(tab=${tab},auditPage=${audits.page + 1})}" aria-label="다음 감사 페이지">›</a>
+        </nav>
+    </section>
+
     <nav class="breadcrumb" aria-label="목록 구분">
-        <a th:href="@{/admin/bamboo(tab='REPORTED')}" th:classappend="${tab == 'REPORTED'} ? ' is-current'">신고된 메시지</a>
+        <a th:href="@{/admin/bamboo(tab='LIVE')}" th:classappend="${tab == 'LIVE'} ? ' is-current'">실시간 채팅</a>
         <span>/</span>
-        <a th:href="@{/admin/bamboo(tab='RECENT')}" th:classappend="${tab == 'RECENT'} ? ' is-current'">최근 메시지</a>
+        <a th:href="@{/admin/bamboo(tab='REPORTED')}" th:classappend="${tab == 'REPORTED'} ? ' is-current'">신고된 채팅</a>
     </nav>
 
     <section class="empty-panel" th:if="${#lists.isEmpty(messages)}">
-        <strong th:text="${tab == 'REPORTED'} ? '신고된 메시지가 없습니다.' : '아직 작성된 메시지가 없습니다.'">없음</strong>
-        <p>신고가 누적되면 등록된 주소로 알림 메일이 발송됩니다.</p>
+        <strong th:text="${tab == 'REPORTED'} ? '신고된 채팅이 없습니다.' : '아직 작성된 채팅이 없습니다.'">없음</strong>
+        <p th:text="${tab == 'REPORTED'} ? '신고가 누적되면 등록된 주소로 알림 메일이 발송됩니다.' : '새 채팅은 자동 새로고침으로 표시됩니다.'">안내</p>
     </section>
 
     <section class="lost-item-list" th:unless="${#lists.isEmpty(messages)}">
@@ -113,7 +211,8 @@
                         <button class="button button-danger" type="submit">삭제</button>
                     </form>
 
-                    <form method="post" th:action="@{/admin/bamboo/messages/{id}/mute(id=${item.id})}">
+                    <form method="post" th:action="@{/admin/bamboo/messages/{id}/mute(id=${item.id})}"
+                          th:if="${canManageBlocks}">
                         <input type="hidden" name="tab" th:value="${tab}">
                         <label class="field-group">
                             <span>작성 차단</span>
@@ -124,6 +223,10 @@
                                 <option value="1440">하루</option>
                                 <option value="0">해제</option>
                             </select>
+                        </label>
+                        <label class="field-group">
+                            <span>사유</span>
+                            <input type="text" name="reason" maxlength="200" placeholder="차단·해제 사유" required>
                         </label>
                         <button class="button button-secondary" type="submit">적용</button>
                     </form>

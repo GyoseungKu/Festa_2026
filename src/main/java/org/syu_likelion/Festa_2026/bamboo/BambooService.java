@@ -19,12 +19,17 @@ import org.springframework.transaction.annotation.Transactional;
 import org.syu_likelion.Festa_2026.bamboo.BambooDtos.BambooAdminMessageResponse;
 import org.syu_likelion.Festa_2026.bamboo.BambooDtos.BambooAdminPageResponse;
 import org.syu_likelion.Festa_2026.bamboo.BambooDtos.BambooMessageResponse;
+import org.syu_likelion.Festa_2026.bamboo.BambooDtos.BambooModerationAuditPageResponse;
+import org.syu_likelion.Festa_2026.bamboo.BambooDtos.BambooModerationAuditResponse;
 import org.syu_likelion.Festa_2026.bamboo.BambooDtos.BambooMuteResponse;
+import org.syu_likelion.Festa_2026.bamboo.BambooDtos.BambooParticipantPageResponse;
+import org.syu_likelion.Festa_2026.bamboo.BambooDtos.BambooParticipantResponse;
 import org.syu_likelion.Festa_2026.bamboo.BambooDtos.BambooSettingsResponse;
 import org.syu_likelion.Festa_2026.bamboo.BambooDtos.BambooNicknameResponse;
 import org.syu_likelion.Festa_2026.bamboo.BambooDtos.BambooRoomResponse;
 import org.syu_likelion.Festa_2026.bamboo.BambooDtos.BambooStreamResponse;
 import org.syu_likelion.Festa_2026.error.ApiException;
+import org.syu_likelion.Festa_2026.user.FestivalRole;
 
 /**
  * 대나무숲 도메인 서비스. SSO를 알지 못하고 {@code userUuid}만 받는다.
@@ -42,6 +47,7 @@ public class BambooService {
     private final BambooNicknameRepository nicknames;
     private final BambooSettingsRepository settings;
     private final BambooReportRepository reports;
+    private final BambooModerationAuditRepository moderationAudits;
     private final BambooSequence sequence;
     private final BambooRateLimiter rateLimiter;
     private final Clock clock;
@@ -51,12 +57,14 @@ public class BambooService {
 
     public BambooService(BambooMessageRepository messages, BambooNicknameRepository nicknames,
                          BambooSettingsRepository settings, BambooReportRepository reports,
+                         BambooModerationAuditRepository moderationAudits,
                          BambooSequence sequence, BambooRateLimiter rateLimiter,
                          BambooProperties properties, Clock clock) {
         this.messages = messages;
         this.nicknames = nicknames;
         this.settings = settings;
         this.reports = reports;
+        this.moderationAudits = moderationAudits;
         this.sequence = sequence;
         this.rateLimiter = rateLimiter;
         this.clock = clock;
@@ -309,6 +317,28 @@ public class BambooService {
         return toAdminPage(found);
     }
 
+    /**
+     * 운영자는 실제 사용자 신원을 보지 않고 익명 닉네임으로 참여자를 찾는다.
+     * 닉네임을 정했지만 아직 글을 쓰지 않은 참여자도 검색 결과에 포함된다.
+     */
+    @Transactional(readOnly = true)
+    public BambooParticipantPageResponse participants(String query, int page, int size) {
+        int safePage = Math.max(0, page);
+        int safeSize = Math.max(1, Math.min(size, MAX_HISTORY_SIZE));
+        String keyword = query == null ? "" : query.strip();
+        Page<BambooNickname> found = keyword.isEmpty()
+                ? nicknames.findAllByOrderByNicknameAsc(PageRequest.of(safePage, safeSize))
+                : nicknames.findByNicknameContainingIgnoreCaseOrderByNicknameAsc(
+                        keyword, PageRequest.of(safePage, safeSize));
+        Instant now = Instant.now(clock);
+        List<BambooParticipantResponse> items = found.getContent().stream()
+                .map(item -> new BambooParticipantResponse(item.getNickname(), item.getMutedUntil(),
+                        item.getMutedUntil() != null && now.isBefore(item.getMutedUntil())))
+                .toList();
+        return new BambooParticipantPageResponse(items, found.getNumber(), found.getSize(),
+                found.getTotalElements(), found.getTotalPages());
+    }
+
     private BambooAdminPageResponse toAdminPage(Page<BambooMessage> found) {
         Map<Long, Map<BambooReportReason, Long>> reasons = reasonsFor(found.getContent());
         List<BambooAdminMessageResponse> items = found.getContent().stream()
@@ -357,18 +387,96 @@ public class BambooService {
      * 메시지를 지목해 그 작성자의 작성을 일정 시간 막는다.
      * 지목 대상이 메시지이므로 STAFF 는 작성자 신원을 몰라도 조치할 수 있다.
      */
-    public BambooMuteResponse muteAuthorOf(Long messageId, int minutes) {
+    public BambooMuteResponse muteAuthorOf(Long messageId, int minutes, UUID actorUuid,
+                                            String actorName, FestivalRole actorRole, String reason) {
+        validateMuteDuration(minutes);
+        String auditReason = validateModerationActorAndReason(actorUuid, actorName, actorRole, reason);
+        return sequence.writeBatchInOrder(unused -> {
+            BambooNickname nickname = authorNicknameOf(messageId);
+            Instant now = Instant.now(clock);
+            Instant until = minutes <= 0 ? null : now.plus(Duration.ofMinutes(minutes));
+            nickname.mute(until);
+            nicknames.saveAndFlush(nickname);
+            saveModerationAudit(nickname, actorUuid, actorName, actorRole, minutes,
+                    auditReason, messageId, now);
+            return new BambooMuteResponse(until);
+        });
+    }
+
+    /** 익명 닉네임을 직접 지정해 차단하거나, 0분으로 차단을 해제한다. */
+    public BambooMuteResponse muteParticipant(String requestedNickname, int minutes, UUID actorUuid,
+                                               String actorName, FestivalRole actorRole, String reason) {
+        validateMuteDuration(minutes);
+        String auditReason = validateModerationActorAndReason(actorUuid, actorName, actorRole, reason);
+        String key = BambooNicknamePolicy.normalize(
+                requestedNickname == null ? "" : requestedNickname.strip());
+        if (key.isEmpty()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "BAMBOO_NICKNAME_REQUIRED",
+                    "차단할 익명 닉네임을 선택해 주세요.");
+        }
+        return sequence.writeBatchInOrder(unused -> {
+            BambooNickname nickname = nicknames.findByNicknameKey(key).orElseThrow(() ->
+                    new ApiException(HttpStatus.NOT_FOUND, "BAMBOO_NICKNAME_NOT_FOUND",
+                            "해당 익명 참여자를 찾을 수 없습니다."));
+            Instant now = Instant.now(clock);
+            Instant until = minutes <= 0 ? null : now.plus(Duration.ofMinutes(minutes));
+            nickname.mute(until);
+            nicknames.saveAndFlush(nickname);
+            saveModerationAudit(nickname, actorUuid, actorName, actorRole, minutes,
+                    auditReason, null, now);
+            return new BambooMuteResponse(until);
+        });
+    }
+
+    private String validateModerationActorAndReason(UUID actorUuid, String actorName,
+                                                     FestivalRole actorRole, String reason) {
+        if (actorUuid == null || (actorRole != FestivalRole.ADMIN && actorRole != FestivalRole.SUPER_ADMIN)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "BAMBOO_MANAGE_FORBIDDEN",
+                    "작성 차단은 ADMIN 이상만 처리할 수 있습니다.");
+        }
+        String cleanActorName = actorName == null ? "" : actorName.strip();
+        String cleanReason = reason == null ? "" : reason.strip();
+        if (cleanActorName.isEmpty() || cleanActorName.length() > 100) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "BAMBOO_ACTOR_NAME_REQUIRED",
+                    "처리자 이름을 확인할 수 없습니다.");
+        }
+        if (cleanReason.isEmpty() || cleanReason.length() > 200) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "BAMBOO_MUTE_REASON_INVALID",
+                    "차단 사유를 1자 이상 200자 이하로 입력해 주세요.");
+        }
+        return cleanReason;
+    }
+
+    private void saveModerationAudit(BambooNickname target, UUID actorUuid, String actorName,
+                                     FestivalRole actorRole, int minutes, String reason,
+                                     Long sourceMessageId, Instant now) {
+        moderationAudits.save(new BambooModerationAudit(target.getUserUuid(), target.getNickname(),
+                actorUuid, actorName.strip(), actorRole,
+                minutes <= 0 ? BambooModerationAction.UNMUTE : BambooModerationAction.MUTE,
+                minutes <= 0 ? null : minutes, reason, sourceMessageId, now));
+    }
+
+    @Transactional(readOnly = true)
+    public BambooModerationAuditPageResponse moderationHistory(int page, int size) {
+        int safePage = Math.max(0, page);
+        int safeSize = Math.max(1, Math.min(size, MAX_HISTORY_SIZE));
+        Page<BambooModerationAudit> found = moderationAudits.findAllByOrderByOccurredAtDescIdDesc(
+                PageRequest.of(safePage, safeSize));
+        List<BambooModerationAuditResponse> items = found.getContent().stream()
+                .map(item -> new BambooModerationAuditResponse(item.getId(), item.getTargetNickname(),
+                        item.getActorUuid(), item.getActorName(), item.getActorRole().name(),
+                        item.getAction(), item.getDurationMinutes(), item.getReason(),
+                        item.getSourceMessageId(), item.getOccurredAt()))
+                .toList();
+        return new BambooModerationAuditPageResponse(items, found.getNumber(), found.getSize(),
+                found.getTotalElements(), found.getTotalPages());
+    }
+
+    private void validateMuteDuration(int minutes) {
         if (minutes < 0 || minutes > 525_600) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "BAMBOO_INVALID_MUTE_DURATION",
                     "작성 차단 시간은 0분 이상 525600분 이하로 입력해 주세요.");
         }
-        return sequence.writeBatchInOrder(unused -> {
-            BambooNickname nickname = authorNicknameOf(messageId);
-            Instant until = minutes <= 0 ? null : Instant.now(clock).plus(Duration.ofMinutes(minutes));
-            nickname.mute(until);
-            nicknames.saveAndFlush(nickname);
-            return new BambooMuteResponse(until);
-        });
     }
 
     public BambooNicknameResponse renameAuthorOf(Long messageId, String requested) {
@@ -429,6 +537,11 @@ public class BambooService {
         BambooSettings current = currentSettings();
         return new BambooSettingsResponse(current.isEnabled(), current.isReadOnly(), current.getClosesAt(),
                 current.getUpdatedAt());
+    }
+
+    /** 관리자 실시간 화면이 변경 여부만 가볍게 확인할 때 사용한다. */
+    public long currentCursor() {
+        return sequence.current();
     }
 
     private BambooNickname authorNicknameOf(Long messageId) {

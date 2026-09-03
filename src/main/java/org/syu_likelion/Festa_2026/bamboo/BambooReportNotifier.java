@@ -102,7 +102,7 @@ public class BambooReportNotifier {
             MimeMessageHelper helper = new MimeMessageHelper(mail, false, StandardCharsets.UTF_8.name());
             helper.setFrom(properties.from());
             helper.setTo(properties.to().toArray(String[]::new));
-            helper.setSubject("[대나무숲] 신고 " + reportCount + "건 누적된 메시지가 있습니다");
+            helper.setSubject("[2026 천보축전] 오픈채팅 이용 경고");
             helper.setText(body(message, reportCount));
             sender.send(mail);
             log.info("Bamboo report alert sent messageId={} reportCount={} success=true",

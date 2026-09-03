@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.syu_likelion.Festa_2026.bamboo.BambooDtos.BambooMessageResponse;
 import org.syu_likelion.Festa_2026.error.ApiException;
+import org.syu_likelion.Festa_2026.user.FestivalRole;
 
 @SpringBootTest(properties = {
         "sso.client-id=test-client", "sso.client-secret=test-secret",
@@ -36,10 +37,12 @@ class BambooModerationTests {
     @Autowired BambooNicknameRepository nicknames;
     @Autowired BambooReportRepository reports;
     @Autowired BambooSettingsRepository settings;
+    @Autowired BambooModerationAuditRepository moderationAudits;
 
     @BeforeEach
     void reset() {
         rateLimiter.clear();
+        moderationAudits.deleteAll();
         reports.deleteAll();
         messages.deleteAll();
         nicknames.deleteAll();
@@ -108,7 +111,7 @@ class BambooModerationTests {
     @Test
     void mutedAuthorCannotWriteButCanStillRead() {
         var message = service.createAs(AUTHOR, "차단 전 메시지");
-        service.muteAuthorOf(message.id(), 30);
+        mute(message.id(), 30, "욕설 반복");
 
         assertCode(() -> service.createAs(AUTHOR, "차단 후 메시지"), "BAMBOO_MUTED");
         assertThat(service.history(AUTHOR, null, 50).messages()).hasSize(1);
@@ -117,10 +120,10 @@ class BambooModerationTests {
     @Test
     void muteCanBeLifted() {
         var message = service.createAs(AUTHOR, "차단 전 메시지");
-        service.muteAuthorOf(message.id(), 30);
+        mute(message.id(), 30, "도배");
         assertCode(() -> service.createAs(AUTHOR, "차단 중"), "BAMBOO_MUTED");
 
-        service.muteAuthorOf(message.id(), 0);
+        mute(message.id(), 0, "이의 제기 확인");
 
         assertThat(service.createAs(AUTHOR, "해제 후 메시지").content()).isEqualTo("해제 후 메시지");
     }
@@ -129,8 +132,8 @@ class BambooModerationTests {
     void invalidMuteDurationIsRejected() {
         var message = service.createAs(AUTHOR, "차단 전 메시지");
 
-        assertCode(() -> service.muteAuthorOf(message.id(), -1), "BAMBOO_INVALID_MUTE_DURATION");
-        assertCode(() -> service.muteAuthorOf(message.id(), 525_601), "BAMBOO_INVALID_MUTE_DURATION");
+        assertCode(() -> mute(message.id(), -1, "기간 오류"), "BAMBOO_INVALID_MUTE_DURATION");
+        assertCode(() -> mute(message.id(), 525_601, "기간 오류"), "BAMBOO_INVALID_MUTE_DURATION");
     }
 
     @Test
@@ -146,7 +149,7 @@ class BambooModerationTests {
     @Test
     void mutingOnePersonDoesNotAffectAnother() {
         var message = service.createAs(AUTHOR, "차단될 사람의 메시지");
-        service.muteAuthorOf(message.id(), 30);
+        mute(message.id(), 30, "운영 방해");
 
         assertThat(service.createAs(READER, "다른 사람 메시지").content()).isEqualTo("다른 사람 메시지");
     }
@@ -252,5 +255,10 @@ class BambooModerationTests {
         assertThatThrownBy(call).isInstanceOf(ApiException.class)
                 .extracting(exception -> ((ApiException) exception).code())
                 .isEqualTo(expectedCode);
+    }
+
+    private void mute(Long messageId, int minutes, String reason) {
+        service.muteAuthorOf(messageId, minutes, STAFF, "관리자",
+                FestivalRole.ADMIN, reason);
     }
 }

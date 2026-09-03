@@ -46,9 +46,25 @@ public final class BambooDtos {
             @NotNull @Size(min = 1, max = 100) List<@NotNull @Positive Long> ids,
             @NotNull BambooMessageStatus status) { }
 
-    public record BambooMuteRequest(@NotNull @Min(0) @Max(525_600) Integer minutes) { }
+    public record BambooMuteRequest(@NotNull @Min(0) @Max(525_600) Integer minutes,
+                                    @NotBlank @Size(max = 200) String reason) { }
 
     public record BambooMuteResponse(Instant mutedUntil) { }
+
+    /** 익명성은 유지한 채 운영 화면에서 차단 상태만 관리하는 참여자 정보다. */
+    public record BambooParticipantResponse(String nickname, Instant mutedUntil, boolean muted) { }
+
+    public record BambooParticipantPageResponse(List<BambooParticipantResponse> items, int page, int size,
+                                                 long totalElements, int totalPages) { }
+
+    public record BambooModerationAuditResponse(Long id, String targetNickname, UUID actorUuid,
+                                                String actorName, String actorRole,
+                                                BambooModerationAction action, Integer durationMinutes,
+                                                String reason, Long sourceMessageId, Instant occurredAt) { }
+
+    public record BambooModerationAuditPageResponse(List<BambooModerationAuditResponse> items,
+                                                     int page, int size, long totalElements,
+                                                     int totalPages) { }
 
     public record BambooRenameRequest(@NotBlank @Size(min = 2, max = 12) String nickname) { }
 

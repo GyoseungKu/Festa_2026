@@ -2,12 +2,15 @@
 --
 -- 이 파일은 배포 전에 수동으로 적용한다.
 -- spring.jpa.hibernate.ddl-auto=update 로 생성하면 테이블 charset 이 DB 기본값을
--- 따라가는데, MariaDB 는 버전에 따라 기본값이 utf8mb4 가 아닐 수 있다.
+-- 따라가고 기존 테이블 collation도 원하는 값으로 보정한다고 보장할 수 없다.
+-- MariaDB 는 버전과 서버 설정에 따라 기본값이 utf8mb4 가 아닐 수 있다.
 -- 이모지 비중이 높은 채팅에서는 즉시 오류로 이어진다.
 -- 수동 적용은 축제 당일 DDL 락 위험도 함께 제거한다.
 --
--- ddl-auto=update 는 이미 존재하는 테이블을 변경하지 않으므로,
--- 애플리케이션 기동 전에 아래를 먼저 실행해 두면 그대로 사용된다.
+-- 애플리케이션 기동 전에 아래 스키마를 먼저 실행하면 Hibernate 자동 DDL에
+-- 의존하지 않고 명시한 charset과 인덱스를 사용할 수 있다.
+-- 기존 네 개 대나무숲 테이블이 이미 존재하는 운영 DB라면 전체 파일을 다시 실행하지 말고
+-- bamboo_moderation_audits CREATE TABLE 구문만 별도로 실행한다.
 --
 -- 시각 컬럼은 KstInstantAttributeConverter 를 통해 KST 벽시계 값으로 저장된다.
 -- 다른 테이블과 동일한 규칙이므로 DATETIME(6) 을 사용한다.
@@ -85,6 +88,32 @@ CREATE TABLE bamboo_reports (
 
 
 -- ---------------------------------------------------------------------------
+-- 차단·해제 감사 이력
+--
+-- 차단 상태 변경과 같은 트랜잭션에 저장한다. 사용자 신원은 관리자 화면에 노출하지
+-- 않지만 내부 감사에는 대상 UUID와 조치 당시 익명 닉네임 스냅샷을 함께 보존한다.
+-- ---------------------------------------------------------------------------
+CREATE TABLE bamboo_moderation_audits (
+    id                BIGINT       NOT NULL AUTO_INCREMENT,
+    target_user_uuid  BINARY(16)   NOT NULL,
+    target_nickname   VARCHAR(20)  NOT NULL,
+    actor_uuid        BINARY(16)   NOT NULL,
+    actor_name        VARCHAR(100) NOT NULL,
+    actor_role        VARCHAR(20)  NOT NULL, -- ADMIN | SUPER_ADMIN
+    action            VARCHAR(12)  NOT NULL, -- MUTE | UNMUTE
+    duration_minutes  INT          NULL,
+    reason            VARCHAR(200) NOT NULL,
+    source_message_id BIGINT       NULL,
+    occurred_at       DATETIME(6)  NOT NULL,
+    PRIMARY KEY (id),
+    KEY idx_bamboo_audit_occurred (occurred_at),
+    KEY idx_bamboo_audit_target (target_user_uuid, occurred_at)
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci;
+
+
+-- ---------------------------------------------------------------------------
 -- 설정
 --
 -- id = 1 단일 행으로 운용한다.
@@ -114,4 +143,4 @@ VALUES (1, TRUE, FALSE, NULL, UTC_TIMESTAMP(6) + INTERVAL 9 HOUR);
 --  WHERE TABLE_SCHEMA = DATABASE()
 --    AND TABLE_NAME LIKE 'bamboo\_%';
 --
--- 네 테이블 모두 utf8mb4_unicode_ci 여야 한다.
+-- 다섯 테이블 모두 utf8mb4_unicode_ci 여야 한다.

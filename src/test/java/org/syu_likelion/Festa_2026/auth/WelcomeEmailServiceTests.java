@@ -49,7 +49,7 @@ class WelcomeEmailServiceTests {
         Executor direct = Runnable::run;
         service = new WelcomeEmailService(users, providers, templates, direct,
                 new WelcomeEmailProperties(true, "no-reply@syu-likelion.org", "Likelion SYU",
-                        "[Likelion SYU] 삼육대학교 개교 120주년 천보축전 홈페이지 가입을 환영합니다.",
+                        "[2026 천보축전] 회원가입 완료 안내",
                         "https://festa.syu-likelion.org"));
     }
 
@@ -62,7 +62,7 @@ class WelcomeEmailServiceTests {
         verify(sender).send(message);
         verify(templates).process(eq("mail/welcome"), any(Context.class));
         verify(users).completeWelcomeEmail(USER_UUID, CLAIM);
-        assertThat(message.getSubject()).contains("천보축전 홈페이지 가입을 환영합니다");
+        assertThat(message.getSubject()).isEqualTo("[2026 천보축전] 회원가입 완료 안내");
         message.saveChanges();
         assertThat(message.getHeader("Subject", null)).containsIgnoringCase("=?UTF-8?");
         assertThat(message.getAllRecipients()[0].toString()).isEqualTo("student@example.com");
@@ -76,8 +76,7 @@ class WelcomeEmailServiceTests {
         }
 
         assertThat(application.getProperty("festival.welcome-email.subject"))
-                .isEqualTo("${WELCOME_EMAIL_SUBJECT:[Likelion SYU] 삼육대학교 개교 120주년 "
-                        + "천보축전 홈페이지 가입을 환영합니다.}");
+                .isEqualTo("${WELCOME_EMAIL_SUBJECT:[2026 천보축전] 회원가입 완료 안내}");
     }
 
     @Test

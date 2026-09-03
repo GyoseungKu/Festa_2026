@@ -14,7 +14,7 @@
 - 공연팀과 공개 일정, 링크·이미지·동영상 관리
 - 분실물 공지, 사진, 반환 상태, 상단 고정과 조회수
 - 생일축하 쪽지, 하트와 권한별 작성자 조회
-- 로그인 사용자용 대나무숲 익명 채팅, 신고·작성 제한과 운영자 관리
+- 로그인 사용자용 대나무숲 익명 채팅, 신고·작성 제한과 차단 감사 이력
 - Thymeleaf 관리자 페이지와 실시간 운영 모니터링
 - API 요청 로그, 프런트 이벤트 로그와 익명 접속 heartbeat
 
@@ -65,8 +65,8 @@ SSO의 `ssoRole`과 축제 운영 권한은 별개입니다.
 | 역할 | 주요 권한 |
 |---|---|
 | `SUPER_ADMIN` | 전체 관리 및 시스템 모니터링 |
-| `ADMIN` | 부스·스탬프·공연·분실물·생일축하·대나무숲 관리 |
-| `STAFF` | 분실물·생일축하·대나무숲 관리 및 마스킹된 사용자 조회 |
+| `ADMIN` | 부스·스탬프·공연·분실물·생일축하·대나무숲 설정·참여자 차단 관리 |
+| `STAFF` | 분실물·생일축하·대나무숲 메시지 운영 및 마스킹된 사용자 조회 |
 | `USER` | 일반 사용자 기능 |
 
 부스 관리자 여부는 별도 `festival_users.booth_manager` boolean과 `festival_booth_managers` 담당 부스 관계로 관리합니다. 따라서 한 사용자가 `ADMIN`이면서 동시에 특정 부스의 `BOOTH_MANAGER`일 수 있습니다. 관리 권한 판정에서는 `SUPER_ADMIN`, `ADMIN`을 우선합니다.
@@ -163,7 +163,7 @@ Origin은 경로나 마지막 `/` 없이 `scheme://host[:port]` 형식으로 입
 - Festa를 통해 SSO 신규가입을 완료하거나 기존 SSO 사용자가 Festa에 최초 연결되면 HTML 환영 메일을 비동기로 발송합니다.
 - 신규 Festa 연결 시에만 발송 대기 상태를 만들고 완료 상태를 `festival_users`에 저장하므로, 기존 Festa 이용자나 이후 로그인에는 중복 발송하지 않습니다.
 - SMTP 또는 템플릿 처리 실패는 가입·로그인을 실패시키지 않으며 처리 상태를 해제하여 다음 로그인에서 재시도합니다.
-- 제목 기본값은 `[Likelion SYU] 삼육대학교 개교 120주년 천보축전 홈페이지 가입을 환영합니다.`입니다.
+- 제목 기본값은 `[2026 천보축전] 회원가입 완료 안내`입니다.
 - HTML은 [welcome.html](src/main/resources/templates/mail/welcome.html)에서 수정합니다.
 
 | 환경변수 | 기본값/설명 |
@@ -333,18 +333,21 @@ QR에는 개인정보나 Access Token을 넣지 않습니다. 서버는 256비�
 | GET | `/api/bamboo/messages` | 로그인 | 과거 메시지 또는 커서 이후 변경 조회 |
 | POST | `/api/bamboo/messages` | 로그인 | 메시지 작성 |
 | POST | `/api/bamboo/messages/{id}/report` | 로그인 | 메시지 신고 |
-| GET/PATCH/POST | `/api/admin/bamboo/**` | `STAFF` 이상 | 신고 처리·차단·닉네임 변경, ADMIN 이상 운영 설정 |
+| GET/PATCH/POST | `/api/admin/bamboo/**` | 기능별 상이 | STAFF 이상 신고 처리·닉네임 변경, ADMIN 이상 차단·운영 설정 |
 | GET | `/api/admin/bamboo/messages/{id}/author` | `SUPER_ADMIN` | 작성자 신원 확인 및 감사 로그 |
 
 상세 폴링 방식, 요청·응답과 오류 코드는 [대나무숲 프런트 API 문서](docs/frontend-bamboo-api.md)를 확인합니다. 운영 DB에는 [bamboo-schema.sql](docs/bamboo-schema.sql)을 먼저 적용해 `utf8mb4` 문자셋을 보장하는 것을 권장합니다.
 
+`POST /api/admin/bamboo/messages/{id}/mute-author`는 `ADMIN` 이상만 호출할 수 있으며 `minutes`와 함께 1~200자의 `reason`이 필요합니다. 관리자 HTML 화면에서는 메시지 기반 차단 외에 익명 닉네임 검색을 통한 직접 차단·해제를 제공합니다. 두 경로 모두 처리 관리자, 대상, 처리 시각, 기간, 사유와 근거 메시지를 `bamboo_moderation_audits`에 저장합니다. 차단 감사 이력과 닉네임 직접 차단은 현재 관리자 HTML 화면에서만 제공하며 별도 REST 조회·처리 API는 없습니다.
+
 운영 전에는 다음 조건을 반드시 확인합니다.
 
-- `bamboo-schema.sql`을 애플리케이션보다 먼저 적용하여 네 테이블과 `utf8mb4` 문자셋을 보장합니다.
+- `bamboo-schema.sql`을 애플리케이션보다 먼저 적용하여 다섯 테이블과 `utf8mb4` 문자셋을 보장합니다.
 - 현재 변경 커서 발급기는 단일 애플리케이션 인스턴스를 전제로 합니다. 동일 DB를 사용하는 Festa 서버를 두 대 이상 동시에 실행하지 않습니다.
 - 사용자 인증 캐시는 SSO 부하를 줄이기 위해 기본 60초간 유지됩니다. 로그아웃·토큰 폐기 직후에도 최대 이 시간 동안 대나무숲 요청이 통과할 수 있으므로 필요하면 `BAMBOO_IDENTITY_TTL`을 줄입니다.
 - 애플리케이션의 16KiB 본문 방어는 `Content-Length`가 있는 요청을 우선 차단합니다. Chunked 요청까지 제한하려면 Nginx 등 프록시에도 `/api/bamboo` 요청 크기 제한을 설정합니다.
 - 신고 메일을 사용하려면 `BAMBOO_ALERT_TO`를 실제 수신 주소로 설정합니다. 비어 있으면 신고 기록은 정상 저장되지만 메일은 발송되지 않습니다.
+- 신고 누적 알림 메일 제목은 `[2026 천보축전] 오픈채팅 이용 경고`이며 `BAMBOO_ALERT_TO`에 설정한 관리자 주소로 발송됩니다. 신고된 사용자에게 자동 발송되는 경고 메일은 아닙니다.
 
 ### 프런트 이벤트와 접속 현황
 
@@ -370,10 +373,12 @@ QR에는 개인정보나 Access Token을 넣지 않습니다. 서버는 256비�
 | `/admin/polls` | `ADMIN` 이상 | 투표·응답 폼 생성과 실시간 현황 |
 | `/admin/lost-items` | `STAFF` 이상 | 분실물 관리 |
 | `/admin/birthday-messages` | `STAFF` 이상 | 생일축하 쪽지·하트 사용자 관리 |
-| `/admin/bamboo` | `STAFF` 이상 | 신고 메시지·작성 차단·운영 설정 관리 |
+| `/admin/bamboo` | `STAFF` 이상 | 실시간·신고 채팅 조회, ADMIN 이상 익명 참여자 차단·감사 이력 관리 |
 | `/admin/system` | `SUPER_ADMIN` | 실시간 시스템 모니터링 |
 
 관리자 부스 담당자와 사용자 검색은 축제 서비스에 연결된 사용자만 대상으로 합니다. 일반 사용자 조회와 스탬프 임의 지급용 검색은 20명 단위 숫자 페이지를 사용합니다. 스탬프 페이지에서 `BOOTH_MANAGER`는 담당 부스만, `ADMIN` 이상은 모든 스탬프 지급 부스를 볼 수 있습니다.
+
+대나무숲 운영 화면은 `실시간 채팅`을 기본으로 열고 3초마다 변경 커서를 확인해 새 글이나 운영 조치가 있을 때만 목록을 갱신합니다. 신고된 채팅은 별도 탭에서 확인합니다. STAFF는 메시지 조회·숨김·삭제·복구와 닉네임 변경까지만 가능하고, 익명 참여자 검색과 작성 차단·해제는 `ADMIN` 이상만 가능합니다. 차단과 해제에는 사유가 필수이며 처리자·처리 시각·대상·기간과 함께 DB 감사 이력에 저장됩니다. 실제 사용자 신원은 노출되지 않으며 메시지 작성자 신원 조회는 기존처럼 `SUPER_ADMIN`에게만 허용됩니다. 대나무숲 열기·읽기 전용·자동 종료 설정은 `ADMIN` 이상만 변경할 수 있습니다.
 
 ## 미디어와 트랜잭션
 
@@ -417,6 +422,8 @@ API 오류는 다음 형태로 반환합니다.
 
 별도 Flyway/Liquibase 마이그레이션은 사용하지 않으며 `spring.jpa.hibernate.ddl-auto=update`로 엔티티 스키마를 반영합니다. 개발 중 스키마를 초기화할 때는 DB를 삭제하고 애플리케이션을 다시 실행할 수 있지만, 운영 데이터가 있는 환경에서는 자동 변경 전에 반드시 백업과 스키마 검토가 필요합니다.
 
+기존 대나무숲 DB에 이번 변경을 배포하면 `bamboo_moderation_audits`가 새로 필요합니다. 현재 설정에서는 애플리케이션 재시작 시 Hibernate가 자동 생성합니다. 운영에서 DDL을 수동 관리한다면 [bamboo-schema.sql](docs/bamboo-schema.sql)의 `bamboo_moderation_audits` 구문만 먼저 적용한 뒤 애플리케이션을 시작합니다.
+
 주요 테이블:
 
 ```text
@@ -440,6 +447,7 @@ birthday_message_hearts
 bamboo_messages
 bamboo_nicknames
 bamboo_reports
+bamboo_moderation_audits
 bamboo_settings
 api_request_logs
 frontend_event_logs

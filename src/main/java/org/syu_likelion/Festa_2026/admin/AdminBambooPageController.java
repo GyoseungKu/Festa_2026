@@ -7,6 +7,8 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,6 +16,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.syu_likelion.Festa_2026.admin.AdminAccessService.AdminIdentity;
 import org.syu_likelion.Festa_2026.auth.AuthorizedSsoExecutor.AuthorizedResult;
@@ -35,6 +38,8 @@ public class AdminBambooPageController {
     private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
     private static final DateTimeFormatter LOCAL_INPUT = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
     private static final int PAGE_SIZE = 30;
+    private static final int PARTICIPANT_PAGE_SIZE = 20;
+    private static final int AUDIT_PAGE_SIZE = 20;
 
     private final AdminAccessService adminAccess;
     private final AdminCookieManager cookies;
@@ -50,20 +55,72 @@ public class AdminBambooPageController {
     }
 
     @GetMapping
-    String list(@RequestParam(defaultValue = "REPORTED") String tab,
+    String list(@RequestParam(defaultValue = "LIVE") String tab,
                 @RequestParam(defaultValue = "0") int page,
+                @RequestParam(defaultValue = "") String participantQuery,
+                @RequestParam(defaultValue = "0") int participantPage,
+                @RequestParam(defaultValue = "0") int auditPage,
                 HttpServletRequest request, HttpServletResponse response, Model model) {
         AdminIdentity admin = staffOrNull(request, response);
         if (admin == null) return redirect(request);
         common(model, admin);
-        boolean recent = "RECENT".equalsIgnoreCase(tab);
-        var result = recent ? bamboo.recentMessages(page, PAGE_SIZE) : bamboo.reportedMessages(page, PAGE_SIZE);
-        model.addAttribute("tab", recent ? "RECENT" : "REPORTED");
+        boolean live = "LIVE".equalsIgnoreCase(tab) || "RECENT".equalsIgnoreCase(tab);
+        var result = live ? bamboo.recentMessages(page, PAGE_SIZE) : bamboo.reportedMessages(page, PAGE_SIZE);
+        model.addAttribute("tab", live ? "LIVE" : "REPORTED");
         model.addAttribute("result", result);
         model.addAttribute("messages", result.items());
         model.addAttribute("pageNumbers", AdminPagination.window(result.page(), result.totalPages()));
+        model.addAttribute("liveCursor", bamboo.currentCursor());
+        if (isAdmin(admin.role())) {
+            var participants = bamboo.participants(participantQuery, participantPage, PARTICIPANT_PAGE_SIZE);
+            model.addAttribute("participantQuery", participantQuery == null ? "" : participantQuery.strip());
+            model.addAttribute("participants", participants);
+            model.addAttribute("participantPageNumbers",
+                    AdminPagination.window(participants.page(), participants.totalPages()));
+            var audits = bamboo.moderationHistory(auditPage, AUDIT_PAGE_SIZE);
+            model.addAttribute("audits", audits);
+            model.addAttribute("auditPageNumbers", AdminPagination.window(audits.page(), audits.totalPages()));
+        }
         model.addAttribute("settings", bamboo.settingsView());
         return "admin/bamboo/list";
+    }
+
+    /** 본문 전체를 다시 받기 전에 실제 메시지 변경이 있는지만 확인하는 폴링 응답이다. */
+    @GetMapping("/cursor")
+    @ResponseBody
+    ResponseEntity<Map<String, Long>> cursor(HttpServletRequest request, HttpServletResponse response) {
+        AdminIdentity admin = staffOrNull(request, response);
+        if (admin == null) return ResponseEntity.status(401).build();
+        return ResponseEntity.ok(Map.of("cursor", bamboo.currentCursor()));
+    }
+
+    @PostMapping("/participants/mute")
+    String muteParticipant(@RequestParam String nickname, @RequestParam int minutes,
+                           @RequestParam String reason,
+                           @RequestParam(defaultValue = "LIVE") String tab,
+                           @RequestParam(defaultValue = "") String participantQuery,
+                           @RequestParam(defaultValue = "0") int participantPage,
+                           HttpServletRequest request, HttpServletResponse response,
+                           RedirectAttributes flash) {
+        AdminIdentity admin = staffOrNull(request, response);
+        if (admin == null) return redirect(request);
+        if (!isAdmin(admin.role())) {
+            flash.addFlashAttribute("error", "작성 차단은 ADMIN 이상만 처리할 수 있습니다.");
+            return back(tab);
+        }
+        try {
+            bamboo.muteParticipant(nickname, minutes, admin.userUuid(), admin.displayName(),
+                    admin.role(), reason);
+            flash.addFlashAttribute("message", minutes <= 0
+                    ? nickname + " 참여자의 작성 차단을 해제했습니다."
+                    : nickname + " 참여자를 " + minutes + "분간 차단했습니다.");
+        } catch (ApiException exception) {
+            flash.addFlashAttribute("error", exception.getMessage());
+        }
+        String query = org.springframework.web.util.UriUtils.encodeQueryParam(
+                participantQuery == null ? "" : participantQuery, java.nio.charset.StandardCharsets.UTF_8);
+        return "redirect:/admin/bamboo?tab=" + normalizedTab(tab)
+                + "&participantQuery=" + query + "&participantPage=" + Math.max(0, participantPage);
     }
 
     @PostMapping("/messages/{id}/status")
@@ -83,13 +140,17 @@ public class AdminBambooPageController {
     }
 
     @PostMapping("/messages/{id}/mute")
-    String mute(@PathVariable Long id, @RequestParam int minutes,
+    String mute(@PathVariable Long id, @RequestParam int minutes, @RequestParam String reason,
                 @RequestParam(defaultValue = "REPORTED") String tab,
                 HttpServletRequest request, HttpServletResponse response, RedirectAttributes flash) {
         AdminIdentity admin = staffOrNull(request, response);
         if (admin == null) return redirect(request);
+        if (!isAdmin(admin.role())) {
+            flash.addFlashAttribute("error", "작성 차단은 ADMIN 이상만 처리할 수 있습니다.");
+            return back(tab);
+        }
         try {
-            bamboo.muteAuthorOf(id, minutes);
+            bamboo.muteAuthorOf(id, minutes, admin.userUuid(), admin.displayName(), admin.role(), reason);
             flash.addFlashAttribute("message", minutes <= 0
                     ? "작성 차단을 해제했습니다." : "작성자를 " + minutes + "분간 차단했습니다.");
         } catch (ApiException exception) {
@@ -157,7 +218,11 @@ public class AdminBambooPageController {
     }
 
     private String back(String tab) {
-        return "redirect:/admin/bamboo?tab=" + ("RECENT".equalsIgnoreCase(tab) ? "RECENT" : "REPORTED");
+        return "redirect:/admin/bamboo?tab=" + normalizedTab(tab);
+    }
+
+    private String normalizedTab(String tab) {
+        return "LIVE".equalsIgnoreCase(tab) || "RECENT".equalsIgnoreCase(tab) ? "LIVE" : "REPORTED";
     }
 
     private AdminIdentity staffOrNull(HttpServletRequest request, HttpServletResponse response) {
@@ -184,8 +249,13 @@ public class AdminBambooPageController {
         model.addAttribute("canChangeSettings", admin.role() == FestivalRole.ADMIN
                 || admin.role() == FestivalRole.SUPER_ADMIN);
         model.addAttribute("canSeeAuthor", admin.role() == FestivalRole.SUPER_ADMIN);
+        model.addAttribute("canManageBlocks", isAdmin(admin.role()));
         model.addAttribute("seoulZone", SEOUL);
         model.addAttribute("closesAtInput", closesAtInput());
+    }
+
+    private boolean isAdmin(FestivalRole role) {
+        return role == FestivalRole.ADMIN || role == FestivalRole.SUPER_ADMIN;
     }
 
     private String closesAtInput() {

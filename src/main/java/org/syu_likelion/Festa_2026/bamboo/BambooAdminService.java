@@ -56,9 +56,11 @@ public class BambooAdminService {
     }
 
     public AuthorizedResult<BambooMuteResponse> muteAuthor(String access, String refresh,
-                                                            Long messageId, int minutes) {
-        AuthorizedResult<MeResponse> authenticated = authenticate(access, refresh, FestivalRole.STAFF);
-        return rotated(authenticated, bamboo.muteAuthorOf(messageId, minutes));
+                                                            Long messageId, int minutes, String reason) {
+        AuthorizedResult<MeResponse> authenticated = authenticate(access, refresh, FestivalRole.ADMIN);
+        MeResponse actor = authenticated.body();
+        return rotated(authenticated, bamboo.muteAuthorOf(messageId, minutes, actor.userUuid(),
+                actor.name(), managementRole(actor.festivalRoles()), reason));
     }
 
     public AuthorizedResult<BambooNicknameResponse> renameAuthor(String access, String refresh,
@@ -137,6 +139,10 @@ public class BambooAdminService {
         AuthorizedResult<MeResponse> authenticated = users.getMe(access, refresh);
         requireRole(authenticated.body().festivalRoles(), required);
         return authenticated;
+    }
+
+    private FestivalRole managementRole(Set<FestivalRole> roles) {
+        return roles.contains(FestivalRole.SUPER_ADMIN) ? FestivalRole.SUPER_ADMIN : FestivalRole.ADMIN;
     }
 
     static void requireRole(Set<FestivalRole> roles, FestivalRole required) {

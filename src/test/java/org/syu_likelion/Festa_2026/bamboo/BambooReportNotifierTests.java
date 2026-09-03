@@ -159,6 +159,7 @@ class BambooReportNotifierTests {
 
         ArgumentCaptor<MimeMessage> captured = ArgumentCaptor.forClass(MimeMessage.class);
         verify(sender).send(captured.capture());
+        assertThat(captured.getValue().getSubject()).isEqualTo("[2026 천보축전] 오픈채팅 이용 경고");
         String body = (String) captured.getValue().getContent();
         assertThat(body).contains("가".repeat(10) + "…");
         assertThat(body).doesNotContain("가".repeat(11));
