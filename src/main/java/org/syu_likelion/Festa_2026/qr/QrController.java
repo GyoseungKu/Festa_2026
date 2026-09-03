@@ -24,6 +24,8 @@ import org.syu_likelion.Festa_2026.qr.QrDtos.UserSearchRequest;
 import org.syu_likelion.Festa_2026.qr.QrDtos.UserSearchResponse;
 import org.syu_likelion.Festa_2026.qr.QrDtos.UserRoleUpdateRequest;
 import org.syu_likelion.Festa_2026.qr.QrDtos.UserRoleUpdateResponse;
+import org.syu_likelion.Festa_2026.qr.QrDtos.UserSchoolVerificationUpdateRequest;
+import org.syu_likelion.Festa_2026.qr.QrDtos.UserSchoolVerificationUpdateResponse;
 import org.syu_likelion.Festa_2026.user.UserController;
 
 @RestController
@@ -82,6 +84,18 @@ public class QrController {
             @Valid @RequestBody UserRoleUpdateRequest body) {
         return response(qrService.updateRole(BearerTokens.require(authorization), cookies.readRefreshToken(request),
                 userUuid, body.managementRole()));
+    }
+
+    @PatchMapping("/users/{userUuid}/school-verification")
+    @Operation(summary = "사용자 학생 인증 변경",
+            description = "ADMIN 또는 SUPER_ADMIN이 사용자를 학생 인증 처리하거나 인증을 회수합니다. 관리자 인증은 학교 SSO 식별 해시를 생성하지 않습니다.")
+    ResponseEntity<UserSchoolVerificationUpdateResponse> updateSchoolVerification(
+            @PathVariable java.util.UUID userUuid,
+            @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
+            @Parameter(hidden = true) HttpServletRequest request,
+            @Valid @RequestBody UserSchoolVerificationUpdateRequest body) {
+        return response(qrService.updateSchoolVerification(BearerTokens.require(authorization),
+                cookies.readRefreshToken(request), userUuid, body.verified()));
     }
 
     private <T> ResponseEntity<T> response(AuthorizedResult<T> result) {

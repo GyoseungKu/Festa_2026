@@ -2,7 +2,9 @@ package org.syu_likelion.Festa_2026.sso;
 
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -26,6 +28,7 @@ import org.syu_likelion.Festa_2026.auth.AuthDtos.RecoveryEmailSendRequest;
 import org.syu_likelion.Festa_2026.auth.AuthDtos.FindIdVerifyRequest;
 import org.syu_likelion.Festa_2026.auth.AuthDtos.FindIdResponse;
 import org.syu_likelion.Festa_2026.auth.AuthDtos.ResetPasswordRequest;
+import org.syu_likelion.Festa_2026.auth.AuthDtos.AvailabilityResponse;
 import org.syu_likelion.Festa_2026.config.SsoProperties;
 import org.syu_likelion.Festa_2026.user.UserDtos.MeResponse;
 import org.syu_likelion.Festa_2026.user.UserDtos.PasswordChangeRequest;
@@ -51,6 +54,22 @@ public class SsoAuthClient {
 
     public void sendSignupEmailCode(EmailRequest request) {
         send("POST", "/api/auth/email/send", Map.of("email", request.email(), "purpose", "SIGNUP"), basicAuthorization, null, Void.class);
+    }
+
+    public AvailabilityResponse checkLoginId(String loginId) {
+        return checkAvailability("/api/auth/check/login-id", loginId);
+    }
+
+    public AvailabilityResponse checkEmail(String email) {
+        return checkAvailability("/api/auth/check/email", email);
+    }
+
+    public AvailabilityResponse checkStudentNo(String studentNo) {
+        return checkAvailability("/api/auth/check/student-no", studentNo);
+    }
+
+    public AvailabilityResponse checkPhone(String phone) {
+        return checkAvailability("/api/auth/check/phone", phone);
     }
 
     public void verifySignupEmailCode(EmailCodeRequest request) {
@@ -118,6 +137,25 @@ public class SsoAuthClient {
 
     public void withdraw(String accessToken) {
         send("DELETE", "/api/users/me", null, bearer(accessToken), null, Void.class);
+    }
+
+    private AvailabilityResponse checkAvailability(String path, String value) {
+        String query = path + "?value=" + URLEncoder.encode(value, StandardCharsets.UTF_8);
+        JsonNode response = send("GET", query, null, basicAuthorization, null, JsonNode.class).body();
+        if (response == null) throw new SsoException(502, "SSO availability response was empty");
+        Boolean available = booleanField(response, "available", "isAvailable");
+        if (available != null) return new AvailabilityResponse(available);
+        Boolean exists = booleanField(response, "exists", "duplicate", "duplicated", "isDuplicate");
+        if (exists != null) return new AvailabilityResponse(!exists);
+        throw new SsoException(502, "SSO availability response did not contain a supported boolean field");
+    }
+
+    private Boolean booleanField(JsonNode root, String... names) {
+        for (String name : names) {
+            JsonNode value = root.get(name);
+            if (value != null && value.isBoolean()) return value.asBoolean();
+        }
+        return null;
     }
 
     private String bearer(String accessToken) {
@@ -188,8 +226,9 @@ public class SsoAuthClient {
 
     private void logResult(String path, int status, long started, String correlationId) {
         long millis = Duration.ofNanos(System.nanoTime() - started).toMillis();
+        String endpoint = path.contains("?") ? path.substring(0, path.indexOf('?')) : path;
         log.info("SSO endpoint={} status={} durationMs={} correlationId={} success={}",
-                path, status, millis, correlationId, status >= 200 && status < 300);
+                endpoint, status, millis, correlationId, status >= 200 && status < 300);
     }
 
     private record SsoSignupRequest(String loginId, String password, String email, String name,

@@ -57,10 +57,20 @@ Content-Type: application/json
 
 | 조회 권한 | 제공 범위 |
 |---|---|
-| `BOOTH_MANAGER` | 마스킹 이름·학번, 학과, 학년 |
-| `STAFF` | 마스킹 이름·학번, 학과, 학년 |
-| `ADMIN` | 원본 이름·학번, 학과, 학년 + 전화번호, 이메일 |
-| `SUPER_ADMIN` | SSO 전체 프로필 + 축제 권한 |
+| `BOOTH_MANAGER` | 마스킹 이름·학번, 학과, 학년 + 학생 인증 상태·시각 |
+| `STAFF` | 마스킹 이름·학번, 학과, 학년 + 학생 인증 상태·시각 |
+| `ADMIN` | 원본 이름·학번, 학과, 학년 + 전화번호, 이메일 + 학생 인증 상태·시각 |
+| `SUPER_ADMIN` | SSO 전체 프로필 + 축제 권한 + 학생 인증 상태·시각 |
+
+모든 운영자 조회 응답에는 다음 학생 인증 필드가 포함됩니다.
+
+```ts
+type SchoolVerificationFields = {
+  schoolVerificationStatus: "UNVERIFIED" | "VERIFIED" | "REVOKED";
+  schoolVerified: boolean;
+  schoolVerifiedAt: string | null;
+};
+```
 
 이 API는 일반 정보 조회용입니다. 스탬프 지급 화면에서는 `/api/booths/{boothId}/stamps/qr/lookup`을 사용해야 담당 부스와 `stampEnabled`가 검증됩니다.
 
@@ -118,6 +128,34 @@ Content-Type: application/json
 - `BOOTH_MANAGER`는 별도 boolean과 담당 부스 관계로 관리하므로 이 API에서 지정하지 않습니다. 부스 지도 관리 화면에서 담당자로 지정하거나 해제합니다.
 - 관리 권한을 변경해도 대상 사용자의 기존 부스 관리자 여부와 담당 부스 관계는 유지됩니다.
 
+## 사용자 학생 인증 변경
+
+관리자 페이지의 `사용자 조회` 화면과 동일한 기능을 API로 사용할 수 있습니다.
+
+```http
+PATCH /api/qr/users/{userUuid}/school-verification
+Authorization: Bearer ADMIN_ACCESS_TOKEN
+Content-Type: application/json
+
+{ "verified": true }
+```
+
+- `ADMIN`, `SUPER_ADMIN`만 사용할 수 있습니다.
+- `verified: true`는 `VERIFIED`와 서버 현재 시각을 기록하고, `false`는 인증 완료 상태를 `REVOKED`로 변경합니다.
+- 관리자 임의 인증은 학교 SSO를 호출하거나 `school_subject_hash`를 새로 만들지 않습니다.
+- 상태나 인증 시각을 클라이언트가 직접 지정할 수 없습니다.
+
+성공 응답:
+
+```json
+{
+  "userUuid": "123e4567-e89b-12d3-a456-426614174099",
+  "schoolVerificationStatus": "VERIFIED",
+  "schoolVerified": true,
+  "schoolVerifiedAt": "2026-09-03T03:00:00Z"
+}
+```
+
 ## 오류
 
 - `400 QR_INVALID_OR_EXPIRED`: QR이 잘못됐거나 만료됨. 사용자에게 QR 새로고침 요청
@@ -128,5 +166,6 @@ Content-Type: application/json
 - `400 INVALID_MANAGEMENT_ROLE`: BOOTH_MANAGER 등 잘못된 관리 권한 요청
 - `403 USER_ROLE_MANAGE_FORBIDDEN`: ADMIN 미만의 권한 변경 요청
 - `403 USER_ROLE_ESCALATION_FORBIDDEN`: ADMIN의 자기 권한·상위 권한 변경 시도
+- `403 SCHOOL_VERIFICATION_MANAGE_FORBIDDEN`: ADMIN 미만의 학생 인증 변경 요청
 - `404 FESTIVAL_USER_NOT_FOUND`: 축제 연동 사용자가 아님
 - `409 LAST_SUPER_ADMIN_REQUIRED`: 마지막 SUPER_ADMIN 강등 시도

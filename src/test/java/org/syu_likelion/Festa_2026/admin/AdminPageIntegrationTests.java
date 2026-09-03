@@ -37,6 +37,7 @@ import org.syu_likelion.Festa_2026.performance.PerformanceService;
 import org.syu_likelion.Festa_2026.performance.PerformanceCategory;
 import org.syu_likelion.Festa_2026.performance.PerformanceDtos.PerformanceResponse;
 import org.syu_likelion.Festa_2026.monitoring.SystemMonitoringService;
+import org.syu_likelion.Festa_2026.monitoring.SystemMonitoringService.SystemSnapshot;
 import org.syu_likelion.Festa_2026.lostitem.LostItemService;
 import org.syu_likelion.Festa_2026.lostitem.LostItemApiService;
 import org.syu_likelion.Festa_2026.lostitem.LostItemDtos.LostItemPageResponse;
@@ -56,8 +57,10 @@ import org.syu_likelion.Festa_2026.birthday.BirthdayMessageDtos.AdminUserView;
 import org.syu_likelion.Festa_2026.qr.QrDtos.QrUserView;
 import org.syu_likelion.Festa_2026.qr.QrDtos.UserSearchResponse;
 import org.syu_likelion.Festa_2026.qr.QrDtos.UserRoleUpdateResponse;
+import org.syu_likelion.Festa_2026.qr.QrDtos.UserSchoolVerificationUpdateResponse;
 import org.syu_likelion.Festa_2026.qr.QrService;
 import org.syu_likelion.Festa_2026.user.FestivalRole;
+import org.syu_likelion.Festa_2026.user.SchoolVerificationStatus;
 import org.syu_likelion.Festa_2026.user.UserDtos.MeResponse;
 import org.syu_likelion.Festa_2026.user.UserService;
 import org.syu_likelion.Festa_2026.stamp.StampService;
@@ -136,7 +139,7 @@ class AdminPageIntegrationTests {
         mvc.perform(get("/admin").cookie(new Cookie("festivalAdminAccess", "access-one")))
                 .andExpect(status().isOk())
                 .andExpect(view().name("admin/dashboard"))
-                .andExpect(content().string(containsString("사용자 조회")))
+                .andExpect(content().string(containsString("사용자 및 권한 관리")))
                 .andExpect(content().string(containsString("서버 장애 긴급 연락처")))
                 .andExpect(content().string(containsString("010-4953-5080")))
                 .andExpect(content().string(containsString("STAFF")));
@@ -144,7 +147,7 @@ class AdminPageIntegrationTests {
         mvc.perform(get("/admin/qr").cookie(new Cookie("festivalAdminAccess", "access-one")))
                 .andExpect(status().isOk())
                 .andExpect(view().name("admin/qr-scan"))
-                .andExpect(content().string(containsString("사용자 정보 검색")))
+                .andExpect(content().string(containsString("사용자 검색 및 권한 관리")))
                 .andExpect(content().string(containsString("카메라 시작")))
                 .andExpect(content().string(containsString("이름·학번 등 사용자 정보를 입력")))
                 .andExpect(content().string(org.hamcrest.Matchers.not(containsString("토큰 조회"))))
@@ -445,10 +448,32 @@ class AdminPageIntegrationTests {
         when(adminAccess.authenticate("admin-access", null))
                 .thenReturn(new AuthorizedResult<>(identity(FestivalRole.ADMIN), null, null));
 
+        mvc.perform(get("/admin").cookie(new Cookie("festivalAdminAccess", "super-access")))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("학생 인증 승인")))
+                .andExpect(content().string(containsString("0건 대기")));
+
+        mvc.perform(get("/admin").cookie(new Cookie("festivalAdminAccess", "admin-access")))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("학생 인증 승인"))));
+
         mvc.perform(get("/admin/system").cookie(new Cookie("festivalAdminAccess", "super-access")))
                 .andExpect(status().isOk())
                 .andExpect(view().name("admin/system"))
-                .andExpect(content().string(containsString("실시간 시스템 모니터링")));
+                .andExpect(content().string(containsString("실시간 시스템 모니터링")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("학생 인증 미승인 요청"))));
+
+        mvc.perform(get("/admin/school-verifications")
+                        .cookie(new Cookie("festivalAdminAccess", "super-access")))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/school-verifications"))
+                .andExpect(content().string(containsString("학생 인증 미승인 요청")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("CPU · Heap 추이"))));
+
+        mvc.perform(get("/admin/school-verifications")
+                        .cookie(new Cookie("festivalAdminAccess", "admin-access")))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin"));
 
         mvc.perform(get("/admin/system").cookie(new Cookie("festivalAdminAccess", "admin-access")))
                 .andExpect(status().is3xxRedirection())
@@ -457,6 +482,15 @@ class AdminPageIntegrationTests {
         mvc.perform(get("/admin/system/snapshot")
                         .cookie(new Cookie("festivalAdminAccess", "admin-access")))
                 .andExpect(status().isForbidden());
+
+        when(systemMonitoringService.snapshot()).thenReturn(new SystemSnapshot(
+                java.time.Instant.parse("2026-08-30T11:00:00Z"), "HEALTHY",
+                null, null, null, null, null, null));
+        mvc.perform(get("/admin/system/snapshot")
+                        .cookie(new Cookie("festivalAdminAccess", "super-access")))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.status").value("HEALTHY"));
     }
 
     @Test
@@ -528,6 +562,29 @@ class AdminPageIntegrationTests {
                 .andExpect(view().name("admin/qr-scan"))
                 .andExpect(content().string(containsString("사용자 관리 권한을 변경했습니다.")));
         verify(qrService).updateRoleAs(ADMIN_UUID, FestivalRole.ADMIN, target, FestivalRole.STAFF);
+    }
+
+    @Test
+    void adminCanVerifySearchedUserAsStudent() throws Exception {
+        UUID target = UUID.fromString("123e4567-e89b-12d3-a456-426614174099");
+        when(adminAccess.authenticate("admin-school", null))
+                .thenReturn(new AuthorizedResult<>(identity(FestivalRole.ADMIN), null, null));
+        QrUserView user = new QrUserView(FestivalRole.ADMIN, target, null, "user@example.com", null, null,
+                "홍길동", "01012345678", "2024000001", "컴퓨터공학부", 3,
+                null, null, null, null, Set.of(FestivalRole.USER));
+        when(qrService.updateSchoolVerificationAs(FestivalRole.ADMIN, target, true))
+                .thenReturn(new UserSchoolVerificationUpdateResponse(target, SchoolVerificationStatus.VERIFIED,
+                        true, java.time.Instant.parse("2026-09-03T00:00:00Z")));
+        when(qrService.searchAs(FestivalRole.ADMIN, "홍길동", 0, 20))
+                .thenReturn(new UserSearchResponse(java.util.List.of(user), 0, 20, 1, 1));
+
+        mvc.perform(post("/admin/qr/users/{id}/school-verification", target).with(csrf())
+                        .cookie(new Cookie("festivalAdminAccess", "admin-school"))
+                        .param("verified", "true").param("query", "홍길동"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/qr-scan"))
+                .andExpect(content().string(containsString("학생 인증을 완료 처리했습니다.")));
+        verify(qrService).updateSchoolVerificationAs(FestivalRole.ADMIN, target, true);
     }
 
     @Test

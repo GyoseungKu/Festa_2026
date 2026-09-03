@@ -47,6 +47,13 @@ import org.springframework.web.util.UriComponentsBuilder;
 import org.syu_likelion.Festa_2026.auth.AuthDtos.SignupRequest;
 import org.syu_likelion.Festa_2026.auth.AuthDtos.SignupResponse;
 import org.syu_likelion.Festa_2026.auth.AuthService;
+import org.syu_likelion.Festa_2026.auth.AuthorizedSsoExecutor.AuthorizedResult;
+import org.syu_likelion.Festa_2026.user.FestivalUserService;
+import org.syu_likelion.Festa_2026.user.FestivalUserService.UserFestivalProfile;
+import org.syu_likelion.Festa_2026.user.SchoolVerificationRequestRepository;
+import org.syu_likelion.Festa_2026.user.SchoolVerificationStatus;
+import org.syu_likelion.Festa_2026.user.UserDtos.MeResponse;
+import org.syu_likelion.Festa_2026.user.UserService;
 
 @SpringBootTest(properties = {
         "school-sso.enabled=true",
@@ -56,7 +63,7 @@ import org.syu_likelion.Festa_2026.auth.AuthService;
         "school-sso.callback-url=https://festa.syu-likelion.org/auth/sso/callback",
         "school-sso.issuer=https://www.syu.ac.kr",
         "school-sso.audience=festa-2026",
-        "school-sso.return-url=/temporary-auth",
+        "school-sso.return-url=https://festa.syu-likelion.org/temporary-auth",
         "school-sso.read-timeout=2s",
         "spring.datasource.url=jdbc:h2:mem:school-sso-tests;MODE=MySQL;DB_CLOSE_DELAY=-1"
 })
@@ -67,7 +74,10 @@ class SchoolSsoIntegrationTests {
     private static final HttpServer SCHOOL = server();
 
     @Autowired MockMvc mvc;
+    @Autowired SchoolVerificationRequestRepository verificationRequests;
     @MockitoBean AuthService authService;
+    @MockitoBean UserService userService;
+    @MockitoBean FestivalUserService festivalUsers;
 
     @DynamicPropertySource
     static void schoolProperties(DynamicPropertyRegistry registry) {
@@ -78,7 +88,8 @@ class SchoolSsoIntegrationTests {
     @BeforeEach
     void reset() {
         REQUESTS.clear();
-        when(authService.signup(any())).thenReturn(new SignupResponse(
+        verificationRequests.deleteAll();
+        when(authService.signup(any(), any())).thenReturn(new SignupResponse(
                 UUID.fromString("123e4567-e89b-12d3-a456-426614174000")));
     }
 
@@ -94,7 +105,7 @@ class SchoolSsoIntegrationTests {
 
         mvc.perform(get("/auth/sso/callback").session(session)
                         .param("state", state).param("code", "valid-one-time-code"))
-                .andExpect(redirectedUrl("/temporary-auth?schoolSso=success"));
+                .andExpect(redirectedUrl("https://festa.syu-likelion.org/temporary-auth?schoolSso=success"));
 
         mvc.perform(get("/api/auth/school/profile").session(session))
                 .andExpect(status().isOk())
@@ -110,7 +121,7 @@ class SchoolSsoIntegrationTests {
                 .andExpect(status().isOk());
 
         ArgumentCaptor<SignupRequest> captor = ArgumentCaptor.forClass(SignupRequest.class);
-        org.mockito.Mockito.verify(authService).signup(captor.capture());
+        org.mockito.Mockito.verify(authService).signup(captor.capture(), any());
         assertThat(captor.getValue().name()).isEqualTo("학교홍길동");
         assertThat(captor.getValue().studentNo()).isEqualTo("20260001");
         assertThat(captor.getValue().department()).isEqualTo("컴퓨터공학과");
@@ -128,6 +139,97 @@ class SchoolSsoIntegrationTests {
     }
 
     @Test
+    void loggedInUserCanCompleteSchoolVerificationAfterSignup() throws Exception {
+        UUID userUuid = UUID.fromString("123e4567-e89b-12d3-a456-426614174099");
+        MeResponse me = new MeResponse(userUuid, "festival01", "student@example.com", "USER", "ACTIVE",
+                "학교홍길동", null, "20260001", "컴퓨터공학과", null, null, null, null, null, null);
+        when(userService.getMe(any(), any())).thenReturn(new AuthorizedResult<>(me, null, null));
+
+        MvcResult authorize = mvc.perform(post("/api/users/me/school-verification/authorize")
+                        .header("Authorization", "Bearer access-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.authorizeUrl").isNotEmpty())
+                .andReturn();
+        MockHttpSession session = (MockHttpSession) authorize.getRequest().getSession(false);
+        String authorizeUrl = tools.jackson.databind.json.JsonMapper.builder().build()
+                .readTree(authorize.getResponse().getContentAsString()).get("authorizeUrl").asText();
+        String state = UriComponentsBuilder.fromUriString(authorizeUrl).build().getQueryParams().getFirst("state");
+
+        mvc.perform(get("/auth/sso/callback").session(session)
+                        .param("state", state).param("code", "valid-one-time-code"))
+                .andExpect(redirectedUrl("https://festa.syu-likelion.org/temporary-auth?schoolVerification=success"));
+
+        org.mockito.Mockito.verify(festivalUsers).verifySchool(org.mockito.ArgumentMatchers.eq(userUuid), any());
+    }
+
+    @Test
+    void identityMismatchCreatesPendingSuperAdminApproval() throws Exception {
+        UUID userUuid = UUID.fromString("123e4567-e89b-12d3-a456-426614174098");
+        MeResponse me = new MeResponse(userUuid, "festival01", "student@example.com", "USER", "ACTIVE",
+                "다른이름", null, "2026-OTHER", "컴퓨터공학과", null, null, null, null, null, null);
+        when(userService.getMe(any(), any())).thenReturn(new AuthorizedResult<>(me, null, null));
+
+        MvcResult authorize = mvc.perform(post("/api/users/me/school-verification/authorize")
+                        .header("Authorization", "Bearer access-token"))
+                .andExpect(status().isOk()).andReturn();
+        MockHttpSession session = (MockHttpSession) authorize.getRequest().getSession(false);
+        String authorizeUrl = tools.jackson.databind.json.JsonMapper.builder().build()
+                .readTree(authorize.getResponse().getContentAsString()).get("authorizeUrl").asText();
+        String state = UriComponentsBuilder.fromUriString(authorizeUrl).build().getQueryParams().getFirst("state");
+
+        mvc.perform(get("/auth/sso/callback").session(session)
+                        .param("state", state).param("code", "valid-one-time-code"))
+                .andExpect(redirectedUrl("https://festa.syu-likelion.org/temporary-auth?schoolVerification=pending_approval"));
+
+        assertThat(verificationRequests.findByUserUuid(userUuid)).get().satisfies(request -> {
+            assertThat(request.getCurrentName()).isEqualTo("다른이름");
+            assertThat(request.getSchoolName()).isEqualTo("학교홍길동");
+            assertThat(request.getSchoolStudentNo()).isEqualTo("20260001");
+        });
+        org.mockito.Mockito.verify(festivalUsers, org.mockito.Mockito.never()).verifySchool(any(), any());
+    }
+
+    @Test
+    void departmentMismatchRequiresConfirmationThenUpdatesAndVerifies() throws Exception {
+        UUID userUuid = UUID.fromString("123e4567-e89b-12d3-a456-426614174097");
+        MeResponse current = new MeResponse(userUuid, "festival01", "student@example.com", "USER", "ACTIVE",
+                "학교홍길동", null, "20260001", "경영학과", null, null, null, null, null, null);
+        MeResponse updated = new MeResponse(userUuid, "festival01", "student@example.com", "USER", "ACTIVE",
+                "학교홍길동", null, "20260001", "컴퓨터공학과", null, null, null, null, null, null);
+        when(userService.getMe(any(), any())).thenReturn(new AuthorizedResult<>(current, null, null));
+        when(userService.updateProfile(any(), any(), any())).thenReturn(new AuthorizedResult<>(updated, null, null));
+        when(festivalUsers.verifySchool(org.mockito.ArgumentMatchers.eq(userUuid), any())).thenReturn(
+                new UserFestivalProfile(java.util.Set.of(), SchoolVerificationStatus.VERIFIED, Instant.now()));
+
+        MvcResult authorize = mvc.perform(post("/api/users/me/school-verification/authorize")
+                        .header("Authorization", "Bearer access-token"))
+                .andExpect(status().isOk()).andReturn();
+        MockHttpSession session = (MockHttpSession) authorize.getRequest().getSession(false);
+        String authorizeUrl = tools.jackson.databind.json.JsonMapper.builder().build()
+                .readTree(authorize.getResponse().getContentAsString()).get("authorizeUrl").asText();
+        String state = UriComponentsBuilder.fromUriString(authorizeUrl).build().getQueryParams().getFirst("state");
+
+        mvc.perform(get("/auth/sso/callback").session(session)
+                        .param("state", state).param("code", "valid-one-time-code"))
+                .andExpect(redirectedUrl("https://festa.syu-likelion.org/temporary-auth?schoolVerification=department_update_required"));
+        mvc.perform(get("/api/users/me/school-verification/department").session(session)
+                        .header("Authorization", "Bearer access-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.currentDepartment").value("경영학과"))
+                .andExpect(jsonPath("$.schoolDepartment").value("컴퓨터공학과"));
+        mvc.perform(post("/api/users/me/school-verification/department/confirm").session(session)
+                        .header("Authorization", "Bearer access-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.department").value("컴퓨터공학과"))
+                .andExpect(jsonPath("$.schoolVerificationStatus").value("VERIFIED"));
+
+        ArgumentCaptor<org.syu_likelion.Festa_2026.user.UserDtos.ProfileUpdateRequest> update =
+                ArgumentCaptor.forClass(org.syu_likelion.Festa_2026.user.UserDtos.ProfileUpdateRequest.class);
+        org.mockito.Mockito.verify(userService).updateProfile(any(), any(), update.capture());
+        assertThat(update.getValue().department()).isEqualTo("컴퓨터공학과");
+    }
+
+    @Test
     void schoolSignupRequiresVerifiedProfile() throws Exception {
         mvc.perform(post("/api/auth/signup").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"loginId\":\"festival01\",\"password\":\"password123\","+
@@ -136,6 +238,55 @@ class SchoolSsoIntegrationTests {
                                 "\"academicInfoSource\":\"SCHOOL_SSO\"}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("SCHOOL_SSO_VERIFICATION_REQUIRED"));
+    }
+
+    @Test
+    void authorizeRedirectUsesExactRegisteredCallbackAndClientId() throws Exception {
+        MvcResult authorize = mvc.perform(get("/api/auth/school/authorize"))
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+
+        var uri = UriComponentsBuilder.fromUriString(authorize.getResponse().getRedirectedUrl()).build();
+        assertThat(uri.getScheme()).isEqualTo("https");
+        assertThat(uri.getHost()).isEqualTo("www.syu.ac.kr");
+        assertThat(uri.getPath()).isEqualTo("/festa-sso/authorize");
+        assertThat(uri.getQueryParams().getFirst("client_id")).isEqualTo("festa-2026");
+        assertThat(uri.getQueryParams().getFirst("redirect_uri"))
+                .isEqualTo("https://festa.syu-likelion.org/auth/sso/callback");
+        assertThat(uri.getQueryParams().getFirst("state")).hasSize(43);
+    }
+
+    @Test
+    void callbackWithoutAuthorizationSessionReturnsInvalidState() throws Exception {
+        mvc.perform(get("/auth/sso/callback")
+                        .param("state", "untrusted-state").param("code", "untrusted-code"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("https://festa.syu-likelion.org/temporary-auth?schoolSso=invalid_state"));
+        assertThat(REQUESTS).isEmpty();
+    }
+
+    @Test
+    void accessDeniedCallbackConsumesMatchingStateWithoutTokenExchange() throws Exception {
+        MockHttpSession session = authorizeSession();
+        String state = stateFromSessionRedirect(session);
+
+        mvc.perform(get("/auth/sso/callback").session(session)
+                        .param("state", state).param("error", "access_denied"))
+                .andExpect(redirectedUrl("https://festa.syu-likelion.org/temporary-auth?schoolSso=access_denied"));
+        mvc.perform(get("/auth/sso/callback").session(session)
+                        .param("state", state).param("code", "valid-one-time-code"))
+                .andExpect(redirectedUrl("https://festa.syu-likelion.org/temporary-auth?schoolSso=invalid_state"));
+        assertThat(REQUESTS).isEmpty();
+    }
+
+    @Test
+    void callbackWithMatchingStateButMissingCodeFailsWithoutTokenExchange() throws Exception {
+        MockHttpSession session = authorizeSession();
+        String state = stateFromSessionRedirect(session);
+
+        mvc.perform(get("/auth/sso/callback").session(session).param("state", state))
+                .andExpect(redirectedUrl("https://festa.syu-likelion.org/temporary-auth?schoolSso=failed"));
+        assertThat(REQUESTS).isEmpty();
     }
 
     @Test
@@ -148,10 +299,10 @@ class SchoolSsoIntegrationTests {
 
         mvc.perform(get("/auth/sso/callback").session(session)
                         .param("state", "wrong-state").param("code", "code"))
-                .andExpect(redirectedUrl("/temporary-auth?schoolSso=invalid_state"));
+                .andExpect(redirectedUrl("https://festa.syu-likelion.org/temporary-auth?schoolSso=invalid_state"));
         mvc.perform(get("/auth/sso/callback").session(session)
                         .param("state", state).param("code", "code"))
-                .andExpect(redirectedUrl("/temporary-auth?schoolSso=invalid_state"));
+                .andExpect(redirectedUrl("https://festa.syu-likelion.org/temporary-auth?schoolSso=invalid_state"));
         assertThat(REQUESTS).isEmpty();
     }
 
@@ -162,7 +313,7 @@ class SchoolSsoIntegrationTests {
 
         mvc.perform(get("/auth/sso/callback").session(session)
                         .param("state", state).param("code", "invalid-issuer"))
-                .andExpect(redirectedUrl("/temporary-auth?schoolSso=failed"));
+                .andExpect(redirectedUrl("https://festa.syu-likelion.org/temporary-auth?schoolSso=failed"));
         mvc.perform(get("/api/auth/school/profile").session(session))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("SCHOOL_SSO_VERIFICATION_REQUIRED"));

@@ -31,6 +31,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -55,6 +56,7 @@ class SsoAuthIntegrationTests {
 
     @Autowired MockMvc mvc;
     @Autowired FestivalUserRepository users;
+    @Autowired JdbcTemplate jdbc;
     @Autowired SsoInternalProfileClient internalProfiles;
 
     @DynamicPropertySource
@@ -101,6 +103,37 @@ class SsoAuthIntegrationTests {
     }
 
     @Test
+    void signupAvailabilityChecksAreValidatedAndForwardedWithClientAuthentication() throws Exception {
+        enqueue(200, "{\"available\":true}");
+        mvc.perform(get("/api/auth/check/login-id").param("loginId", "festival01"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.available").value(true));
+        enqueue(200, "{\"available\":true}");
+        mvc.perform(get("/api/auth/check/email").param("email", "student@example.com"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.available").value(true));
+        enqueue(200, "{\"available\":false}");
+        mvc.perform(get("/api/auth/check/student-no").param("studentNo", "20260001"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.available").value(false));
+        enqueue(200, "{\"available\":true}");
+        mvc.perform(get("/api/auth/check/phone").param("phone", "01012345678"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.available").value(true));
+
+        org.assertj.core.api.Assertions.assertThat(REQUESTS).extracting(RecordedRequest::path)
+                .containsExactly("/api/auth/check/login-id", "/api/auth/check/email",
+                        "/api/auth/check/student-no", "/api/auth/check/phone");
+        org.assertj.core.api.Assertions.assertThat(REQUESTS).extracting(RecordedRequest::query)
+                .containsExactly("value=festival01", "value=student%40example.com",
+                        "value=20260001", "value=01012345678");
+        org.assertj.core.api.Assertions.assertThat(REQUESTS)
+                .allSatisfy(request -> org.assertj.core.api.Assertions.assertThat(request.authorization())
+                        .startsWith("Basic "));
+
+        mvc.perform(get("/api/auth/check/phone").param("phone", "010-1234-5678"))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+        mvc.perform(get("/api/auth/check/email").param("email", "not-an-email"))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+    }
+
+    @Test
     void signupSuccessLinksOnlyUserUuid() throws Exception {
         enqueue(201, "{\"userUuid\":\"" + UUID + "\"}");
         mvc.perform(post("/api/auth/signup").contentType(MediaType.APPLICATION_JSON)
@@ -110,6 +143,8 @@ class SsoAuthIntegrationTests {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.userUuid").value(UUID));
         org.assertj.core.api.Assertions.assertThat(users.findAll()).singleElement()
                 .satisfies(user -> org.assertj.core.api.Assertions.assertThat(user.getUserUuid().toString()).isEqualTo(UUID));
+        org.assertj.core.api.Assertions.assertThat(
+                jdbc.queryForObject("select user_uuid from festival_users", String.class)).isEqualTo(UUID);
     }
 
     @Test
@@ -288,6 +323,45 @@ class SsoAuthIntegrationTests {
                 .andExpect(status().isOk());
         org.assertj.core.api.Assertions.assertThat(REQUESTS).extracting(RecordedRequest::path).containsExactly(
                 "/api/users/me/email/verification", "/api/users/me/email/verification/confirm", "/api/users/me/email");
+    }
+
+    @Test
+    void profileUpdateAllowsOnlyUserEditableSsoFieldsAndReturnsRefreshedProfile() throws Exception {
+        enqueue(200, "{\"success\":true}");
+        enqueue(200, "{\"userUuid\":\"" + UUID + "\",\"loginId\":\"festival01\"," +
+                "\"email\":\"student@example.com\",\"ssoRole\":\"USER\",\"status\":\"ACTIVE\"," +
+                "\"name\":\"홍길동\",\"phone\":\"01012345678\",\"studentNo\":\"20260001\"," +
+                "\"department\":\"소프트웨어학과\",\"grade\":3,\"enrollment\":\"ENROLLED\"}");
+
+        mvc.perform(patch("/api/users/me/profile").header("Authorization", "Bearer access-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"phone\":\"01012345678\",\"department\":\"소프트웨어학과\"," +
+                                "\"grade\":3,\"enrollment\":\"ENROLLED\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.phone").value("01012345678"))
+                .andExpect(jsonPath("$.department").value("소프트웨어학과"))
+                .andExpect(jsonPath("$.grade").value(3))
+                .andExpect(jsonPath("$.enrollment").value("ENROLLED"));
+
+        org.assertj.core.api.Assertions.assertThat(REQUESTS.getFirst().path()).isEqualTo("/api/users/me/profile");
+        org.assertj.core.api.Assertions.assertThat(REQUESTS.getFirst().body())
+                .contains("\"phone\":\"01012345678\"", "\"department\":\"소프트웨어학과\"",
+                        "\"grade\":3", "\"enrollment\":\"ENROLLED\"")
+                .doesNotContain("\"name\"", "\"studentNo\"", "\"birthDate\"");
+    }
+
+    @Test
+    void profileUpdateRejectsEmptyOrInvalidEditableFieldsBeforeSsoCall() throws Exception {
+        mvc.perform(patch("/api/users/me/profile").header("Authorization", "Bearer access-token")
+                        .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("PROFILE_UPDATE_REQUIRED"));
+        mvc.perform(patch("/api/users/me/profile").header("Authorization", "Bearer access-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"phone\":\"010-1234-5678\",\"grade\":7}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+        org.assertj.core.api.Assertions.assertThat(REQUESTS).isEmpty();
     }
 
     @Test

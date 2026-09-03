@@ -43,12 +43,13 @@
     <div class="alert alert-success" role="status" th:if="${message}" th:text="${message}"></div>
 
     <section class="panel user-search-panel" th:if="${adminRole.name() == 'STAFF' || adminRole.name() == 'ADMIN' || adminRole.name() == 'SUPER_ADMIN'}">
-        <div class="panel-heading"><div><span class="step-number">01</span><h2>사용자 정보 검색</h2></div></div>
+        <div class="panel-heading"><div><span class="step-number">01</span><h2>사용자 검색 및 권한 관리</h2></div></div>
         <form class="user-search-form" method="post" th:action="@{/admin/qr/search}">
             <label class="field-group"><span>검색어</span><input type="search" name="query" minlength="2" maxlength="100" required th:value="${searchQuery}" placeholder="이름, 학번, 아이디, 이메일, 전화번호, 학과"></label>
             <button class="button button-primary" type="submit">검색</button>
         </form>
-        <p class="support-copy">검색은 원본 정보로 처리되지만 결과에는 현재 권한으로 볼 수 있는 정보만 표시됩니다. 최대 20명까지 표시합니다.</p>
+        <p class="support-copy" th:if="${canManageUserRoles}">사용자를 검색한 뒤 결과에서 관리 권한과 학생 인증 상태를 변경할 수 있습니다. 한 페이지에 최대 20명까지 표시합니다.</p>
+        <p class="support-copy" th:unless="${canManageUserRoles}">검색 결과에는 현재 권한으로 볼 수 있는 정보만 표시됩니다. 권한 및 학생 인증 변경은 ADMIN 이상만 가능합니다.</p>
     </section>
 
     <section class="panel user-search-results" th:if="${searchResult != null}">
@@ -56,7 +57,7 @@
         <p class="empty-copy" th:if="${searchResult.items.empty}">일치하는 축제 연동 사용자가 없습니다.</p>
         <div class="user-search-result-list" th:unless="${searchResult.items.empty}"><article th:each="user : ${searchResult.items}">
             <dl class="profile-grid">
-                <div th:if="${user.name != null}"><dt>이름</dt><dd th:text="${user.name}"></dd></div><div th:if="${user.studentNo != null}"><dt>학번</dt><dd th:text="${user.studentNo}"></dd></div><div th:if="${user.department != null}"><dt>학과</dt><dd th:text="${user.department}"></dd></div><div th:if="${user.grade != null}"><dt>학년</dt><dd th:text="|${user.grade}학년|"></dd></div><div th:if="${user.phone != null}"><dt>전화번호</dt><dd th:text="${user.phone}"></dd></div><div th:if="${user.email != null}"><dt>이메일</dt><dd th:text="${user.email}"></dd></div><div th:if="${user.userUuid != null}"><dt>사용자 UUID</dt><dd class="mono" th:text="${user.userUuid}"></dd></div><div th:if="${user.loginId != null}"><dt>로그인 ID</dt><dd th:text="${user.loginId}"></dd></div><div th:if="${user.status != null}"><dt>계정 상태</dt><dd th:text="${user.status}"></dd></div><div th:if="${user.enrollment != null}"><dt>재학 상태</dt><dd th:text="${user.enrollment}"></dd></div><div th:if="${user.birthDate != null}"><dt>생년월일</dt><dd th:text="${user.birthDate}"></dd></div><div th:if="${user.festivalRoles != null}"><dt>축제 권한</dt><dd th:text="${user.festivalRoles}"></dd></div>
+                <div th:if="${user.name != null}"><dt>이름</dt><dd th:text="${user.name}"></dd></div><div th:if="${user.studentNo != null}"><dt>학번</dt><dd th:text="${user.studentNo}"></dd></div><div th:if="${user.department != null}"><dt>학과</dt><dd th:text="${user.department}"></dd></div><div th:if="${user.grade != null}"><dt>학년</dt><dd th:text="|${user.grade}학년|"></dd></div><div><dt>학교 인증</dt><dd th:text="${user.schoolVerificationStatus}"></dd></div><div th:if="${user.schoolVerifiedAt != null}"><dt>학교 인증 시각</dt><dd th:text="${user.schoolVerifiedAt}"></dd></div><div th:if="${user.phone != null}"><dt>전화번호</dt><dd th:text="${user.phone}"></dd></div><div th:if="${user.email != null}"><dt>이메일</dt><dd th:text="${user.email}"></dd></div><div th:if="${user.userUuid != null}"><dt>사용자 UUID</dt><dd class="mono" th:text="${user.userUuid}"></dd></div><div th:if="${user.loginId != null}"><dt>로그인 ID</dt><dd th:text="${user.loginId}"></dd></div><div th:if="${user.status != null}"><dt>계정 상태</dt><dd th:text="${user.status}"></dd></div><div th:if="${user.enrollment != null}"><dt>재학 상태</dt><dd th:text="${user.enrollment}"></dd></div><div th:if="${user.birthDate != null}"><dt>생년월일</dt><dd th:text="${user.birthDate}"></dd></div><div th:if="${user.festivalRoles != null}"><dt>축제 권한</dt><dd th:text="${user.festivalRoles}"></dd></div>
             </dl>
             <form class="user-role-form" method="post" th:if="${canManageUserRoles and user.userUuid != null and user.managementRole != null}"
                   th:action="@{/admin/qr/users/{id}/role(id=${user.userUuid})}">
@@ -67,6 +68,17 @@
                 </select></label>
                 <button class="button button-primary button-small" type="submit">권한 변경</button>
                 <small th:if="${adminRole.name() == 'ADMIN'}">ADMIN은 USER·STAFF 범위만 변경할 수 있습니다.</small>
+            </form>
+            <form class="user-role-form" method="post"
+                  th:if="${canManageUserSchoolVerification and user.userUuid != null}"
+                  th:action="@{/admin/qr/users/{id}/school-verification(id=${user.userUuid})}"
+                  onsubmit="return confirm('이 사용자의 학생 인증 상태를 변경할까요?');">
+                <input type="hidden" name="query" th:value="${searchQuery}">
+                <input type="hidden" name="page" th:value="${searchResult.page}">
+                <input type="hidden" name="verified" th:value="${!user.schoolVerified}">
+                <div><strong>학생 인증</strong><br><small th:text="${user.schoolVerified ? '현재 인증 완료 상태입니다.' : '현재 미인증 상태입니다.'}"></small></div>
+                <button class="button button-small" th:classappend="${user.schoolVerified ? ' button-danger' : ' button-primary'}"
+                        type="submit" th:text="${user.schoolVerified ? '학생 인증 회수' : '학생 인증 처리'}">학생 인증 처리</button>
             </form>
         </article></div>
         <nav class="number-pagination" th:if="${searchResult.totalPages > 1}" aria-label="사용자 검색 결과 페이지">
@@ -122,6 +134,8 @@
             <div th:if="${result.studentNo != null}"><dt>학번</dt><dd th:text="${result.studentNo}"></dd></div>
             <div th:if="${result.department != null}"><dt>학과</dt><dd th:text="${result.department}"></dd></div>
             <div th:if="${result.grade != null}"><dt>학년</dt><dd><span th:text="${result.grade}"></span>학년</dd></div>
+            <div><dt>학교 인증</dt><dd th:text="${result.schoolVerificationStatus}"></dd></div>
+            <div th:if="${result.schoolVerifiedAt != null}"><dt>학교 인증 시각</dt><dd th:text="${result.schoolVerifiedAt}"></dd></div>
             <div th:if="${result.phone != null}"><dt>전화번호</dt><dd th:text="${result.phone}"></dd></div>
             <div th:if="${result.email != null}"><dt>이메일</dt><dd th:text="${result.email}"></dd></div>
             <div th:if="${result.userUuid != null}"><dt>사용자 UUID</dt><dd class="mono" th:text="${result.userUuid}"></dd></div>
@@ -135,6 +149,15 @@
               th:action="@{/admin/qr/users/{id}/role(id=${result.userUuid})}">
             <label><span>관리 권한</span><select name="managementRole"><option th:each="role : ${managementRoleOptions}" th:value="${role}" th:text="${role}" th:selected="${role == result.managementRole}"></option></select></label>
             <button class="button button-primary button-small" type="submit">권한 변경</button>
+        </form>
+        <form class="user-role-form" method="post"
+              th:if="${canManageUserSchoolVerification and result.userUuid != null}"
+              th:action="@{/admin/qr/users/{id}/school-verification(id=${result.userUuid})}"
+              onsubmit="return confirm('이 사용자의 학생 인증 상태를 변경할까요?');">
+            <input type="hidden" name="verified" th:value="${!result.schoolVerified}">
+            <div><strong>학생 인증</strong><br><small th:text="${result.schoolVerified ? '현재 인증 완료 상태입니다.' : '현재 미인증 상태입니다.'}"></small></div>
+            <button class="button button-small" th:classappend="${result.schoolVerified ? ' button-danger' : ' button-primary'}"
+                    type="submit" th:text="${result.schoolVerified ? '학생 인증 회수' : '학생 인증 처리'}">학생 인증 처리</button>
         </form>
     </section>
 </main>

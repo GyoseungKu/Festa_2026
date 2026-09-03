@@ -14,6 +14,5 @@ public class AdminPageResponseAdvice {
     void configureResponse(HttpServletResponse response) {
         response.setLocale(Locale.KOREAN);
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-        response.setContentType("text/html;charset=UTF-8");
     }
 }

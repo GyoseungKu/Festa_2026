@@ -177,6 +177,7 @@ button { cursor: pointer; }
 .feature-icon { display: grid; width: 58px; height: 58px; place-items: center; border-radius: 16px; color: #fff; background: var(--accent); }
 .feature-icon svg { width: 29px; fill: currentColor; }
 .feature-icon-stage { background: #6c4de6; }
+.feature-icon-verification { background: #168267; }
 .feature-icon-poll { background: #2674d9; }
 .feature-icon-muted { color: #9399a6; background: #eef0f4; font-size: 1.6rem; }
 .feature-status { display: inline-flex; margin-bottom: 9px; border-radius: 999px; padding: 4px 8px; color: var(--success); background: #eaf8f2; font-size: .67rem; font-weight: 800; }
@@ -525,6 +526,15 @@ button { cursor: pointer; }
 
 /* SUPER_ADMIN runtime monitoring */
 .monitor-main { padding-bottom: 72px; }
+.verification-actions { display: flex; justify-content: flex-end; gap: 7px; }
+.verification-actions form { margin: 0; }
+.review-panel { padding: 0; overflow: hidden; }
+.review-table { width: 100%; border-collapse: collapse; }
+.review-table th, .review-table td { border-bottom: 1px solid var(--line); padding: 16px; text-align: left; vertical-align: top; }
+.review-table th { color: var(--muted); background: #f8f9fb; font-size: .78rem; }
+.review-table td > strong, .review-table td > span, .review-table td > small { display: block; }
+.review-table td > small { margin-top: 4px; color: var(--muted); }
+.review-table tbody tr:last-child td { border-bottom: 0; }
 .monitor-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 28px; margin: 26px 0 24px; }
 .monitor-heading h1 { margin: 0; color: #fff; font-size: clamp(2rem, 4vw, 3.4rem); letter-spacing: -.045em; }
 .monitor-heading p:last-child { margin: 10px 0 0; color: rgba(255,255,255,.67); }

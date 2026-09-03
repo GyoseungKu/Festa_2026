@@ -18,6 +18,7 @@ import org.syu_likelion.Festa_2026.qr.QrDtos.QrTokenResponse;
 import org.syu_likelion.Festa_2026.qr.QrDtos.QrUserView;
 import org.syu_likelion.Festa_2026.qr.QrDtos.UserSearchResponse;
 import org.syu_likelion.Festa_2026.qr.QrDtos.UserRoleUpdateResponse;
+import org.syu_likelion.Festa_2026.qr.QrDtos.UserSchoolVerificationUpdateResponse;
 import org.syu_likelion.Festa_2026.sso.SsoInternalProfileClient;
 import org.syu_likelion.Festa_2026.sso.SsoProfiles.InternalUserProfile;
 import org.syu_likelion.Festa_2026.user.FestivalRole;
@@ -129,6 +130,22 @@ public class QrService {
         return new UserRoleUpdateResponse(targetUuid, roles);
     }
 
+    public AuthorizedResult<UserSchoolVerificationUpdateResponse> updateSchoolVerification(
+            String accessToken, String refreshToken, UUID targetUuid, boolean verified) {
+        AuthorizedResult<MeResponse> authenticated = users.getMe(accessToken, refreshToken);
+        FestivalRole actorRole = highestViewerRole(authenticated.body().festivalRoles());
+        UserSchoolVerificationUpdateResponse response = updateSchoolVerificationAs(actorRole, targetUuid, verified);
+        return new AuthorizedResult<>(response, authenticated.newAccessToken(), authenticated.newRefreshToken());
+    }
+
+    public UserSchoolVerificationUpdateResponse updateSchoolVerificationAs(
+            FestivalRole actorRole, UUID targetUuid, boolean verified) {
+        FestivalUserService.UserFestivalProfile profile =
+                festivalUsers.updateSchoolVerificationByAdmin(actorRole, targetUuid, verified);
+        return new UserSchoolVerificationUpdateResponse(targetUuid, profile.schoolVerificationStatus(),
+                profile.schoolVerified(), profile.schoolVerifiedAt());
+    }
+
     public UUID resolveUserUuid(String qrToken) {
         if (qrToken == null || qrToken.isBlank()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "QR_INVALID_OR_EXPIRED",
@@ -160,23 +177,35 @@ public class QrService {
     }
 
     private QrUserView toView(FestivalRole viewerRole, InternalUserProfile profile) {
+        FestivalUserService.UserFestivalProfile festivalProfile = festivalProfile(profile.userUuid());
         return switch (viewerRole) {
             case BOOTH_MANAGER -> new QrUserView(viewerRole, null, null, null, null, null,
                     maskName(profile.name()), null, maskStudentNo(profile.studentNo()),
-                    profile.department(), profile.grade(), null, null, null, null, null);
+                    profile.department(), profile.grade(), null, null, null, null, null,
+                    festivalProfile.schoolVerificationStatus(), festivalProfile.schoolVerifiedAt());
             case STAFF -> new QrUserView(viewerRole, null, null, null, null, null,
                     maskName(profile.name()), null, maskStudentNo(profile.studentNo()), profile.department(), profile.grade(),
-                    null, null, null, null, null);
+                    null, null, null, null, null,
+                    festivalProfile.schoolVerificationStatus(), festivalProfile.schoolVerifiedAt());
             case ADMIN -> new QrUserView(viewerRole, profile.userUuid(), null, profile.email(), null, null,
                     profile.name(), profile.phone(), profile.studentNo(), profile.department(), profile.grade(),
-                    null, null, null, null, festivalUsers.getRoles(profile.userUuid()));
+                    null, null, null, null, festivalProfile.roles(),
+                    festivalProfile.schoolVerificationStatus(), festivalProfile.schoolVerifiedAt());
             case SUPER_ADMIN -> new QrUserView(viewerRole, profile.userUuid(), profile.loginId(), profile.email(),
                     profile.ssoRole(), profile.status(), profile.name(), profile.phone(), profile.studentNo(),
                     profile.department(), profile.grade(), profile.enrollment(), profile.birthDate(),
-                    profile.createdAt(), profile.updatedAt(), festivalUsers.getRoles(profile.userUuid()));
+                    profile.createdAt(), profile.updatedAt(), festivalProfile.roles(),
+                    festivalProfile.schoolVerificationStatus(), festivalProfile.schoolVerifiedAt());
             case USER -> throw new ApiException(HttpStatus.FORBIDDEN, "QR_SCAN_FORBIDDEN",
                     "QR 사용자 조회 권한이 없습니다.");
         };
+    }
+
+    private FestivalUserService.UserFestivalProfile festivalProfile(UUID userUuid) {
+        FestivalUserService.UserFestivalProfile profile = festivalUsers.getProfile(userUuid);
+        return profile != null ? profile : new FestivalUserService.UserFestivalProfile(
+                festivalUsers.getRoles(userUuid),
+                org.syu_likelion.Festa_2026.user.SchoolVerificationStatus.UNVERIFIED, null);
     }
 
     private boolean matches(InternalUserProfile profile, String term, String digitTerm) {

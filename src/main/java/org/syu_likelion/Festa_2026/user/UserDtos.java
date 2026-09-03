@@ -5,8 +5,11 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Max;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Set;
 import java.util.UUID;
 
@@ -29,17 +32,43 @@ public final class UserDtos {
             LocalDate birthDate,
             LocalDateTime createdAt,
             LocalDateTime updatedAt,
-            Set<FestivalRole> festivalRoles) {
+            Set<FestivalRole> festivalRoles,
+            SchoolVerificationStatus schoolVerificationStatus,
+            Instant schoolVerifiedAt) {
 
-        public MeResponse withFestivalRoles(Set<FestivalRole> roles) {
+        public MeResponse(UUID userUuid, String loginId, String email, String ssoRole, String status,
+                          String name, String phone, String studentNo, String department, Integer grade,
+                          String enrollment, LocalDate birthDate, LocalDateTime createdAt,
+                          LocalDateTime updatedAt, Set<FestivalRole> festivalRoles) {
+            this(userUuid, loginId, email, ssoRole, status, name, phone, studentNo, department, grade,
+                    enrollment, birthDate, createdAt, updatedAt, festivalRoles,
+                    SchoolVerificationStatus.UNVERIFIED, null);
+        }
+
+        public MeResponse withFestivalProfile(FestivalUserService.UserFestivalProfile profile) {
             return new MeResponse(userUuid, loginId, email, ssoRole, status, name, phone,
-                    studentNo, department, grade, enrollment, birthDate, createdAt, updatedAt, roles);
+                    studentNo, department, grade, enrollment, birthDate, createdAt, updatedAt,
+                    profile.roles(), profile.schoolVerificationStatus(), profile.schoolVerifiedAt());
+        }
+
+        @com.fasterxml.jackson.annotation.JsonProperty("schoolVerified")
+        public boolean schoolVerified() {
+            return schoolVerificationStatus == SchoolVerificationStatus.VERIFIED && schoolVerifiedAt != null;
         }
     }
 
     public record ProfileUpdateRequest(
-            @Size(max = 100) String name,
-            @Pattern(regexp = "^$|^[0-9]{10,11}$", message = "전화번호는 숫자 10~11자리여야 합니다.") String phone) { }
+            @Pattern(regexp = "^[0-9]{9,15}$", message = "전화번호는 숫자 9~15자리여야 합니다.") String phone,
+            @Pattern(regexp = ".*\\S.*", message = "학과는 공백일 수 없습니다.")
+            @Size(max = 100) String department,
+            @Min(1) @Max(6) Integer grade,
+            Enrollment enrollment) {
+        public boolean isEmpty() {
+            return phone == null && department == null && grade == null && enrollment == null;
+        }
+    }
+
+    public enum Enrollment { ENROLLED, LEAVE }
 
     public record EmailRequest(@NotBlank @Email String email) { }
 

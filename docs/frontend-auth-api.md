@@ -2,6 +2,8 @@
 
 공통 헤더와 오류 처리는 [공통 API 규약](frontend-api-common.md)을 먼저 확인합니다.
 
+> 학교 SSO를 이용한 회원가입 학적정보 자동입력과 callback 라우트 구현은 [프런트엔드 학교 SSO 연동 가이드](frontend-school-sso.md)를 기준으로 합니다. 이 문서의 학교 SSO 부분은 API 요약입니다.
+
 ## 전체 흐름
 
 ```text
@@ -21,6 +23,8 @@
 | `SCHOOL_SSO` | 학교 SSO에서 검증한 이름, 학번, 학과를 서버가 사용 |
 
 ### 학교 SSO 자동입력 흐름
+
+상세 UI 상태, TypeScript 예시, callback 결과별 처리와 세션 주의사항은 [프런트엔드 학교 SSO 연동 가이드](frontend-school-sso.md)를 참고합니다.
 
 ```text
 1. 브라우저를 GET /api/auth/school/authorize 로 이동
@@ -104,6 +108,23 @@ Content-Type: application/json
 ```
 
 ## 회원가입
+
+### 중복 확인
+
+회원가입 전에 Festa 백엔드를 통해 동아리 SSO의 중복 여부를 확인합니다. 세 API 모두 `{ "available": true }`이면 사용할 수 있는 값입니다.
+
+```http
+GET /api/auth/check/login-id?loginId=festival01
+GET /api/auth/check/email?email=student%40example.com
+GET /api/auth/check/student-no?studentNo=20260001
+GET /api/auth/check/phone?phone=01012345678
+```
+
+```json
+{ "available": true }
+```
+
+전화번호를 입력하지 않는 가입에서는 전화번호 중복 확인을 호출하지 않습니다. 중복 확인 이후 다른 사용자가 먼저 가입할 수 있으므로 최종 가입 요청의 `409 ACCOUNT_CONFLICT`도 처리해야 합니다.
 
 ```http
 POST /api/auth/signup

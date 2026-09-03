@@ -7,6 +7,7 @@
 ## 주요 기능
 
 - SSO 회원가입·로그인·토큰 갱신·계정 관리 중계
+- 학교 SSO 기반 학생 인증, 학적정보 비교와 관리자 승인
 - 위도·경도 기반 부스 지도, 상세 정보, 찜
 - 부스 이미지 최대 5개, 동영상 최대 3개, 통합 정렬 및 대표 미디어 설정
 - 담당 부스 기반 QR 스탬프 지급·회수와 감사 이력
@@ -78,6 +79,7 @@ SSO의 `ssoRole`과 축제 운영 권한은 별개입니다.
 - JDK 21
 - MySQL 8 또는 MariaDB
 - 사용 가능한 SSO OAuth Client
+- 학생 인증을 사용할 경우 학교 SSO OAuth Client와 JWKS 엔드포인트
 - Cloudflare R2 버킷
 
 ### 환경설정
@@ -91,6 +93,8 @@ Copy-Item env.properties.example env.properties
 `env.properties`는 Git에서 제외되고 JAR에도 포함되지 않습니다. 운영 환경에서는 서버 환경변수나 Secret Manager 사용을 권장합니다.
 
 필수값은 DB 계정, SSO Client, R2 자격증명과 메일 계정입니다. `DB_URL`도 배포 환경에 맞게 명시적으로 설정하십시오.
+
+학교 학생 인증을 활성화하려면 `SCHOOL_SSO_ENABLED=true`와 `SYU_SSO_CLIENT_ID`, `SYU_SSO_CLIENT_SECRET`, `SYU_SSO_SUBJECT_HASH_SECRET` 및 학교 SSO URL·Issuer·Audience 설정이 필요합니다. 학번 연결 해시는 별도의 16바이트 이상 `SYU_SSO_SUBJECT_HASH_SECRET` 사용을 권장하며, 비어 있으면 학교 SSO Client Secret을 대신 사용합니다. 전체 변수는 [env.properties.example](env.properties.example)과 [학생 인증 기능 문서](docs/student-verification.md)를 확인합니다.
 
 MySQL `caching_sha2_password` 계정을 TLS 없이 사용하는 개발 환경에서는 JDBC URL에 `allowPublicKeyRetrieval=true`가 필요할 수 있습니다. 운영 환경에서는 DB TLS 또는 신뢰한 RSA 공개키 파일을 우선 사용합니다.
 
@@ -137,6 +141,10 @@ Origin은 경로나 마지막 `/` 없이 `scheme://host[:port]` 형식으로 입
 | POST | `/api/auth/signup/email/send` | 없음 | 회원가입 이메일 인증번호 발송 |
 | POST | `/api/auth/signup/email/verify` | 없음 | 회원가입 이메일 인증번호 확인 |
 | POST | `/api/auth/signup` | 없음 | SSO 회원가입 |
+| GET | `/api/auth/check/login-id` | 없음 | 로그인 아이디 중복 확인 |
+| GET | `/api/auth/check/email` | 없음 | 이메일 중복 확인 |
+| GET | `/api/auth/check/student-no` | 없음 | 학번 중복 확인 |
+| GET | `/api/auth/check/phone` | 없음 | 전화번호 중복 확인 |
 | GET | `/api/auth/school/authorize` | 없음 | 학교 SSO 학적정보 인증 시작(Redirect) |
 | GET | `/api/auth/school/profile` | 학교 SSO 세션 | 검증된 이름·학번·학과 조회 |
 | DELETE | `/api/auth/school/profile` | 학교 SSO 세션 | 임시 학적정보 폐기 |
@@ -160,7 +168,7 @@ Origin은 경로나 마지막 `/` 없이 `scheme://host[:port]` 형식으로 입
 | 환경변수 | 기본값/설명 |
 |---|---|
 | `WELCOME_EMAIL_ENABLED` | `true`, 환영 메일 기능 활성화 |
-| `WELCOME_EMAIL_FROM` | 기본값은 `MAIL_USERNAME`; Gmail에서는 인증 계정 또는 등록된 발신 별칭 사용 |
+| `WELCOME_EMAIL_FROM` | `no-reply@syu-likelion.org`; Gmail에서는 인증 계정 또는 등록된 발신 별칭으로 승인 필요 |
 | `WELCOME_EMAIL_FROM_NAME` | `Likelion SYU`, 발신자 표시 이름 |
 | `WELCOME_EMAIL_SUBJECT` | 환영 메일 제목 |
 | `WELCOME_EMAIL_SITE_URL` | `https://festa.syu-likelion.org` |
@@ -172,12 +180,19 @@ Origin은 경로나 마지막 `/` 없이 `scheme://host[:port]` 형식으로 입
 | Method | Path | 설명 |
 |---|---|---|
 | GET | `/api/users/me` | SSO 내 정보와 축제 역할 조회 |
-| PATCH | `/api/users/me/profile` | 이름·전화번호 수정 |
+| POST | `/api/users/me/school-verification/authorize` | 가입 후 학교 학생 인증 URL 발급 |
+| GET | `/api/users/me/school-verification/department` | 학교·회원 학과 불일치 내용 조회 |
+| POST | `/api/users/me/school-verification/department/confirm` | 학교 학과로 회원정보 수정 후 인증 |
+| PATCH | `/api/users/me/profile` | 전화번호·학과·학년·재학 상태 수정 |
 | POST | `/api/users/me/email/verification` | 새 이메일 인증번호 발송 |
 | POST | `/api/users/me/email/verification/confirm` | 새 이메일 인증번호 확인 |
 | PATCH | `/api/users/me/email` | 인증된 이메일로 변경 |
 | PATCH | `/api/users/me/password` | SSO 비밀번호 변경 후 인증 쿠키 제거 |
 | DELETE | `/api/users/me` | SSO 계정 탈퇴 |
+
+이름·학번 불일치 인증은 `/api/admin/school-verifications`에서 `SUPER_ADMIN`만 목록 조회, 승인, 삭제할 수 있습니다. 인증된 사용자가 프로필 API로 학과를 수정하면 학생 인증 상태는 `REVOKED`가 되며 기존 학교 토큰 확인 시각은 유지됩니다. 관리자 승인은 축제 인증 상태만 변경하며 동아리 SSO 회원정보를 수정하지 않습니다.
+
+현재 미승인 요청에는 자동 만료·정리와 회원 탈퇴 연계가 없고, 동아리 SSO 변경과 축제 DB 저장도 하나의 분산 트랜잭션이 아닙니다. 운영 적용 전 필요한 보완 사항과 정확한 상태·시각 의미는 [학생 인증 기능 문서](docs/student-verification.md)를 기준으로 확인합니다.
 
 ### 부스 지도와 찜
 
@@ -379,6 +394,7 @@ API 오류는 다음 형태로 반환합니다.
 
 ```text
 festival_users
+school_verification_requests
 festival_booths
 festival_booth_managers
 festival_booth_media
@@ -410,6 +426,7 @@ frontend_event_logs
 - 프록시 헤더 신뢰는 기본 비활성화입니다.
 
 Nginx 뒤에서 실제 클라이언트 IP를 기록하려면 외부가 보낸 전달 헤더를 제거하고 프록시가 다시 설정한 뒤 `API_REQUEST_LOG_TRUST_FORWARDED_HEADERS=true`를 사용해야 합니다.
+서버는 `server.forward-headers-strategy=native`로 `X-Forwarded-Proto`/`X-Forwarded-Host`를 반영하므로, 아래처럼 Nginx가 외부 헤더를 덮어써야 리다이렉트 URL이 HTTPS로 생성됩니다.
 
 ```nginx
 location / {
@@ -422,6 +439,8 @@ location / {
     proxy_set_header Forwarded "";
 }
 ```
+
+학교 SSO 콜백 후 복귀 주소는 운영에서 `SYU_SSO_RETURN_URL=https://festa.syu-likelion.org/temporary-auth`처럼 절대 HTTPS URL로 설정합니다. `/temporary-auth`는 프런트엔드가 callback 결과 쿼리를 처리하는 경로이며, 백엔드는 해당 UI를 제공하지 않습니다.
 
 Actuator는 기본적으로 `127.0.0.1:9091`에서 `health`, `prometheus`만 노출합니다. `/admin/system`의 최근 5분 그래프는 해당 브라우저 메모리에만 유지되며, 다중 인스턴스 통합 모니터링은 외부 Prometheus/Grafana 구성이 필요합니다.
 
@@ -444,6 +463,7 @@ Swagger UI의 **Authorize**에는 SSO Access Token 원문만 입력합니다. `B
 주요 검증 범위:
 
 - SSO 인증, 토큰 rotation과 권한별 개인정보 마스킹
+- 학교 SSO 학생 인증, 학적정보 불일치 처리와 인증 상태 노출
 - 부스·찜·통합 미디어 정렬과 대표 미디어
 - 스탬프 중복 방지, 담당 부스 권한과 감사 이력 페이지네이션
 - 공연·분실물·생일축하 쪽지의 권한과 제한
@@ -457,8 +477,10 @@ Swagger UI의 **Authorize**에는 SSO Access Token 원문만 입력합니다. `B
 - [프런트 API 문서 목차](docs/README.md)
 - [공통 API 규약](docs/frontend-api-common.md)
 - [인증·회원가입](docs/frontend-auth-api.md)
+- [프런트엔드 학교 SSO 연동](docs/frontend-school-sso.md)
 - [계정 복구](docs/frontend-account-recovery-api.md)
 - [내 정보·계정](docs/frontend-user-api.md)
+- [학생 인증 기능](docs/student-verification.md)
 - [비밀번호 변경](docs/frontend-password-change-api.md)
 - [부스 지도](docs/frontend-booths-api.md)
 - [스탬프](docs/frontend-stamps-api.md)

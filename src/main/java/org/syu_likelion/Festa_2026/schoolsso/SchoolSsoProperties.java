@@ -21,7 +21,8 @@ public record SchoolSsoProperties(
         Duration profileTtl,
         Duration keyCacheTtl,
         Duration clockSkew,
-        Duration maximumTokenAge) {
+        Duration maximumTokenAge,
+        String subjectHashSecret) {
     public SchoolSsoProperties {
         connectTimeout = connectTimeout == null ? Duration.ofSeconds(3) : connectTimeout;
         readTimeout = readTimeout == null ? Duration.ofSeconds(5) : readTimeout;

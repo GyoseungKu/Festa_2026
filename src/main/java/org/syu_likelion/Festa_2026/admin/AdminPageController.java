@@ -17,6 +17,7 @@ import org.syu_likelion.Festa_2026.auth.AuthorizedSsoExecutor.AuthorizedResult;
 import org.syu_likelion.Festa_2026.error.ApiException;
 import org.syu_likelion.Festa_2026.qr.QrService;
 import org.syu_likelion.Festa_2026.user.FestivalRole;
+import org.syu_likelion.Festa_2026.user.SchoolVerificationApprovalService;
 import org.syu_likelion.Festa_2026.sso.SsoException;
 
 @Controller
@@ -25,13 +26,16 @@ public class AdminPageController {
     private final AdminAccessService adminAccess;
     private final AdminCookieManager cookies;
     private final QrService qrService;
+    private final SchoolVerificationApprovalService schoolVerifications;
 
     public AdminPageController(AuthService auth, AdminAccessService adminAccess,
-                               AdminCookieManager cookies, QrService qrService) {
+                               AdminCookieManager cookies, QrService qrService,
+                               SchoolVerificationApprovalService schoolVerifications) {
         this.auth = auth;
         this.adminAccess = adminAccess;
         this.cookies = cookies;
         this.qrService = qrService;
+        this.schoolVerifications = schoolVerifications;
     }
 
     @GetMapping("/admin/login")
@@ -154,6 +158,30 @@ public class AdminPageController {
         return "admin/qr-scan";
     }
 
+    @PostMapping("/admin/qr/users/{userUuid}/school-verification")
+    String updateSchoolVerification(@PathVariable UUID userUuid, @RequestParam boolean verified,
+                                    @RequestParam(required = false) String query,
+                                    @RequestParam(defaultValue = "0") int page,
+                                    HttpServletRequest request, HttpServletResponse response, Model model) {
+        AuthorizedResult<AdminIdentity> admin = authenticateOrNull(request, response);
+        if (admin == null) return "redirect:/admin/login";
+        addAdmin(model, admin.body());
+        model.addAttribute("searchQuery", query);
+        try {
+            qrService.updateSchoolVerificationAs(admin.body().role(), userUuid, verified);
+            model.addAttribute("message", verified ? "학생 인증을 완료 처리했습니다." : "학생 인증을 회수했습니다.");
+            if (query != null && !query.isBlank())
+                addSearchResult(model, qrService.searchAs(admin.body().role(), query, page, 20));
+        } catch (ApiException exception) {
+            model.addAttribute("error", exception.getMessage());
+            if (query != null && !query.isBlank()) {
+                try { addSearchResult(model, qrService.searchAs(admin.body().role(), query, page, 20)); }
+                catch (RuntimeException ignored) { /* 원래 학생 인증 변경 오류를 우선 표시합니다. */ }
+            }
+        }
+        return "admin/qr-scan";
+    }
+
     private AuthorizedResult<AdminIdentity> authenticateOrNull(HttpServletRequest request,
                                                                HttpServletResponse response) {
         try {
@@ -189,12 +217,16 @@ public class AdminPageController {
         model.addAttribute("canManageBirthdayMessages", canManageStaffFeatures);
         model.addAttribute("canManageBamboo", canManageStaffFeatures);
         model.addAttribute("canMonitorSystem", superAdmin);
+        model.addAttribute("canManageSchoolVerifications", superAdmin);
+        model.addAttribute("schoolVerificationRequestCount",
+                superAdmin ? schoolVerifications.list().size() : 0);
         model.addAttribute("canManageUserRoles", canManagePerformances);
+        model.addAttribute("canManageUserSchoolVerification", canManagePerformances);
         model.addAttribute("managementRoleOptions", superAdmin
                 ? List.of(FestivalRole.USER, FestivalRole.STAFF, FestivalRole.ADMIN, FestivalRole.SUPER_ADMIN)
                 : canManagePerformances ? List.of(FestivalRole.USER, FestivalRole.STAFF) : List.of());
         model.addAttribute("availableFeatureCount", 1 + (canManageStaffFeatures ? 2 : 0)
-                + (canManagePerformances ? 3 : 0) + (canManageStamps ? 1 : 0) + (superAdmin ? 1 : 0));
+                + (canManagePerformances ? 3 : 0) + (canManageStamps ? 1 : 0) + (superAdmin ? 2 : 0));
     }
 
     private void addSearchResult(Model model, org.syu_likelion.Festa_2026.qr.QrDtos.UserSearchResponse result) {

@@ -14,6 +14,8 @@ import org.syu_likelion.Festa_2026.user.UserDtos.MeResponse;
 import org.syu_likelion.Festa_2026.user.UserDtos.PasswordChangeRequest;
 import org.syu_likelion.Festa_2026.user.UserDtos.ProfileUpdateRequest;
 import org.syu_likelion.Festa_2026.logging.ApiRequestContext;
+import org.syu_likelion.Festa_2026.error.ApiException;
+import org.springframework.http.HttpStatus;
 
 @Service
 public class UserService {
@@ -46,10 +48,17 @@ public class UserService {
     }
 
     public AuthorizedResult<MeResponse> updateProfile(String access, String refresh, ProfileUpdateRequest request) {
+        if (request == null || request.isEmpty()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "PROFILE_UPDATE_REQUIRED",
+                    "변경할 개인정보를 하나 이상 입력해 주세요.");
+        }
         AuthorizedResult<MeResponse> result = executor.execute(access, refresh, token -> {
             client.updateProfile(token, request);
             return client.getMe(token);
         });
+        if (request.department() != null) {
+            festivalUsers.revokeSchoolVerification(result.body().userUuid());
+        }
         return withRoles(result);
     }
 
@@ -76,7 +85,7 @@ public class UserService {
     private AuthorizedResult<MeResponse> withRoles(AuthorizedResult<MeResponse> result) {
         MeResponse me = result.body();
         ApiRequestContext.markAuthenticatedUser(me.userUuid());
-        MeResponse enriched = me.withFestivalRoles(festivalUsers.linkAndGetRoles(me.userUuid()));
+        MeResponse enriched = me.withFestivalProfile(festivalUsers.linkAndGetProfile(me.userUuid()));
         return new AuthorizedResult<>(enriched, result.newAccessToken(), result.newRefreshToken());
     }
 
