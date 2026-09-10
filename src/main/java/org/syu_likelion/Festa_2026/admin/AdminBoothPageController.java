@@ -105,5 +105,5 @@ public class AdminBoothPageController {
         } catch (RuntimeException invalidLogin) { cookies.clear(response); return null; }
     }
     private String redirect(HttpServletRequest request) { return cookies.readAccessToken(request) == null ? "redirect:/admin/login" : "redirect:/admin"; }
-    private void common(Model model, AdminIdentity admin) { model.addAttribute("adminName", admin.displayName()); model.addAttribute("adminRole", admin.role()); }
+    private void common(Model model, AdminIdentity admin) { model.addAttribute("adminName", admin.displayName()); model.addAttribute("adminRole", admin.role()); model.addAttribute("adminNavigationRoles", admin.roles()); }
 }

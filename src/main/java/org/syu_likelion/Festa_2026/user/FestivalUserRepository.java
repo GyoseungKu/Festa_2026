@@ -10,6 +10,9 @@ import org.springframework.data.jpa.repository.Lock;
 import jakarta.persistence.LockModeType;
 
 public interface FestivalUserRepository extends JpaRepository<FestivalUser, Long> {
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select u from FestivalUser u order by u.id")
+    List<FestivalUser> findAllForFeeUpdate();
     Optional<FestivalUser> findByUserUuid(UUID userUuid);
     List<FestivalUser> findAllByUserUuidIn(Collection<UUID> userUuids);
     @Query("select user.userUuid from FestivalUser user order by user.id")

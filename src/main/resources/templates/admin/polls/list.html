@@ -2,8 +2,12 @@
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
     <title>투표 관리 | 천보축전 관리자페이지</title><link rel="icon" type="image/svg+xml" th:href="@{/images/favicon.svg}">
-    <link rel="stylesheet" th:href="@{/css/admin.css}"></head>
-<body>
+    <link rel="stylesheet" th:href="@{/css/admin.css}">
+<link rel="stylesheet" th:href="@{/css/admin-console.css}"></head>
+<body class="admin-page">
+<div class="admin-layout">
+<aside th:replace="~{admin/fragments/sidebar :: sidebar}"></aside>
+<div class="admin-workspace">
 <header class="admin-header"><a class="admin-logo" th:href="@{/admin}"><img class="brand-logo" th:src="@{/images/Logo.webp}" alt="천보축전 로고"></a>
     <div class="admin-account"><div><strong th:text="${adminName}">관리자</strong><span th:text="${adminRole}">ADMIN</span></div>
         <form method="post" th:action="@{/admin/logout}"><button class="button button-ghost button-small">로그아웃</button></form></div></header>
@@ -27,4 +31,5 @@
                 <a class="button button-secondary" th:href="@{/admin/polls/{id}/edit(id=${poll.id})}">수정</a></div>
         </article>
     </section>
-</main><div th:replace="~{admin/fragments/footer :: footer(true)}"></div></body></html>
+</main><div th:replace="~{admin/fragments/footer :: footer(true)}"></div></div></div>
+</body></html>

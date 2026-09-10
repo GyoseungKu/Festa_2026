@@ -29,7 +29,11 @@ public final class QrDtos {
     public record UserSchoolVerificationUpdateResponse(UUID userUuid,
                                                         SchoolVerificationStatus schoolVerificationStatus,
                                                         boolean schoolVerified,
-                                                        Instant schoolVerifiedAt) { }
+                                                        Instant schoolVerifiedAt, boolean studentFeePaid) {
+        public UserSchoolVerificationUpdateResponse(UUID userUuid, SchoolVerificationStatus status, boolean verified, Instant at) {
+            this(userUuid, status, verified, at, false);
+        }
+    }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record QrUserView(
@@ -50,7 +54,16 @@ public final class QrDtos {
             String updatedAt,
             Set<FestivalRole> festivalRoles,
             SchoolVerificationStatus schoolVerificationStatus,
-            Instant schoolVerifiedAt) {
+            Instant schoolVerifiedAt, boolean studentFeePaid) {
+        public QrUserView(FestivalRole viewerRole, UUID userUuid, String loginId, String email,
+                          String ssoRole, String status, String name, String phone, String studentNo,
+                          String department, Integer grade, String enrollment, String birthDate,
+                          String createdAt, String updatedAt, Set<FestivalRole> festivalRoles,
+                          SchoolVerificationStatus verificationStatus, Instant verifiedAt) {
+            this(viewerRole, userUuid, loginId, email, ssoRole, status, name, phone, studentNo,
+                    department, grade, enrollment, birthDate, createdAt, updatedAt, festivalRoles,
+                    verificationStatus, verifiedAt, false);
+        }
         public QrUserView(FestivalRole viewerRole, UUID userUuid, String loginId, String email,
                           String ssoRole, String status, String name, String phone, String studentNo,
                           String department, Integer grade, String enrollment, String birthDate,

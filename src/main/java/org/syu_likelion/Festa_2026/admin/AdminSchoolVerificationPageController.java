@@ -39,7 +39,7 @@ public class AdminSchoolVerificationPageController {
         }
         if (!authenticated.body().hasRole(FestivalRole.SUPER_ADMIN)) return "redirect:/admin";
         model.addAttribute("adminName", authenticated.body().displayName());
-        model.addAttribute("adminRole", authenticated.body().role());
+        model.addAttribute("adminRole", authenticated.body().role()); model.addAttribute("adminNavigationRoles", authenticated.body().roles());
         model.addAttribute("verificationRequests", approvals.list());
         return "admin/school-verifications";
     }

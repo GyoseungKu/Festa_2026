@@ -4,8 +4,12 @@
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:text="${editing ? '부스 수정' : '부스 등록'} + ' | 천보축전 관리자페이지'">부스 등록</title>
     <link rel="icon" type="image/svg+xml" th:href="@{/images/favicon.svg}"><link rel="stylesheet" th:href="@{/css/admin.css}">
+<link rel="stylesheet" th:href="@{/css/admin-console.css}">
 </head>
-<body>
+<body class="admin-page">
+<div class="admin-layout">
+<aside th:replace="~{admin/fragments/sidebar :: sidebar}"></aside>
+<div class="admin-workspace">
 <header class="admin-header">
     <a class="admin-logo" th:href="@{/admin}"><img class="brand-logo" th:src="@{/images/Logo.webp}" alt="천보축전 로고"></a>
     <div class="admin-account"><div><strong th:text="${adminName}">관리자</strong><span th:text="${adminRole}">ADMIN</span></div>
@@ -133,5 +137,6 @@ renderSelectedManagers();
 const order = document.getElementById('mediaOrder');
 if (order) order.addEventListener('click', event => { const row = event.target.closest('.booth-media-row'); if (!row) return; if (event.target.classList.contains('move-up') && row.previousElementSibling) order.insertBefore(row, row.previousElementSibling); if (event.target.classList.contains('move-down') && row.nextElementSibling) order.insertBefore(row.nextElementSibling, row); });
 </script>
+</div></div>
 </body>
 </html>

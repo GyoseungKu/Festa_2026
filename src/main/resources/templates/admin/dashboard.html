@@ -6,8 +6,12 @@
     <title>관리자 홈 | SYU FESTA 2026</title>
     <link rel="icon" type="image/svg+xml" th:href="@{/images/favicon.svg}" href="/images/favicon.svg">
     <link rel="stylesheet" th:href="@{/css/admin.css}">
+<link rel="stylesheet" th:href="@{/css/admin-console.css}">
 </head>
-<body>
+<body class="admin-page">
+<div class="admin-layout">
+<aside th:replace="~{admin/fragments/sidebar :: sidebar}"></aside>
+<div class="admin-workspace">
 <header class="admin-header">
     <a class="admin-logo" th:href="@{/admin}">
         <img class="brand-logo" th:src="@{/images/Logo.webp}" src="/images/Logo.webp" alt="천보축전 로고">
@@ -33,6 +37,11 @@
         <div class="hero-orb" aria-hidden="true"><span>2026</span></div>
     </section>
 
+    <section class="admin-stats" aria-label="운영 계정 요약">
+        <article class="admin-panel"><span class="admin-muted">사용 가능한 관리 기능</span><strong th:text="|${availableFeatureCount}개|"></strong></article>
+        <article class="admin-panel"><span class="admin-muted">현재 관리 권한</span><strong th:text="${adminRole}"></strong></article>
+        <article class="admin-panel"><span class="admin-muted">로그인 계정</span><strong th:text="${adminName}"></strong></article>
+    </section>
     <section class="feature-section">
         <div class="section-heading">
             <div>
@@ -43,6 +52,9 @@
         </div>
 
         <div class="feature-grid">
+            <a class="feature-card" th:if="${canManagePerformances}" th:href="@{/admin/student-fees}">
+                <span class="feature-icon" aria-hidden="true">₩</span><h3>학생회비 납부자 관리</h3><p>납부자 학번 등록·검색·삭제</p>
+            </a>
             <a class="feature-card" th:if="${canManagePerformances}" th:href="@{/admin/sponsors}">
                 <span class="feature-icon" aria-hidden="true">★</span>
                 <div><span class="feature-status">ADMIN 이상</span><h3>협찬사 관리</h3>
@@ -167,5 +179,6 @@
     </section>
 </main>
 <div th:replace="~{admin/fragments/footer :: footer(true)}"></div>
+</div></div>
 </body>
 </html>

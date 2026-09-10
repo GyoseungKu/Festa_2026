@@ -69,6 +69,7 @@ type SchoolVerificationFields = {
   schoolVerificationStatus: "UNVERIFIED" | "VERIFIED" | "REVOKED";
   schoolVerified: boolean;
   schoolVerifiedAt: string | null;
+  studentFeePaid: boolean; // 미인증은 항상 false; UI에서는 학생인증 필요로 표시
 };
 ```
 
@@ -152,7 +153,8 @@ Content-Type: application/json
   "userUuid": "123e4567-e89b-12d3-a456-426614174099",
   "schoolVerificationStatus": "VERIFIED",
   "schoolVerified": true,
-  "schoolVerifiedAt": "2026-09-03T03:00:00Z"
+  "schoolVerifiedAt": "2026-09-03T03:00:00Z",
+  "studentFeePaid": false
 }
 ```
 

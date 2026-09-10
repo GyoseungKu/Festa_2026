@@ -1,5 +1,7 @@
 # Festa_2026 Backend
 
+학생회비 납부자 관리(`/admin/student-fees`): ADMIN 이상 학번 붙여넣기·검색·삭제 및 학생인증 연동 자동 확인. [상세 문서](docs/student-fees.md)
+
 협찬사 관리: `/admin/sponsors`에서 ADMIN/SUPER_ADMIN이 이름·설명·사진 1개·선택적 부스 연결을 관리합니다. [협찬사 API 문서](docs/frontend-sponsors-api.md)를 참고하세요.
 
 삼육대학교 2026 천보축전 서비스의 Spring Boot 백엔드입니다.

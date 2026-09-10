@@ -48,6 +48,23 @@ public class FestivalUser {
     @Column(name = "school_subject_hash", length = 64, unique = true)
     private String schoolSubjectHash;
 
+    @Column(name = "student_fee_paid", nullable = false, columnDefinition = "boolean default false")
+    private boolean studentFeePaid;
+    @Column(name = "student_fee_subject_hash", length = 64)
+    private String studentFeeSubjectHash;
+
+    public boolean isSchoolVerified() {
+        return schoolVerificationStatus == SchoolVerificationStatus.VERIFIED && schoolVerifiedAt != null;
+    }
+    public boolean isStudentFeePaid() { return isSchoolVerified() && studentFeePaid; }
+    public String getStudentFeeSubjectHash() {
+        return studentFeeSubjectHash != null ? studentFeeSubjectHash : schoolSubjectHash;
+    }
+    public void updateStudentFee(String hash, boolean paid) {
+        studentFeeSubjectHash = isSchoolVerified() ? hash : null;
+        studentFeePaid = isSchoolVerified() && hash != null && paid;
+    }
+
     @Column(name = "welcome_email_sent_at")
     private Instant welcomeEmailSentAt;
 
@@ -81,7 +98,10 @@ public class FestivalUser {
     }
 
     @PreUpdate
-    void preUpdate() { updatedAt = Instant.now(); }
+    void preUpdate() {
+        if (!isSchoolVerified()) studentFeePaid = false;
+        updatedAt = Instant.now();
+    }
 
     public UUID getUserUuid() { return userUuid; }
     public Set<FestivalRole> getRoles() {
@@ -114,6 +134,8 @@ public class FestivalUser {
     }
 
     public void revokeSchoolVerification() {
+        studentFeePaid = false;
+        studentFeeSubjectHash = null;
         if (schoolVerificationStatus == SchoolVerificationStatus.VERIFIED) {
             schoolVerificationStatus = SchoolVerificationStatus.REVOKED;
         }

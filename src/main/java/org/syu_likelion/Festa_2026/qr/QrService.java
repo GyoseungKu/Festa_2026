@@ -143,7 +143,7 @@ public class QrService {
         FestivalUserService.UserFestivalProfile profile =
                 festivalUsers.updateSchoolVerificationByAdmin(actorRole, targetUuid, verified);
         return new UserSchoolVerificationUpdateResponse(targetUuid, profile.schoolVerificationStatus(),
-                profile.schoolVerified(), profile.schoolVerifiedAt());
+                profile.schoolVerified(), profile.schoolVerifiedAt(), profile.studentFeePaid());
     }
 
     public UUID resolveUserUuid(String qrToken) {
@@ -182,20 +182,20 @@ public class QrService {
             case BOOTH_MANAGER -> new QrUserView(viewerRole, null, null, null, null, null,
                     maskName(profile.name()), null, maskStudentNo(profile.studentNo()),
                     profile.department(), profile.grade(), null, null, null, null, null,
-                    festivalProfile.schoolVerificationStatus(), festivalProfile.schoolVerifiedAt());
+                    festivalProfile.schoolVerificationStatus(), festivalProfile.schoolVerifiedAt(), festivalProfile.studentFeePaid());
             case STAFF -> new QrUserView(viewerRole, null, null, null, null, null,
                     maskName(profile.name()), null, maskStudentNo(profile.studentNo()), profile.department(), profile.grade(),
                     null, null, null, null, null,
-                    festivalProfile.schoolVerificationStatus(), festivalProfile.schoolVerifiedAt());
+                    festivalProfile.schoolVerificationStatus(), festivalProfile.schoolVerifiedAt(), festivalProfile.studentFeePaid());
             case ADMIN -> new QrUserView(viewerRole, profile.userUuid(), null, profile.email(), null, null,
                     profile.name(), profile.phone(), profile.studentNo(), profile.department(), profile.grade(),
                     null, null, null, null, festivalProfile.roles(),
-                    festivalProfile.schoolVerificationStatus(), festivalProfile.schoolVerifiedAt());
+                    festivalProfile.schoolVerificationStatus(), festivalProfile.schoolVerifiedAt(), festivalProfile.studentFeePaid());
             case SUPER_ADMIN -> new QrUserView(viewerRole, profile.userUuid(), profile.loginId(), profile.email(),
                     profile.ssoRole(), profile.status(), profile.name(), profile.phone(), profile.studentNo(),
                     profile.department(), profile.grade(), profile.enrollment(), profile.birthDate(),
                     profile.createdAt(), profile.updatedAt(), festivalProfile.roles(),
-                    festivalProfile.schoolVerificationStatus(), festivalProfile.schoolVerifiedAt());
+                    festivalProfile.schoolVerificationStatus(), festivalProfile.schoolVerifiedAt(), festivalProfile.studentFeePaid());
             case USER -> throw new ApiException(HttpStatus.FORBIDDEN, "QR_SCAN_FORBIDDEN",
                     "QR 사용자 조회 권한이 없습니다.");
         };

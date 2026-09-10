@@ -167,7 +167,7 @@ public class AdminLostItemPageController {
 
     private void common(Model model, AdminIdentity admin) {
         model.addAttribute("adminName", admin.displayName());
-        model.addAttribute("adminRole", admin.role());
+        model.addAttribute("adminRole", admin.role()); model.addAttribute("adminNavigationRoles", admin.roles());
         model.addAttribute("statuses", LostItemStatus.values());
         model.addAttribute("sortOptions", LostItemSort.values());
         model.addAttribute("seoulZone", SEOUL);

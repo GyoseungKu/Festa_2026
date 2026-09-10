@@ -122,7 +122,7 @@ public class AdminStampPageController {
         if (selectedId != null && available.stream().noneMatch(booth -> booth.getId().equals(selectedId)))
             throw new ApiException(org.springframework.http.HttpStatus.FORBIDDEN, "STAMP_MANAGE_FORBIDDEN", "스탬프 관리 권한이 없습니다.");
         model.addAttribute("adminName", admin.displayName());
-        model.addAttribute("adminRole", admin.role());
+        model.addAttribute("adminRole", admin.role()); model.addAttribute("adminNavigationRoles", admin.roles());
         model.addAttribute("seoulZone", java.time.ZoneId.of("Asia/Seoul"));
         model.addAttribute("booths", available);
         model.addAttribute("selectedBoothId", selectedId);

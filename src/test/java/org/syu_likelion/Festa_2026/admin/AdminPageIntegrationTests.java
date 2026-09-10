@@ -79,6 +79,19 @@ import org.syu_likelion.Festa_2026.poll.PollService;
 })
 @AutoConfigureMockMvc
 class AdminPageIntegrationTests {
+    @Test
+    void sidebarKeepsCombinedRolesAndHighlightsDashboard() throws Exception {
+        var combined = new AdminIdentity(UUID.randomUUID(), "운영자", FestivalRole.STAFF,
+                Set.of(FestivalRole.STAFF, FestivalRole.BOOTH_MANAGER));
+        when(adminAccess.authenticate("combined", null)).thenReturn(new AuthorizedResult<>(combined, null, null));
+        var response = mvc.perform(get("/admin").cookie(new Cookie("festivalAdminAccess", "combined")))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("admin-console.css"))).andReturn().getResponse();
+        String html = response.getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        String sidebar = html.substring(html.indexOf("<aside"), html.indexOf("</aside>"));
+        assertThat(sidebar).contains("href=\"/admin/stamps\"").doesNotContain("href=\"/admin/sponsors\"");
+        assertThat(sidebar).containsPattern("(?s)<a[^>]*href=\"/admin\"[^>]*aria-current=\"page\"");
+    }
     private static final UUID ADMIN_UUID = UUID.fromString("123e4567-e89b-12d3-a456-426614174010");
 
     @Autowired MockMvc mvc;

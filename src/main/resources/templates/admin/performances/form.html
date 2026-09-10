@@ -6,8 +6,12 @@
     <title th:text="${editing ? '공연팀 수정' : '공연팀 등록'} + ' | 천보축전 관리자페이지'">공연팀 등록</title>
     <link rel="icon" type="image/svg+xml" th:href="@{/images/favicon.svg}" href="/images/favicon.svg">
     <link rel="stylesheet" th:href="@{/css/admin.css}">
+<link rel="stylesheet" th:href="@{/css/admin-console.css}">
 </head>
-<body>
+<body class="admin-page">
+<div class="admin-layout">
+<aside th:replace="~{admin/fragments/sidebar :: sidebar}"></aside>
+<div class="admin-workspace">
 <header class="admin-header">
     <a class="admin-logo" th:href="@{/admin}">
         <img class="brand-logo" th:src="@{/images/Logo.webp}" src="/images/Logo.webp" alt="천보축전 로고">
@@ -129,5 +133,6 @@
     </form>
 </main>
 <div th:replace="~{admin/fragments/footer :: footer(true)}"></div>
+</div></div>
 </body>
 </html>

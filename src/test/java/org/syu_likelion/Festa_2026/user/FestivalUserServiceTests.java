@@ -28,7 +28,7 @@ class FestivalUserServiceTests {
         schoolSubjects = mock(SchoolSubjectHasher.class);
         service = new FestivalUserService(repository,
                 Clock.fixed(Instant.parse("2026-08-18T12:00:00Z"), ZoneOffset.UTC),
-                schoolSubjects);
+                schoolSubjects, mock(org.syu_likelion.Festa_2026.fee.StudentFeeService.class));
     }
 
     @Test void adminCanChangeUserToStaffWithoutRemovingBoothManagerRole() {

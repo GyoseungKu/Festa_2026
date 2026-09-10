@@ -5,8 +5,12 @@
     <title>생일축하 쪽지 관리 | 천보축전 관리자</title>
     <link rel="icon" type="image/svg+xml" th:href="@{/images/favicon.svg}">
     <link rel="stylesheet" th:href="@{/css/admin.css}">
+<link rel="stylesheet" th:href="@{/css/admin-console.css}">
 </head>
-<body>
+<body class="admin-page">
+<div class="admin-layout">
+<aside th:replace="~{admin/fragments/sidebar :: sidebar}"></aside>
+<div class="admin-workspace">
 <header class="admin-header">
     <a class="admin-logo" th:href="@{/admin}"><img class="brand-logo" th:src="@{/images/Logo.webp}" alt="천보축전 로고"></a>
     <div class="admin-account"><div><strong th:text="${adminName}">관리자</strong><span th:text="${adminRole}">STAFF</span></div>
@@ -40,4 +44,5 @@
     </nav>
 </main>
 <div th:replace="~{admin/fragments/footer :: footer(true)}"></div>
+</div></div>
 </body></html>

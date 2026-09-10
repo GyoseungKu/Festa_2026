@@ -90,7 +90,7 @@ public class AdminSponsorPageController {
                     "SPONSOR_MANAGE_FORBIDDEN", "협찬사 관리는 ADMIN 이상만 가능합니다.");
         model.addAttribute("actor", actor);
         model.addAttribute("adminName", actor.displayName());
-        model.addAttribute("adminRole", actor.role());
+        model.addAttribute("adminRole", actor.role()); model.addAttribute("adminNavigationRoles", actor.roles());
         return true;
     }
     private void form(Model model, Long id, String name, String description, Long boothId) {
@@ -102,4 +102,3 @@ public class AdminSponsorPageController {
         model.addAttribute("imageUrl", id == null ? null : sponsors.get(id).imageUrl());
     }
 }
-

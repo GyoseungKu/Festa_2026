@@ -5,10 +5,14 @@
     <title>스탬프 지급 관리 | 천보축전 관리자페이지</title>
     <link rel="icon" type="image/svg+xml" th:href="@{/images/favicon.svg}">
     <link rel="stylesheet" th:href="@{/css/admin.css}">
+<link rel="stylesheet" th:href="@{/css/admin-console.css}">
     <script defer th:src="@{/webjars/jsqr/1.4.0/dist/jsQR.js}"></script>
     <script defer th:src="@{/js/admin-qr.js}"></script>
 </head>
-<body>
+<body class="admin-page">
+<div class="admin-layout">
+<aside th:replace="~{admin/fragments/sidebar :: sidebar}"></aside>
+<div class="admin-workspace">
 <header class="admin-header">
     <a class="admin-logo" th:href="@{/admin}"><img class="brand-logo" th:src="@{/images/Logo.webp}" alt="천보축전 로고"></a>
     <div class="admin-account"><div><strong th:text="${adminName}">관리자</strong><span th:text="${adminRole}">BOOTH_MANAGER</span></div>
@@ -129,5 +133,6 @@
     </div>
 </main>
 <div th:replace="~{admin/fragments/footer :: footer(true)}"></div>
+</div></div>
 </body>
 </html>

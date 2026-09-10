@@ -4,8 +4,12 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>협찬사 관리 | 천보축전</title>
 <link rel="stylesheet" th:href="@{/css/admin.css}">
+<link rel="stylesheet" th:href="@{/css/admin-console.css}">
 </head>
-<body>
+<body class="admin-page">
+<div class="admin-layout">
+<aside th:replace="~{admin/fragments/sidebar :: sidebar}"></aside>
+<div class="admin-workspace">
 <header class="admin-header">
 <a class="admin-logo" th:href="@{/admin}"><img class="brand-logo" th:src="@{/images/Logo.webp}" alt="천보축전"></a>
 <div class="admin-account"><div><strong th:text="${adminName}"></strong><span th:text="${adminRole}"></span></div>
@@ -25,5 +29,5 @@
 <div class="lost-item-quick-actions"><a class="button button-secondary" th:href="@{/admin/sponsors/{id}/edit(id=${item.id})}">수정</a>
 <form method="post" th:action="@{/admin/sponsors/{id}/delete(id=${item.id})}" onsubmit="return confirm('협찬사를 삭제할까요?');"><button type="submit" class="button button-danger">삭제</button></form>
 </div></div></article></section>
-</main><div th:replace="~{admin/fragments/footer :: footer(true)}"></div></body></html>
-
+</main><div th:replace="~{admin/fragments/footer :: footer(true)}"></div></div></div>
+</body></html>

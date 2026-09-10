@@ -31,10 +31,13 @@ type MeResponse = {
   schoolVerificationStatus: "UNVERIFIED" | "VERIFIED" | "REVOKED";
   schoolVerified: boolean;
   schoolVerifiedAt: string | null;
+  studentFeePaid: boolean; // 학생인증 완료 + 납부자 명단 일치일 때만 true
 };
 ```
 
 기존 SSO 계정은 프로필·학적 필드가 `null`일 수 있습니다. 화면에서 빈 값 처리를 반드시 합니다.
+
+학생인증 전에는 납부 상태 대신 "학생인증 필요"로 표시하세요. [학생회비 확인 정책](student-fees.md)을 참고하세요.
 
 ## 개인정보 수정
 

@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>학생회비 납부자 관리</title><link rel="stylesheet" th:href="@{/css/admin.css}">
+<link rel="stylesheet" th:href="@{/css/admin-console.css}"></head>
+<body class="admin-page">
+<div class="admin-layout">
+<aside th:replace="~{admin/fragments/sidebar :: sidebar}"></aside>
+<div class="admin-workspace"><header class="admin-header"><a class="admin-logo" th:href="@{/admin}">천보축전 관리자</a>
+<div class="admin-account"><strong th:text="${adminName}"></strong><span th:text="${adminRole}"></span>
+<form method="post" th:action="@{/admin/logout}"><button class="button button-ghost">로그아웃</button></form></div></header>
+<main class="admin-main"><section class="management-toolbar"><div><h1>학생회비 납부자 관리</h1>
+<p>사용자 조회와 별개의 납부자 명단입니다. 명단 등록만으로 학생인증되지는 않습니다.</p></div></section>
+<p class="alert alert-success" th:if="${message}" th:text="${message}"></p>
+<p class="alert alert-error" th:if="${error}" th:text="${error}"></p>
+<form class="form-section" method="post" th:action="@{/admin/student-fees}">
+<label class="field-group"><span>학번 입력·붙여넣기</span><textarea name="studentNumbers" rows="8" maxlength="200000" required placeholder="2022**0062&#10;2024100920"></textarea></label>
+<p>엑셀에서 제목 행을 제외한 학번 열만 복사하세요. 줄바꿈·탭·공백·쉼표로 구분, 최대 10,000개. 가운데 **는 10으로 변환됩니다. 중복은 건너뛰며 기존 명단은 유지합니다.</p>
+<button class="button button-primary" type="submit">명단 추가 및 재검증</button></form>
+<section class="form-section"><form method="get" th:action="@{/admin/student-fees}">
+<label class="field-group"><span>학번 검색</span><input name="query" th:value="${query}" maxlength="10" placeholder="학번 전체 또는 일부"></label>
+<button class="button button-secondary" type="submit">검색</button></form>
+<p th:text="|총 ${payers.totalElements}건|"></p>
+<div class="lost-item-quick-actions" th:each="payer : ${payers.content}"><span th:text="${payer.studentNo}"></span>
+<form method="post" th:action="@{/admin/student-fees/delete}" onsubmit="return confirm('명단에서 삭제하고 납부 여부를 재검증할까요?');">
+<input type="hidden" name="studentNo" th:value="${payer.studentNo}"><button class="button button-danger" type="submit">삭제</button></form></div>
+<nav th:if="${payers.totalPages > 1}" aria-label="납부자 목록 페이지">
+<a th:if="${payers.hasPrevious()}" th:href="@{/admin/student-fees(query=${query},page=${payers.number - 1})}">이전</a>
+<a class="button button-secondary" th:each="p : ${#numbers.sequence(T(java.lang.Math).max(0, payers.number - 2), T(java.lang.Math).min(payers.totalPages - 1, payers.number + 2))}"
+ th:href="@{/admin/student-fees(query=${query},page=${p})}" th:text="${p + 1}" th:attr="aria-current=${p == payers.number ? 'page' : null}"></a>
+<a th:if="${payers.hasNext()}" th:href="@{/admin/student-fees(query=${query},page=${payers.number + 1})}">다음</a></nav>
+</section></main><div th:replace="~{admin/fragments/footer :: footer(true)}"></div></div></div>
+</body></html>

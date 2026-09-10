@@ -154,7 +154,7 @@ public class AdminPollPageController {
     }
     private String redirect(HttpServletRequest request) { return cookies.readAccessToken(request) == null ? "redirect:/admin/login" : "redirect:/admin"; }
     private void common(Model model, AdminIdentity admin) {
-        model.addAttribute("adminName", admin.displayName()); model.addAttribute("adminRole", admin.role());
+        model.addAttribute("adminName", admin.displayName()); model.addAttribute("adminRole", admin.role()); model.addAttribute("adminNavigationRoles", admin.roles());
         model.addAttribute("questionTypes", PollQuestionType.values()); model.addAttribute("seoulZone", SEOUL);
         model.addAttribute("superAdmin", admin.role() == FestivalRole.SUPER_ADMIN);
     }

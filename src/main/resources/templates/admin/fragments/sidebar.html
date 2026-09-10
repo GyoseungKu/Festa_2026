@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"><body>
+<aside class="admin-sidebar" th:fragment="sidebar"
+ th:with="manager=${adminRole != null and (adminRole.name() == 'ADMIN' or adminRole.name() == 'SUPER_ADMIN')}, staff=${manager or (adminRole != null and adminRole.name() == 'STAFF')}">
+ <a class="admin-brand" th:href="@{/admin}"><strong>Make A Wish</strong><span>2026 천보축전 · ADMIN CONSOLE</span></a>
+ <nav class="admin-nav" aria-label="관리자 메뉴">
+ <a th:href="@{/admin}" th:attr="aria-current=${adminCurrentPath == '/admin' ? 'page' : null}">대시보드</a>
+ <a th:href="@{/admin/qr}" th:attr="aria-current=${#strings.startsWith(adminCurrentPath, '/admin/qr') ? 'page' : null}">사용자 및 권한 관리</a>
+ <a th:if="${manager}" th:href="@{/admin/booths}" th:attr="aria-current=${#strings.startsWith(adminCurrentPath, '/admin/booths') ? 'page' : null}">부스 지도 관리</a>
+ <a th:if="${manager or (adminNavigationRoles != null and adminNavigationRoles.contains(T(org.syu_likelion.Festa_2026.user.FestivalRole).BOOTH_MANAGER))}" th:href="@{/admin/stamps}" th:attr="aria-current=${#strings.startsWith(adminCurrentPath, '/admin/stamps') ? 'page' : null}">스탬프 지급 관리</a>
+ <a th:if="${manager}" th:href="@{/admin/performances}" th:attr="aria-current=${#strings.startsWith(adminCurrentPath, '/admin/performances') ? 'page' : null}">공연 관리</a>
+ <a th:if="${manager}" th:href="@{/admin/polls}" th:attr="aria-current=${#strings.startsWith(adminCurrentPath, '/admin/polls') ? 'page' : null}">투표·응답 폼</a>
+ <a th:if="${manager}" th:href="@{/admin/sponsors}" th:attr="aria-current=${#strings.startsWith(adminCurrentPath, '/admin/sponsors') ? 'page' : null}">협찬사 관리</a>
+ <a th:if="${manager}" th:href="@{/admin/student-fees}" th:attr="aria-current=${#strings.startsWith(adminCurrentPath, '/admin/student-fees') ? 'page' : null}">학생회비 납부자</a>
+ <a th:if="${staff}" th:href="@{/admin/lost-items}" th:attr="aria-current=${#strings.startsWith(adminCurrentPath, '/admin/lost-items') ? 'page' : null}">분실물 관리</a>
+ <a th:if="${staff}" th:href="@{/admin/birthday-messages}" th:attr="aria-current=${#strings.startsWith(adminCurrentPath, '/admin/birthday-messages') ? 'page' : null}">생일축하 쪽지</a>
+ <a th:if="${staff}" th:href="@{/admin/bamboo}" th:attr="aria-current=${#strings.startsWith(adminCurrentPath, '/admin/bamboo') ? 'page' : null}">오픈채팅 관리</a>
+ <a th:if="${adminRole != null and adminRole.name() == 'SUPER_ADMIN'}" th:href="@{/admin/school-verifications}" th:attr="aria-current=${#strings.startsWith(adminCurrentPath, '/admin/school-verifications') ? 'page' : null}">학생인증 승인</a>
+ <a th:if="${adminRole != null and adminRole.name() == 'SUPER_ADMIN'}" th:href="@{/admin/system}" th:attr="aria-current=${#strings.startsWith(adminCurrentPath, '/admin/system') ? 'page' : null}">시스템 현황</a>
+ </nav><p class="admin-sidebar-note">삼육대학교 개교 120주년<br>행사 운영 관리 시스템</p>
+</aside></body></html>

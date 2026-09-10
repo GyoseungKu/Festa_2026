@@ -6,9 +6,13 @@
     <title>시스템 관리 | SYU FESTA 2026</title>
     <link rel="icon" type="image/svg+xml" th:href="@{/images/favicon.svg}" href="/images/favicon.svg">
     <link rel="stylesheet" th:href="@{/css/admin.css}">
+<link rel="stylesheet" th:href="@{/css/admin-console.css}">
     <script defer th:src="@{/js/admin-system.js}" src="/js/admin-system.js"></script>
 </head>
-<body>
+<body class="admin-page">
+<div class="admin-layout">
+<aside th:replace="~{admin/fragments/sidebar :: sidebar}"></aside>
+<div class="admin-workspace">
 <header class="admin-header">
     <a class="admin-logo" th:href="@{/admin}"><img class="brand-logo" th:src="@{/images/Logo.webp}" alt="천보축전 로고"></a>
     <div class="admin-account">
@@ -76,5 +80,6 @@
     <p id="monitor-error" class="alert alert-error monitor-error" hidden>모니터링 정보를 불러오지 못했습니다.</p>
 </main>
 <div th:replace="~{admin/fragments/footer :: footer(true)}"></div>
+</div></div>
 </body>
 </html>

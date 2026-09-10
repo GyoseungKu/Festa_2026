@@ -6,10 +6,14 @@
     <title>사용자 조회 | SYU FESTA 2026</title>
     <link rel="icon" type="image/svg+xml" th:href="@{/images/favicon.svg}" href="/images/favicon.svg">
     <link rel="stylesheet" th:href="@{/css/admin.css}">
+<link rel="stylesheet" th:href="@{/css/admin-console.css}">
     <script defer th:src="@{/webjars/jsqr/1.4.0/dist/jsQR.js}"></script>
     <script defer th:src="@{/js/admin-qr.js}"></script>
 </head>
-<body>
+<body class="admin-page">
+<div class="admin-layout">
+<aside th:replace="~{admin/fragments/sidebar :: sidebar}"></aside>
+<div class="admin-workspace">
 <header class="admin-header">
     <a class="admin-logo" th:href="@{/admin}">
         <img class="brand-logo" th:src="@{/images/Logo.webp}" src="/images/Logo.webp" alt="천보축전 로고">
@@ -56,6 +60,7 @@
         <div class="result-heading"><div><span class="success-mark">✓</span><div><p class="eyebrow">SEARCH RESULT</p><h2 th:text="|${searchResult.totalElements}명 검색됨|">검색 결과</h2></div></div></div>
         <p class="empty-copy" th:if="${searchResult.items.empty}">일치하는 축제 연동 사용자가 없습니다.</p>
         <div class="user-search-result-list" th:unless="${searchResult.items.empty}"><article th:each="user : ${searchResult.items}">
+            <p th:text="${!user.schoolVerified ? '학생회비: 학생인증 필요' : (user.studentFeePaid ? '학생회비: 납부' : '학생회비: 미납부')}"></p>
             <dl class="profile-grid">
                 <div th:if="${user.name != null}"><dt>이름</dt><dd th:text="${user.name}"></dd></div><div th:if="${user.studentNo != null}"><dt>학번</dt><dd th:text="${user.studentNo}"></dd></div><div th:if="${user.department != null}"><dt>학과</dt><dd th:text="${user.department}"></dd></div><div th:if="${user.grade != null}"><dt>학년</dt><dd th:text="|${user.grade}학년|"></dd></div><div><dt>학교 인증</dt><dd th:text="${user.schoolVerificationStatus}"></dd></div><div th:if="${user.schoolVerifiedAt != null}"><dt>학교 인증 시각</dt><dd th:text="${user.schoolVerifiedAt}"></dd></div><div th:if="${user.phone != null}"><dt>전화번호</dt><dd th:text="${user.phone}"></dd></div><div th:if="${user.email != null}"><dt>이메일</dt><dd th:text="${user.email}"></dd></div><div th:if="${user.userUuid != null}"><dt>사용자 UUID</dt><dd class="mono" th:text="${user.userUuid}"></dd></div><div th:if="${user.loginId != null}"><dt>로그인 ID</dt><dd th:text="${user.loginId}"></dd></div><div th:if="${user.status != null}"><dt>계정 상태</dt><dd th:text="${user.status}"></dd></div><div th:if="${user.enrollment != null}"><dt>재학 상태</dt><dd th:text="${user.enrollment}"></dd></div><div th:if="${user.birthDate != null}"><dt>생년월일</dt><dd th:text="${user.birthDate}"></dd></div><div th:if="${user.festivalRoles != null}"><dt>축제 권한</dt><dd th:text="${user.festivalRoles}"></dd></div>
             </dl>
@@ -135,6 +140,7 @@
             <div th:if="${result.department != null}"><dt>학과</dt><dd th:text="${result.department}"></dd></div>
             <div th:if="${result.grade != null}"><dt>학년</dt><dd><span th:text="${result.grade}"></span>학년</dd></div>
             <div><dt>학교 인증</dt><dd th:text="${result.schoolVerificationStatus}"></dd></div>
+            <div><dt>학생회비</dt><dd th:text="${!result.schoolVerified ? '학생인증 필요' : (result.studentFeePaid ? '납부' : '미납부')}"></dd></div>
             <div th:if="${result.schoolVerifiedAt != null}"><dt>학교 인증 시각</dt><dd th:text="${result.schoolVerifiedAt}"></dd></div>
             <div th:if="${result.phone != null}"><dt>전화번호</dt><dd th:text="${result.phone}"></dd></div>
             <div th:if="${result.email != null}"><dt>이메일</dt><dd th:text="${result.email}"></dd></div>
@@ -162,5 +168,6 @@
     </section>
 </main>
 <div th:replace="~{admin/fragments/footer :: footer(true)}"></div>
+</div></div>
 </body>
 </html>

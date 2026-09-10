@@ -40,7 +40,7 @@ public class AdminSystemPageController {
         }
         if (authenticated.body().role() != FestivalRole.SUPER_ADMIN) return "redirect:/admin";
         model.addAttribute("adminName", authenticated.body().displayName());
-        model.addAttribute("adminRole", authenticated.body().role());
+        model.addAttribute("adminRole", authenticated.body().role()); model.addAttribute("adminNavigationRoles", authenticated.body().roles());
         return "admin/system";
     }
 

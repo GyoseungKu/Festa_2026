@@ -202,7 +202,7 @@ public class AdminPageController {
 
     private void addAdmin(Model model, AdminIdentity admin) {
         model.addAttribute("adminName", admin.displayName());
-        model.addAttribute("adminRole", admin.role());
+        model.addAttribute("adminRole", admin.role()); model.addAttribute("adminNavigationRoles", admin.roles());
         boolean superAdmin = admin.hasRole(org.syu_likelion.Festa_2026.user.FestivalRole.SUPER_ADMIN);
         boolean canManagePerformances = admin.hasRole(org.syu_likelion.Festa_2026.user.FestivalRole.ADMIN)
                 || superAdmin;
@@ -226,7 +226,7 @@ public class AdminPageController {
                 ? List.of(FestivalRole.USER, FestivalRole.STAFF, FestivalRole.ADMIN, FestivalRole.SUPER_ADMIN)
                 : canManagePerformances ? List.of(FestivalRole.USER, FestivalRole.STAFF) : List.of());
         model.addAttribute("availableFeatureCount", 1 + (canManageStaffFeatures ? 3 : 0)
-                + (canManagePerformances ? 4 : 0) + (canManageStamps ? 1 : 0) + (superAdmin ? 2 : 0));
+                + (canManagePerformances ? 5 : 0) + (canManageStamps ? 1 : 0) + (superAdmin ? 2 : 0));
     }
 
     private void addSearchResult(Model model, org.syu_likelion.Festa_2026.qr.QrDtos.UserSearchResponse result) {

@@ -4,8 +4,12 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>협찬사 관리 | 천보축전</title>
 <link rel="stylesheet" th:href="@{/css/admin.css}">
+<link rel="stylesheet" th:href="@{/css/admin-console.css}">
 </head>
-<body>
+<body class="admin-page">
+<div class="admin-layout">
+<aside th:replace="~{admin/fragments/sidebar :: sidebar}"></aside>
+<div class="admin-workspace">
 <header class="admin-header">
 <a class="admin-logo" th:href="@{/admin}"><img class="brand-logo" th:src="@{/images/Logo.webp}" alt="천보축전"></a>
 <div class="admin-account"><div><strong th:text="${adminName}"></strong><span th:text="${adminRole}"></span></div>
@@ -24,5 +28,5 @@
 <label class="field-group"><span>연결 부스 (선택)</span><select name="boothId"><option value="">연결 없음</option><option th:each="booth : ${booths}" th:value="${booth.id}" th:text="${booth.name}" th:selected="${booth.id == boothId}"></option></select></label>
 </section><div class="form-actions"><a class="button button-ghost" th:href="@{/admin/sponsors}">목록</a><button class="button button-primary" type="submit">저장</button></div>
 </form>
-</main><div th:replace="~{admin/fragments/footer :: footer(true)}"></div></body></html>
-
+</main><div th:replace="~{admin/fragments/footer :: footer(true)}"></div></div></div>
+</body></html>

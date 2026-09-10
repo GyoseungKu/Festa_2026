@@ -34,7 +34,22 @@ public final class UserDtos {
             LocalDateTime updatedAt,
             Set<FestivalRole> festivalRoles,
             SchoolVerificationStatus schoolVerificationStatus,
-            Instant schoolVerifiedAt) {
+            Instant schoolVerifiedAt, Boolean studentFeePaid) {
+
+        public MeResponse {
+            // 기존 SSO 응답에는 축제 전용 납부 필드가 없다.
+            studentFeePaid = Boolean.TRUE.equals(studentFeePaid)
+                    && schoolVerificationStatus == SchoolVerificationStatus.VERIFIED && schoolVerifiedAt != null;
+        }
+
+        public MeResponse(UUID userUuid, String loginId, String email, String ssoRole, String status,
+                          String name, String phone, String studentNo, String department, Integer grade,
+                          String enrollment, LocalDate birthDate, LocalDateTime createdAt,
+                          LocalDateTime updatedAt, Set<FestivalRole> festivalRoles,
+                          SchoolVerificationStatus schoolVerificationStatus, Instant schoolVerifiedAt) {
+            this(userUuid, loginId, email, ssoRole, status, name, phone, studentNo, department, grade,
+                    enrollment, birthDate, createdAt, updatedAt, festivalRoles, schoolVerificationStatus, schoolVerifiedAt, false);
+        }
 
         public MeResponse(UUID userUuid, String loginId, String email, String ssoRole, String status,
                           String name, String phone, String studentNo, String department, Integer grade,
@@ -48,7 +63,7 @@ public final class UserDtos {
         public MeResponse withFestivalProfile(FestivalUserService.UserFestivalProfile profile) {
             return new MeResponse(userUuid, loginId, email, ssoRole, status, name, phone,
                     studentNo, department, grade, enrollment, birthDate, createdAt, updatedAt,
-                    profile.roles(), profile.schoolVerificationStatus(), profile.schoolVerifiedAt());
+                    profile.roles(), profile.schoolVerificationStatus(), profile.schoolVerifiedAt(), profile.studentFeePaid());
         }
 
         @com.fasterxml.jackson.annotation.JsonProperty("schoolVerified")
