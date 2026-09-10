@@ -10,6 +10,9 @@ import org.syu_likelion.Festa_2026.lostitem.LostItemStatus;
 public class LostItemAdminForm {
     private String title;
     private String content;
+    private String foundLocation;
+    public String getFoundLocation() { return foundLocation; }
+    public void setFoundLocation(String foundLocation) { this.foundLocation = foundLocation; }
     private LostItemStatus status = LostItemStatus.HOLDING;
     private boolean pinned;
     private List<Long> removeImageIds = new ArrayList<>();
@@ -23,13 +26,14 @@ public class LostItemAdminForm {
         LostItemAdminForm form = new LostItemAdminForm();
         form.title = response.title();
         form.content = response.content();
+        form.foundLocation = response.foundLocation();
         form.status = response.status();
         form.pinned = response.pinned();
         return form;
     }
 
     public LostItemMutationRequest toRequest() {
-        return new LostItemMutationRequest(title, content, status, pinned);
+        return new LostItemMutationRequest(title, content, status, pinned, foundLocation);
     }
 
     public String getTitle() { return title; }

@@ -1,5 +1,7 @@
 # Festa_2026 Backend
 
+협찬사 관리: `/admin/sponsors`에서 ADMIN/SUPER_ADMIN이 이름·설명·사진 1개·선택적 부스 연결을 관리합니다. [협찬사 API 문서](docs/frontend-sponsors-api.md)를 참고하세요.
+
 삼육대학교 2026 천보축전 서비스의 Spring Boot 백엔드입니다.
 
 사용자 인증과 개인정보 원본은 기존 SSO에 위임합니다. 이 애플리케이션은 SSO의 `userUuid`를 기준으로 축제 전용 권한, 부스·스탬프·공연·분실물·생일축하 쪽지와 운영 로그를 관리합니다.

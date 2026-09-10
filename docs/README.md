@@ -1,5 +1,7 @@
 # 프런트엔드 API 문서
 
+- [협찬사 API: 공개 조회·관리자 등록·이미지·부스 연결](frontend-sponsors-api.md)
+
 React 프런트에서 Festa API를 연동할 때 사용하는 문서 모음입니다. 실제 필드 스키마는 서버 DTO, 세부 확인은 Swagger UI(`/swagger-ui.html`)가 기준입니다.
 
 ## 먼저 읽을 문서

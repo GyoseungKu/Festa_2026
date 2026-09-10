@@ -60,6 +60,7 @@
                     <span class="media-count" th:text="|사진 ${#lists.size(notice.images)}장 · 조회 ${notice.viewCount}|">사진 0장 · 조회 0</span>
                 </div>
                 <h2 th:text="${notice.title}">분실물 제목</h2>
+                <p th:if="${notice.foundLocation != null}" th:text="|발견장소: ${notice.foundLocation}|"></p>
                 <p class="member-summary lost-item-summary" th:text="${notice.content}">내용</p>
                 <dl class="performance-meta">
                     <div><dt>작성자</dt><dd th:text="${notice.authorName}">관리자</dd></div>

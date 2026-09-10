@@ -298,7 +298,7 @@ class AdminPageIntegrationTests {
     @Test
     void lostItemPublicApisDoNotRequireLoginAndExposeViewCount() throws Exception {
         java.time.Instant createdAt = java.time.Instant.parse("2026-08-13T03:00:00Z");
-        LostItemResponse notice = new LostItemResponse(7L, "검은색 지갑", "학생회관 앞에서 발견",
+        LostItemResponse notice = new LostItemResponse(7L, "검은색 지갑", "학생회관 앞에서 발견", "학생회관",
                 LostItemStatus.HOLDING, "보관 중", true, 13L, java.util.List.of(),
                 "축제 스태프", createdAt, createdAt);
         when(lostItemService.listPublic(null, LostItemSort.NEWEST, 0, 20))
@@ -341,7 +341,7 @@ class AdminPageIntegrationTests {
     @Test
     void lostItemCreateRestApiAcceptsMultipartAndAppearsInOpenApi() throws Exception {
         java.time.Instant createdAt = java.time.Instant.parse("2026-08-13T03:00:00Z");
-        LostItemResponse notice = new LostItemResponse(7L, "검은색 지갑", "학생회관 앞에서 발견",
+        LostItemResponse notice = new LostItemResponse(7L, "검은색 지갑", "학생회관 앞에서 발견", "학생회관",
                 LostItemStatus.HOLDING, "보관 중", false, 0L, java.util.List.of(),
                 "축제 스태프", createdAt, createdAt);
         when(lostItemApiService.create(

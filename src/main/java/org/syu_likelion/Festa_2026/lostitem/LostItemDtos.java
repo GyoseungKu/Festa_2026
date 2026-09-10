@@ -13,7 +13,12 @@ public final class LostItemDtos {
             @NotBlank @Size(max = 150) String title,
             @NotBlank @Size(max = 5000) String content,
             @NotNull LostItemStatus status,
-            boolean pinned) { }
+            boolean pinned,
+            @Size(max = 200) String foundLocation) {
+        public LostItemMutationRequest(String title, String content, LostItemStatus status, boolean pinned) {
+            this(title, content, status, pinned, null);
+        }
+    }
 
     public record LostItemImageResponse(Long id, String url, int displayOrder) { }
 
@@ -25,6 +30,7 @@ public final class LostItemDtos {
             Long id,
             String title,
             String content,
+            String foundLocation,
             LostItemStatus status,
             String statusLabel,
             boolean pinned,

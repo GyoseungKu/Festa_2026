@@ -12,6 +12,7 @@ type LostItem = {
   id: number;
   title: string;
   content: string;
+  foundLocation: string | null; // 발견장소, 미입력/기존 게시물은 null
   status: LostItemStatus;
   statusLabel: string;
   pinned: boolean;
@@ -61,6 +62,7 @@ GET /api/lost-items/{id}
   "id": 7,
   "title": "학생회관 앞에서 발견된 검은색 지갑",
   "content": "학생회관 분실물 센터에서 보관 중입니다.",
+  "foundLocation": "학생회관 1층 입구",
   "status": "HOLDING",
   "statusLabel": "보관 중",
   "pinned": true,
@@ -90,12 +92,15 @@ GET /api/lost-items/{id}
 type LostItemMutation = {
   title: string;      // 1~150자
   content: string;    // 1~5000자
+  foundLocation?: string | null; // 선택, 최대 200자. 공백/생략/null은 미입력
   status: LostItemStatus;
   pinned: boolean;
 };
 ```
 
 사진은 최대 5개이며 JPG, PNG, WebP를 지원합니다.
+
+발견장소는 공지 JSON의 `foundLocation`으로 전달합니다(별도 multipart 파트가 아님). 목록·상세·관리 응답에 포함됩니다. 수정 시 생략하거나 빈 값으로 보내면 기존 발견장소를 지웁니다. 내용에 적힌 기존 장소는 자동 추출하지 않습니다. DB에는 `lost_item_notices.found_location`(nullable, 200자)을 추가합니다.
 
 ### 등록 FormData
 

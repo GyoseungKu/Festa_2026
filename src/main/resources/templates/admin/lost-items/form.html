@@ -27,7 +27,8 @@
             <div class="form-section-heading"><span>01</span><div><h2>공지 내용</h2><p>분실물을 알아볼 수 있도록 정확하게 작성해 주세요.</p></div></div>
             <div class="form-grid">
                 <label class="field-group field-full"><span>제목 <b>*</b></span><input type="text" th:field="*{title}" maxlength="150" placeholder="예: 학생회관 앞에서 발견된 검은색 지갑" required></label>
-                <label class="field-group field-full"><span>내용 <b>*</b></span><textarea th:field="*{content}" rows="9" maxlength="5000" placeholder="발견 장소, 시간, 특징과 수령 안내를 입력해 주세요." required></textarea></label>
+                <label class="field-group field-full"><span>발견장소</span><input type="text" th:field="*{foundLocation}" maxlength="200" placeholder="예: 학생회관 1층 입구"></label>
+                <label class="field-group field-full"><span>내용 <b>*</b></span><textarea th:field="*{content}" rows="9" maxlength="5000" placeholder="발견 시간, 특징과 수령 안내를 입력해 주세요." required></textarea></label>
             </div>
         </section>
 

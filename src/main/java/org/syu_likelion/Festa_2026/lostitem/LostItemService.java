@@ -92,6 +92,7 @@ public class LostItemService {
         String cleanAuthor = requiredText(authorName, 100, "작성자");
         LostItemNotice notice = new LostItemNotice(data.title(), data.content(), data.status(), data.pinned(),
                 actorUuid, cleanAuthor, clock.instant());
+        notice.setFoundLocation(data.foundLocation());
         List<StoredImage> uploaded = new ArrayList<>();
         boolean rollbackCleanup = TransactionalFileActions.deleteOnRollback(() -> deleteStored(uploaded));
         try {
@@ -121,6 +122,7 @@ public class LostItemService {
                 .filter(image -> removals.contains(image.getId())).toList();
         removed.forEach(notice::removeImage);
         notice.update(data.title(), data.content(), data.status(), data.pinned(), actorUuid, clock.instant());
+        notice.setFoundLocation(data.foundLocation());
 
         List<StoredImage> uploaded = new ArrayList<>();
         boolean rollbackCleanup = TransactionalFileActions.deleteOnRollback(() -> deleteStored(uploaded));
@@ -175,7 +177,8 @@ public class LostItemService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_LOST_ITEM", "필수 정보를 입력해 주세요.");
         }
         return new Normalized(requiredText(request.title(), 150, "제목"),
-                requiredText(request.content(), 5000, "내용"), request.status(), request.pinned());
+                requiredText(request.content(), 5000, "내용"), request.status(), request.pinned(),
+                normalizeLocation(request.foundLocation()));
     }
 
     private String requiredText(String value, int maxLength, String field) {
@@ -223,10 +226,15 @@ public class LostItemService {
             LostItemImage image = notice.getImages().get(index);
             images.add(new LostItemImageResponse(image.getId(), image.getUrl(), index));
         }
-        return new LostItemResponse(notice.getId(), notice.getTitle(), notice.getContent(), notice.getStatus(),
+        return new LostItemResponse(notice.getId(), notice.getTitle(), notice.getContent(), notice.getFoundLocation(), notice.getStatus(),
                 notice.getStatus().getLabel(), notice.isPinned(), notice.getViewCount(), images,
                 notice.getAuthorName(), notice.getCreatedAt(), notice.getUpdatedAt());
     }
 
-    private record Normalized(String title, String content, LostItemStatus status, boolean pinned) { }
+    private String normalizeLocation(String value) {
+        if (value == null || value.isBlank()) return null;
+        return requiredText(value, 200, "발견장소");
+    }
+
+    private record Normalized(String title, String content, LostItemStatus status, boolean pinned, String foundLocation) { }
 }

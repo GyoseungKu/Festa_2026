@@ -40,6 +40,12 @@ public class LostItemNotice {
     @Column(nullable = false)
     private String content;
 
+    @Column(name = "found_location", length = 200)
+    private String foundLocation;
+
+    public String getFoundLocation() { return foundLocation; }
+    void setFoundLocation(String foundLocation) { this.foundLocation = foundLocation; }
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private LostItemStatus status;

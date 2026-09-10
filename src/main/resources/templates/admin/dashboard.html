@@ -43,6 +43,12 @@
         </div>
 
         <div class="feature-grid">
+            <a class="feature-card" th:if="${canManagePerformances}" th:href="@{/admin/sponsors}">
+                <span class="feature-icon" aria-hidden="true">★</span>
+                <div><span class="feature-status">ADMIN 이상</span><h3>협찬사 관리</h3>
+                <p>협찬사 이름·소개·사진을 등록하고 부스를 연결합니다.</p></div>
+                <span class="feature-arrow" aria-hidden="true">→</span>
+            </a>
             <a class="feature-card" th:if="${canManageSchoolVerifications}" th:href="@{/admin/school-verifications}">
                 <span class="feature-icon feature-icon-verification" aria-hidden="true">
                     <svg viewBox="0 0 24 24" role="img"><path d="M12 2 4 5v6c0 5.2 3.4 9.8 8 11 4.6-1.2 8-5.8 8-11V5l-8-3Zm0 3 5 1.9V11c0 3.6-2.1 6.9-5 8-2.9-1.1-5-4.4-5-8V6.9L12 5Zm-1 4v3H8l4 4 4-4h-3V9h-2Z"/></svg>

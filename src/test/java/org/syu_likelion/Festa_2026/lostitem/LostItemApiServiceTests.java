@@ -86,7 +86,7 @@ class LostItemApiServiceTests {
 
     private LostItemResponse response() {
         Instant now = Instant.parse("2026-08-13T03:00:00Z");
-        return new LostItemResponse(7L, "검은색 지갑", "학생회관 앞에서 발견했습니다.",
+        return new LostItemResponse(7L, "검은색 지갑", "학생회관 앞에서 발견했습니다.", "학생회관",
                 LostItemStatus.HOLDING, "보관 중", false, 0, List.of(), "축제 스태프", now, now);
     }
 }

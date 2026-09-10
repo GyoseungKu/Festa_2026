@@ -109,6 +109,25 @@ class LostItemServiceTests {
                 LostItemStatus.HOLDING, false);
     }
 
+    @Test
+    void foundLocationIsNormalizedAndReturnedSeparately() {
+        when(repository.saveAndFlush(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        var response = service.createAs(STAFF_UUID, "스태프",
+                new LostItemMutationRequest("지갑", "검은색", LostItemStatus.HOLDING, false, "  학생회관  "), List.of());
+        assertThat(response.foundLocation()).isEqualTo("학생회관");
+        assertThat(response.content()).isEqualTo("검은색");
+        var legacy = service.createAs(STAFF_UUID, "스태프", request(), List.of());
+        assertThat(legacy.foundLocation()).isNull();
+    }
+
+    @Test
+    void oversizedLocationIsRejectedBeforeSaving() {
+        assertThatThrownBy(() -> service.createAs(STAFF_UUID, "스태프",
+                new LostItemMutationRequest("지갑", "내용", LostItemStatus.HOLDING, false, "가".repeat(201)), List.of()))
+                .isInstanceOf(ApiException.class);
+        verify(repository, never()).saveAndFlush(any());
+    }
+
     private LostItemNotice notice() {
         return new LostItemNotice("검은색 지갑", "학생회관 앞에서 발견했습니다.",
                 LostItemStatus.HOLDING, false, STAFF_UUID, "축제 스태프", NOW);

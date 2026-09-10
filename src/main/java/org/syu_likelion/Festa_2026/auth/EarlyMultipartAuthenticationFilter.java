@@ -65,6 +65,9 @@ public final class EarlyMultipartAuthenticationFilter extends OncePerRequestFilt
         String uri = request.getRequestURI();
         String path = contextPath == null || contextPath.isEmpty() ? uri : uri.substring(contextPath.length());
         String method = request.getMethod();
+        if (("POST".equals(method) && "/api/sponsors".equals(stripTrailingSlash(path)))
+                || ("PUT".equals(method) && path.matches("^/api/sponsors/[^/]+/?$")))
+            return RequiredAccess.ADMIN;
         if ("POST".equals(method) && (BOOTH_MEDIA.matcher(path).matches()
                 || PERFORMANCE_MEDIA.matcher(path).matches()
                 || POLL_OPTION_IMAGE.matcher(path).matches()
