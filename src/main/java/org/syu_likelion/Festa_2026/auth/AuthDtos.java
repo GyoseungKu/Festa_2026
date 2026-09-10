@@ -20,7 +20,7 @@ public final class AuthDtos {
 
     public record SignupRequest(
             @NotBlank @Size(max = 100) String loginId,
-            @NotBlank @Size(min = 8, max = 128) String password,
+            @SignupPassword String password,
             @NotBlank @Email String email,
             @NotBlank @Size(max = 100) String name,
             @Pattern(regexp = "^$|^[0-9]{10,11}$", message = "전화번호는 숫자 10~11자리여야 합니다.") String phone,

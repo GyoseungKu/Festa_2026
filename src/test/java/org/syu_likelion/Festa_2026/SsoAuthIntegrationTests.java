@@ -78,7 +78,7 @@ class SsoAuthIntegrationTests {
     void signupRequiresSsoEmailVerification() throws Exception {
         enqueue(400, "{}");
         mvc.perform(post("/api/auth/signup").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"loginId\":\"festival01\",\"password\":\"password123\","
+                        .content("{\"loginId\":\"festival01\",\"password\":\"Password123!\","
                                 + "\"email\":\"student@example.com\",\"name\":\"홍길동\","
                                 + "\"studentNo\":\"20260001\",\"department\":\"컴퓨터공학과\"}"))
                 .andExpect(status().isBadRequest());
@@ -92,7 +92,7 @@ class SsoAuthIntegrationTests {
     @Test
     void signupRejectsMissingRequiredProfileBeforeCallingSso() throws Exception {
         mvc.perform(post("/api/auth/signup").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"loginId\":\"festival01\",\"password\":\"password123\","
+                        .content("{\"loginId\":\"festival01\",\"password\":\"Password123!\","
                                 + "\"email\":\"student@example.com\",\"phone\":\"01012345678\"}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
@@ -137,7 +137,7 @@ class SsoAuthIntegrationTests {
     void signupSuccessLinksOnlyUserUuid() throws Exception {
         enqueue(201, "{\"userUuid\":\"" + UUID + "\"}");
         mvc.perform(post("/api/auth/signup").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"loginId\":\"festival01\",\"password\":\"password123\","
+                        .content("{\"loginId\":\"festival01\",\"password\":\"Password123!\","
                                 + "\"email\":\"student@example.com\",\"name\":\"홍길동\","
                                 + "\"studentNo\":\"20260001\",\"department\":\"컴퓨터공학과\"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.userUuid").value(UUID));
@@ -151,7 +151,7 @@ class SsoAuthIntegrationTests {
     void signupAcceptsAndForwardsAllOptionalUserFields() throws Exception {
         enqueue(201, "{\"userUuid\":\"" + UUID + "\"}");
         mvc.perform(post("/api/auth/signup").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"loginId\":\"festival01\",\"password\":\"password123\","
+                        .content("{\"loginId\":\"festival01\",\"password\":\"Password123!\","
                                 + "\"email\":\"student@example.com\",\"name\":\"홍길동\","
                                 + "\"phone\":\"01012345678\",\"studentNo\":\"20260001\","
                                 + "\"department\":\"컴퓨터공학과\",\"grade\":2,"

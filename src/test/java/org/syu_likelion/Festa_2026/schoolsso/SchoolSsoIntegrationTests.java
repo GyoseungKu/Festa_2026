@@ -114,7 +114,7 @@ class SchoolSsoIntegrationTests {
                 .andExpect(jsonPath("$.department").value("컴퓨터공학과"));
 
         mvc.perform(post("/api/auth/signup").session(session).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"loginId\":\"festival01\",\"password\":\"password123\","+
+                        .content("{\"loginId\":\"festival01\",\"password\":\"Password123!\","+
                                 "\"email\":\"student@example.com\",\"name\":\"조작이름\","+
                                 "\"studentNo\":\"99999999\",\"department\":\"조작학과\","+
                                 "\"academicInfoSource\":\"SCHOOL_SSO\"}"))
@@ -232,7 +232,7 @@ class SchoolSsoIntegrationTests {
     @Test
     void schoolSignupRequiresVerifiedProfile() throws Exception {
         mvc.perform(post("/api/auth/signup").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"loginId\":\"festival01\",\"password\":\"password123\","+
+                        .content("{\"loginId\":\"festival01\",\"password\":\"Password123!\","+
                                 "\"email\":\"student@example.com\",\"name\":\"홍길동\","+
                                 "\"studentNo\":\"20260001\",\"department\":\"컴퓨터공학과\","+
                                 "\"academicInfoSource\":\"SCHOOL_SSO\"}"))

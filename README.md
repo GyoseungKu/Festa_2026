@@ -156,6 +156,8 @@ Origin은 경로나 마지막 `/` 없이 `scheme://host[:port]` 형식으로 입
 | POST | `/api/auth/token/refresh` | Refresh 쿠키 | Access Token 갱신 |
 | POST | `/api/auth/logout` | 선택 | SSO 로그아웃 및 Refresh 쿠키 삭제 |
 
+회원가입 비밀번호는 8~20자이며 영문 대문자·소문자·숫자·특수문자를 각각 1개 이상 포함해야 합니다. 공백을 제외한 ASCII 출력 문자(U+0021~U+007E)만 허용하며 trim하지 않습니다. 로그인·비밀번호 변경·재설정은 기존 정책을 유지합니다.
+
 회원가입의 `loginId`, `password`, `email`, `name`, `studentNo`, `department`는 필수이고 `phone`, `grade`, `enrollment`, `birthDate`는 nullable입니다. `academicInfoSource`는 직접입력 `MANUAL`(기본값) 또는 학교 SSO 자동입력 `SCHOOL_SSO`이며, 학교 방식에서는 서버가 RS256 검증을 마친 이름·학번·학과로 요청값을 강제 교체합니다.
 
 ### HTML 가입 환영 메일
