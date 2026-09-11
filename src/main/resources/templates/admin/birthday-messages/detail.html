@@ -7,14 +7,13 @@
 <link rel="stylesheet" th:href="@{/css/admin-console.css}">
 </head>
 <body class="admin-page">
+<a class="skip-link" href="#admin-content">본문으로 건너뛰기</a>
 <div class="admin-layout">
 <aside th:replace="~{admin/fragments/sidebar :: sidebar}"></aside>
 <div class="admin-workspace">
-<header class="admin-header"><a class="admin-logo" th:href="@{/admin}"><img class="brand-logo" th:src="@{/images/Logo.webp}" alt="천보축전 로고"></a>
-    <div class="admin-account"><div><strong th:text="${adminName}">관리자</strong><span th:text="${adminRole}">STAFF</span></div>
-        <form method="post" th:action="@{/admin/logout}"><button class="button button-ghost button-small" type="submit">로그아웃</button></form></div></header>
-<main class="admin-main">
-    <nav class="breadcrumb"><a th:href="@{/admin}">관리자 홈</a><span>/</span><a th:href="@{/admin/birthday-messages}">생일축하 쪽지</a><span>/</span><strong>상세</strong></nav>
+<header th:replace="~{admin/fragments/header :: header}"></header>
+<main id="admin-content" tabindex="-1" class="admin-main">
+    <nav class="breadcrumb" aria-label="현재 위치"><a th:href="@{/admin}">관리자 홈</a><span>/</span><a th:href="@{/admin/birthday-messages}">생일축하 쪽지</a><span>/</span><strong>상세</strong></nav>
     <section class="management-toolbar"><div><p class="eyebrow">MESSAGE DETAIL</p><h1>생일축하 쪽지 상세</h1><p>작성자 정보는 현재 관리자 권한 범위에 맞춰 표시됩니다.</p></div></section>
     <section class="birthday-detail-panel">
         <div class="birthday-note-content" th:text="${item.content}">생일 축하해!</div>

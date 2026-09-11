@@ -10,23 +10,20 @@
     <script defer th:src="@{/js/admin-qr.js}"></script>
 </head>
 <body class="admin-page">
+<a class="skip-link" href="#admin-content">본문으로 건너뛰기</a>
 <div class="admin-layout">
 <aside th:replace="~{admin/fragments/sidebar :: sidebar}"></aside>
 <div class="admin-workspace">
-<header class="admin-header">
-    <a class="admin-logo" th:href="@{/admin}"><img class="brand-logo" th:src="@{/images/Logo.webp}" alt="천보축전 로고"></a>
-    <div class="admin-account"><div><strong th:text="${adminName}">관리자</strong><span th:text="${adminRole}">BOOTH_MANAGER</span></div>
-        <form method="post" th:action="@{/admin/logout}"><button class="button button-ghost button-small" type="submit">로그아웃</button></form></div>
-</header>
-<main class="admin-main qr-page">
-    <nav class="breadcrumb"><a th:href="@{/admin}">관리자 홈</a><span>/</span><strong>스탬프 지급 관리</strong></nav>
+<header th:replace="~{admin/fragments/header :: header}"></header>
+<main id="admin-content" tabindex="-1" class="admin-main qr-page">
+    <nav class="breadcrumb" aria-label="현재 위치"><a th:href="@{/admin}">관리자 홈</a><span>/</span><strong>스탬프 지급 관리</strong></nav>
     <section class="page-heading"><div><p class="eyebrow">STAMP DESK</p><h1>스탬프 지급 관리</h1>
         <p th:text="${canAdminOverride ? 'QR 또는 사용자 검색으로 스탬프를 지급·회수하고 전체 이력을 확인합니다.' : '담당 부스에서 QR로 스탬프를 처리하고 마스킹된 지급 이력을 확인합니다.'}">스탬프 관리</p></div>
         <span class="role-chip"><span class="live-dot"></span><span th:text="${adminRole}">BOOTH_MANAGER</span> 권한</span>
     </section>
 
-    <div class="alert alert-error" th:if="${error}" th:text="${error}"></div>
-    <div class="alert alert-success" th:if="${message}" th:text="${message}"></div>
+    <div class="alert alert-error" role="alert" th:if="${error}" th:text="${error}"></div>
+    <div class="alert alert-success" role="status" th:if="${message}" th:text="${message}"></div>
     <section class="empty-panel" th:if="${#lists.isEmpty(booths)}"><strong>담당 부스가 없습니다.</strong><p>ADMIN에게 부스 관리자 지정을 요청해 주세요.</p></section>
 
     <div th:unless="${#lists.isEmpty(booths)}">
@@ -83,11 +80,11 @@
             <div class="form-section-heading"><span>02</span><div><h2>사용자 검색 임의 처리</h2><p>ADMIN 이상만 QR 없이 사용자를 검색해 지급하거나 회수할 수 있습니다.</p></div></div>
             <form class="manager-search-row" method="get" th:action="@{/admin/stamps}">
                 <input type="hidden" name="boothId" th:value="${selectedBoothId}">
-                <input name="userQuery" type="search" th:value="${userQuery}" placeholder="이름, 아이디, 학번, 학과 또는 UUID" required minlength="2" maxlength="100">
+                <input name="userQuery" type="search" aria-label="스탬프 사용자 검색" th:value="${userQuery}" placeholder="이름, 아이디, 학번, 학과 또는 UUID" required minlength="2" maxlength="100">
                 <button class="button button-primary" type="submit">검색</button>
             </form>
             <p class="support-copy">검색 버튼을 누르거나 Enter 키를 누르세요.</p>
-            <div class="alert alert-error" th:if="${userSearchError}" th:text="${userSearchError}"></div>
+            <div class="alert alert-error" role="alert" th:if="${userSearchError}" th:text="${userSearchError}"></div>
             <div class="stamp-user-results" th:if="${stampUserSearchResult != null}">
                 <article class="stamp-user-row" th:each="candidate : ${stampUserSearchResult.items}">
                     <div><strong th:text="${candidate.name}">사용자</strong>
@@ -115,12 +112,12 @@
             <div class="form-section-heading"><span th:text="${canAdminOverride ? '03' : '02'}">02</span><div><h2>현재 지급 현황과 처리 이력</h2>
                 <p th:text="${canAdminOverride ? stampAdmin.boothName + ' 부스의 전체 기록입니다.' : stampAdmin.boothName + ' 부스의 마스킹된 기록입니다.'}">이력</p></div></div>
             <h3>현재 스탬프 보유자 <span th:text="|${#lists.size(stampAdmin.currentStamps)}명|">0명</span></h3>
-            <div class="stamp-table-wrap"><table class="stamp-table"><thead><tr><th>사용자</th><th>학번</th><th>지급 방식</th><th>지급 시각</th></tr></thead>
+            <div class="stamp-table-wrap"><table class="stamp-table"><thead><tr><th scope="col">사용자</th><th scope="col">학번</th><th scope="col">지급 방식</th><th scope="col">지급 시각</th></tr></thead>
                 <tbody><tr th:each="item : ${stampAdmin.currentStamps}"><td th:text="${item.name}">사용자</td><td th:text="${item.studentNo}">학번</td>
                     <td th:text="${item.method}">QR</td><td th:text="${#temporals.format(item.grantedAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm:ss')} + ' KST'">시각</td></tr>
                 <tr th:if="${#lists.isEmpty(stampAdmin.currentStamps)}"><td colspan="4">현재 지급된 스탬프가 없습니다.</td></tr></tbody></table></div>
             <h3 class="stamp-history-title">지급·회수 감사 이력</h3>
-            <div class="stamp-table-wrap"><table class="stamp-table"><thead><tr><th>처리</th><th>대상 사용자</th><th>처리 관리자</th><th>방식</th><th>시각</th></tr></thead>
+            <div class="stamp-table-wrap"><table class="stamp-table"><thead><tr><th scope="col">처리</th><th scope="col">대상 사용자</th><th scope="col">처리 관리자</th><th scope="col">방식</th><th scope="col">시각</th></tr></thead>
                 <tbody><tr th:each="item : ${stampAdmin.history}"><td th:text="${item.action}">GRANT</td><td th:text="${item.targetName}">대상</td>
                     <td th:text="${item.actorName}">관리자</td><td th:text="${item.method}">QR</td><td th:text="${#temporals.format(item.occurredAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm:ss')} + ' KST'">시각</td></tr>
                 <tr th:if="${#lists.isEmpty(stampAdmin.history)}"><td colspan="5">처리 이력이 없습니다.</td></tr></tbody></table></div>

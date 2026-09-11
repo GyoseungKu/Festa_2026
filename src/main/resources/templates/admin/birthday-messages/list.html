@@ -8,16 +8,13 @@
 <link rel="stylesheet" th:href="@{/css/admin-console.css}">
 </head>
 <body class="admin-page">
+<a class="skip-link" href="#admin-content">본문으로 건너뛰기</a>
 <div class="admin-layout">
 <aside th:replace="~{admin/fragments/sidebar :: sidebar}"></aside>
 <div class="admin-workspace">
-<header class="admin-header">
-    <a class="admin-logo" th:href="@{/admin}"><img class="brand-logo" th:src="@{/images/Logo.webp}" alt="천보축전 로고"></a>
-    <div class="admin-account"><div><strong th:text="${adminName}">관리자</strong><span th:text="${adminRole}">STAFF</span></div>
-        <form method="post" th:action="@{/admin/logout}"><button class="button button-ghost button-small" type="submit">로그아웃</button></form></div>
-</header>
-<main class="admin-main">
-    <nav class="breadcrumb"><a th:href="@{/admin}">관리자 홈</a><span>/</span><strong>생일축하 쪽지 관리</strong></nav>
+<header th:replace="~{admin/fragments/header :: header}"></header>
+<main id="admin-content" tabindex="-1" class="admin-main">
+    <nav class="breadcrumb" aria-label="현재 위치"><a th:href="@{/admin}">관리자 홈</a><span>/</span><strong>생일축하 쪽지 관리</strong></nav>
     <section class="management-toolbar"><div><p class="eyebrow">BIRTHDAY MESSAGE WALL</p><h1>생일축하 쪽지 관리</h1><p>쪽지를 선택하면 작성자 상세 정보와 하트 사용자를 확인할 수 있습니다.</p></div></section>
     <div class="alert alert-success" role="status" th:if="${message}" th:text="${message}"></div>
     <form class="lost-item-filter" method="get" th:action="@{/admin/birthday-messages}">

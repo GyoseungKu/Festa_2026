@@ -9,25 +9,13 @@
 <link rel="stylesheet" th:href="@{/css/admin-console.css}">
 </head>
 <body class="admin-page">
+<a class="skip-link" href="#admin-content">본문으로 건너뛰기</a>
 <div class="admin-layout">
 <aside th:replace="~{admin/fragments/sidebar :: sidebar}"></aside>
 <div class="admin-workspace">
-<header class="admin-header">
-    <a class="admin-logo" th:href="@{/admin}">
-        <img class="brand-logo" th:src="@{/images/Logo.webp}" src="/images/Logo.webp" alt="천보축전 로고">
-    </a>
-    <div class="admin-account">
-        <div>
-            <strong th:text="${adminName}">관리자</strong>
-            <span th:text="${adminRole}">ADMIN</span>
-        </div>
-        <form method="post" th:action="@{/admin/logout}">
-            <button class="button button-ghost button-small" type="submit">로그아웃</button>
-        </form>
-    </div>
-</header>
+<header th:replace="~{admin/fragments/header :: header}"></header>
 
-<main class="admin-main">
+<main id="admin-content" tabindex="-1" class="admin-main">
     <section class="hero-panel">
         <div>
             <p class="eyebrow">삼육대학교 개교 120주년</p>
@@ -53,7 +41,9 @@
 
         <div class="feature-grid">
             <a class="feature-card" th:if="${canManagePerformances}" th:href="@{/admin/student-fees}">
-                <span class="feature-icon" aria-hidden="true">₩</span><h3>학생회비 납부자 관리</h3><p>납부자 학번 등록·검색·삭제</p>
+                <span class="feature-icon" aria-hidden="true">₩</span>
+                <div><span class="feature-status">ADMIN 이상</span><h3>학생회비 납부자 관리</h3><p>납부자 학번 등록·검색·삭제</p></div>
+                <span class="feature-arrow" aria-hidden="true">→</span>
             </a>
             <a class="feature-card" th:if="${canManagePerformances}" th:href="@{/admin/sponsors}">
                 <span class="feature-icon" aria-hidden="true">★</span>

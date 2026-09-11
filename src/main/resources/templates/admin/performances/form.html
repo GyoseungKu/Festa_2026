@@ -9,20 +9,13 @@
 <link rel="stylesheet" th:href="@{/css/admin-console.css}">
 </head>
 <body class="admin-page">
+<a class="skip-link" href="#admin-content">본문으로 건너뛰기</a>
 <div class="admin-layout">
 <aside th:replace="~{admin/fragments/sidebar :: sidebar}"></aside>
 <div class="admin-workspace">
-<header class="admin-header">
-    <a class="admin-logo" th:href="@{/admin}">
-        <img class="brand-logo" th:src="@{/images/Logo.webp}" src="/images/Logo.webp" alt="천보축전 로고">
-    </a>
-    <div class="admin-account">
-        <div><strong th:text="${adminName}">관리자</strong><span th:text="${adminRole}">ADMIN</span></div>
-        <form method="post" th:action="@{/admin/logout}"><button class="button button-ghost button-small" type="submit">로그아웃</button></form>
-    </div>
-</header>
+<header th:replace="~{admin/fragments/header :: header}"></header>
 
-<main class="admin-main performance-form-page">
+<main id="admin-content" tabindex="-1" class="admin-main performance-form-page">
     <nav class="breadcrumb" aria-label="현재 위치">
         <a th:href="@{/admin}">관리자 홈</a><span>/</span>
         <a th:href="@{/admin/performances}">공연팀 관리</a><span>/</span>
@@ -79,7 +72,7 @@
         <section class="form-section">
             <div class="form-section-heading"><span>03</span><div><h2>관련 링크</h2><p>SNS, 홈페이지, 기사 등 최대 3개입니다.</p></div></div>
             <div class="stacked-fields">
-                <input th:each="index : ${#numbers.sequence(0, 2)}" type="url" th:field="*{links[__${index}__]}"
+                <input th:each="index : ${#numbers.sequence(0, 2)}" type="url" th:field="*{links[__${index}__]}" th:attr="aria-label=|공연 관련 링크 ${index + 1}|"
                        maxlength="2048" placeholder="https://">
             </div>
         </section>
@@ -88,9 +81,9 @@
             <div class="form-section-heading"><span>04</span><div><h2>이미지</h2><p>링크와 파일을 합해 최대 3개입니다. JPG, PNG, WebP, GIF / 파일당 10MB</p></div></div>
             <div class="attachment-columns">
                 <div><h3>이미지 링크</h3><div class="stacked-fields">
-                    <input th:each="index : ${#numbers.sequence(0, 2)}" type="url" th:field="*{imageUrls[__${index}__]}" maxlength="2048" placeholder="https://">
+                    <input th:each="index : ${#numbers.sequence(0, 2)}" type="url" th:field="*{imageUrls[__${index}__]}" th:attr="aria-label=|이미지 URL ${index + 1}|" maxlength="2048" placeholder="https://">
                 </div></div>
-                <div><h3>이미지 파일</h3><input class="file-input" type="file" name="imageFiles" accept="image/jpeg,image/png,image/webp,image/gif" multiple></div>
+                <div><h3>이미지 파일</h3><input class="file-input" type="file" name="imageFiles" aria-label="이미지 파일 업로드" accept="image/jpeg,image/png,image/webp,image/gif" multiple></div>
             </div>
             <div class="existing-media" th:if="${editing and !#lists.isEmpty(performance.images)}">
                 <h3>현재 이미지</h3>
@@ -110,9 +103,9 @@
             <div class="form-section-heading"><span>05</span><div><h2>동영상</h2><p>링크와 파일을 합해 최대 3개입니다. MP4, WebM, MOV / 파일당 200MB</p></div></div>
             <div class="attachment-columns">
                 <div><h3>동영상 링크</h3><div class="stacked-fields">
-                    <input th:each="index : ${#numbers.sequence(0, 2)}" type="url" th:field="*{videoUrls[__${index}__]}" maxlength="2048" placeholder="YouTube, Instagram 또는 직접 동영상 주소">
+                    <input th:each="index : ${#numbers.sequence(0, 2)}" type="url" th:field="*{videoUrls[__${index}__]}" th:attr="aria-label=|동영상 URL ${index + 1}|" maxlength="2048" placeholder="YouTube, Instagram 또는 직접 동영상 주소">
                 </div></div>
-                <div><h3>동영상 파일</h3><input class="file-input" type="file" name="videoFiles" accept="video/mp4,video/webm,video/quicktime" multiple></div>
+                <div><h3>동영상 파일</h3><input class="file-input" type="file" name="videoFiles" aria-label="동영상 파일 업로드" accept="video/mp4,video/webm,video/quicktime" multiple></div>
             </div>
             <div class="existing-media" th:if="${editing and !#lists.isEmpty(performance.videos)}">
                 <h3>현재 동영상</h3>

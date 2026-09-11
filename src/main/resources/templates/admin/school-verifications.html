@@ -9,18 +9,13 @@
 <link rel="stylesheet" th:href="@{/css/admin-console.css}">
 </head>
 <body class="admin-page">
+<a class="skip-link" href="#admin-content">본문으로 건너뛰기</a>
 <div class="admin-layout">
 <aside th:replace="~{admin/fragments/sidebar :: sidebar}"></aside>
 <div class="admin-workspace">
-<header class="admin-header">
-    <a class="admin-logo" th:href="@{/admin}"><img class="brand-logo" th:src="@{/images/Logo.webp}" alt="천보축전 로고"></a>
-    <div class="admin-account">
-        <div><strong th:text="${adminName}">최고 관리자</strong><span th:text="${adminRole}">SUPER_ADMIN</span></div>
-        <form method="post" th:action="@{/admin/logout}"><button class="button button-ghost button-small" type="submit">로그아웃</button></form>
-    </div>
-</header>
+<header th:replace="~{admin/fragments/header :: header}"></header>
 
-<main class="admin-main">
+<main id="admin-content" tabindex="-1" class="admin-main">
     <nav class="breadcrumb" aria-label="현재 위치"><a th:href="@{/admin}">관리자 홈</a><span>/</span><strong>학생 인증 승인</strong></nav>
     <section class="management-toolbar">
         <div><p class="eyebrow">IDENTITY REVIEW</p><h1>학생 인증 미승인 요청</h1><p>동아리 SSO 회원정보와 학교 학적정보를 비교해 처리합니다.</p></div>
@@ -35,7 +30,7 @@
     <section class="panel review-panel" th:unless="${verificationRequests.empty}">
         <div class="table-wrap">
             <table class="review-table">
-                <thead><tr><th>회원</th><th>동아리 SSO</th><th>학교 학적정보</th><th>요청 시각</th><th>처리</th></tr></thead>
+                <thead><tr><th scope="col">회원</th><th scope="col">동아리 SSO</th><th scope="col">학교 학적정보</th><th scope="col">요청 시각</th><th scope="col">처리</th></tr></thead>
                 <tbody><tr th:each="item : ${verificationRequests}">
                     <td><strong th:text="${item.currentName}">회원 이름</strong><small th:text="${item.userUuid}">UUID</small></td>
                     <td><span th:text="${item.currentStudentNo}">기존 학번</span><small th:text="${item.currentDepartment ?: '-'}">기존 학과</small></td>

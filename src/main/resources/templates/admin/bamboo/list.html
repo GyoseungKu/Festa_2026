@@ -9,18 +9,13 @@
 <link rel="stylesheet" th:href="@{/css/admin-console.css}">
 </head>
 <body class="admin-page">
+<a class="skip-link" href="#bamboo-admin">본문으로 건너뛰기</a>
 <div class="admin-layout">
 <aside th:replace="~{admin/fragments/sidebar :: sidebar}"></aside>
 <div class="admin-workspace">
-<header class="admin-header">
-    <a class="admin-logo" th:href="@{/admin}"><img class="brand-logo" th:src="@{/images/Logo.webp}" alt="천보축전 로고"></a>
-    <div class="admin-account">
-        <div><strong th:text="${adminName}">관리자</strong><span th:text="${adminRole}">STAFF</span></div>
-        <form method="post" th:action="@{/admin/logout}"><button class="button button-ghost button-small" type="submit">로그아웃</button></form>
-    </div>
-</header>
+<header th:replace="~{admin/fragments/header :: header}"></header>
 
-<main class="admin-main" id="bamboo-admin"
+<main tabindex="-1" class="admin-main" id="bamboo-admin"
       th:attr="data-tab=${tab},data-cursor=${liveCursor},data-cursor-url=@{/admin/bamboo/cursor}">
     <nav class="breadcrumb" aria-label="현재 위치"><a th:href="@{/admin}">관리자 홈</a><span>/</span><strong>대나무숲 운영</strong></nav>
 
@@ -35,7 +30,7 @@
     </section>
 
     <div class="alert alert-success" role="status" th:if="${message}" th:text="${message}"></div>
-    <div class="alert alert-danger" role="alert" th:if="${error}" th:text="${error}"></div>
+    <div class="alert alert-error" role="alert" th:if="${error}" th:text="${error}"></div>
 
     <!-- SUPER_ADMIN 이 신원을 조회한 결과. 조회 사실은 감사 로그에 남는다. -->
     <section class="empty-panel" th:if="${author}">

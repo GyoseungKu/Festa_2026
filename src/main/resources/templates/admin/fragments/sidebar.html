@@ -2,7 +2,7 @@
 <html lang="ko" xmlns:th="http://www.thymeleaf.org"><body>
 <aside class="admin-sidebar" th:fragment="sidebar"
  th:with="manager=${adminRole != null and (adminRole.name() == 'ADMIN' or adminRole.name() == 'SUPER_ADMIN')}, staff=${manager or (adminRole != null and adminRole.name() == 'STAFF')}">
- <a class="admin-brand" th:href="@{/admin}"><strong>Make A Wish</strong><span>2026 천보축전 · ADMIN CONSOLE</span></a>
+ <a class="admin-brand" th:href="@{/admin}" aria-label="Make a Wish 관리자 홈"><img class="sidebar-logo" th:src="@{/images/festa.png}" src="/images/festa.png" width="579" height="419" alt="Make a Wish"><span>2026 천보축전 · ADMIN CONSOLE</span></a>
  <nav class="admin-nav" aria-label="관리자 메뉴">
  <a th:href="@{/admin}" th:attr="aria-current=${adminCurrentPath == '/admin' ? 'page' : null}">대시보드</a>
  <a th:href="@{/admin/qr}" th:attr="aria-current=${#strings.startsWith(adminCurrentPath, '/admin/qr') ? 'page' : null}">사용자 및 권한 관리</a>

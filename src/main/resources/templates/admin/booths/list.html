@@ -8,19 +8,16 @@
 <link rel="stylesheet" th:href="@{/css/admin-console.css}">
 </head>
 <body class="admin-page">
+<a class="skip-link" href="#admin-content">본문으로 건너뛰기</a>
 <div class="admin-layout">
 <aside th:replace="~{admin/fragments/sidebar :: sidebar}"></aside>
 <div class="admin-workspace">
-<header class="admin-header">
-    <a class="admin-logo" th:href="@{/admin}"><img class="brand-logo" th:src="@{/images/Logo.webp}" alt="천보축전 로고"></a>
-    <div class="admin-account"><div><strong th:text="${adminName}">관리자</strong><span th:text="${adminRole}">ADMIN</span></div>
-        <form method="post" th:action="@{/admin/logout}"><button class="button button-ghost button-small" type="submit">로그아웃</button></form></div>
-</header>
-<main class="admin-main">
-    <nav class="breadcrumb"><a th:href="@{/admin}">관리자 홈</a><span>/</span><strong>부스 관리</strong></nav>
+<header th:replace="~{admin/fragments/header :: header}"></header>
+<main id="admin-content" tabindex="-1" class="admin-main">
+    <nav class="breadcrumb" aria-label="현재 위치"><a th:href="@{/admin}">관리자 홈</a><span>/</span><strong>부스 관리</strong></nav>
     <section class="management-toolbar"><div><p class="eyebrow">FESTIVAL MAP</p><h1>부스 관리</h1><p>부스 좌표, 운영 정보, 담당자와 미디어를 관리합니다.</p></div>
         <a class="button button-primary" th:href="@{/admin/booths/new}">부스 추가</a></section>
-    <div class="alert alert-success" th:if="${message}" th:text="${message}"></div>
+    <div class="alert alert-success" role="status" th:if="${message}" th:text="${message}"></div>
     <section class="empty-panel" th:if="${#lists.isEmpty(booths)}"><strong>등록된 부스가 없습니다.</strong><p>첫 부스를 등록해 축제 지도를 구성해 주세요.</p></section>
     <section class="performance-list" th:unless="${#lists.isEmpty(booths)}">
         <article class="performance-admin-card" th:each="item : ${booths}" th:with="booth=${item.booth}">

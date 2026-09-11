@@ -7,24 +7,21 @@
 <link rel="stylesheet" th:href="@{/css/admin-console.css}">
 </head>
 <body class="admin-page">
+<a class="skip-link" href="#admin-content">본문으로 건너뛰기</a>
 <div class="admin-layout">
 <aside th:replace="~{admin/fragments/sidebar :: sidebar}"></aside>
 <div class="admin-workspace">
-<header class="admin-header">
-<a class="admin-logo" th:href="@{/admin}"><img class="brand-logo" th:src="@{/images/Logo.webp}" alt="천보축전"></a>
-<div class="admin-account"><div><strong th:text="${adminName}"></strong><span th:text="${adminRole}"></span></div>
-<form method="post" th:action="@{/admin/logout}"><button class="button button-ghost" type="submit">로그아웃</button></form></div>
-</header>
-<main class="admin-main">
-<nav class="breadcrumb"><a th:href="@{/admin}">관리자 홈</a><span>/</span><a th:href="@{/admin/sponsors}">협찬사 관리</a></nav>
+<header th:replace="~{admin/fragments/header :: header}"></header>
+<main id="admin-content" tabindex="-1" class="admin-main">
+<nav class="breadcrumb" aria-label="현재 위치"><a th:href="@{/admin}">관리자 홈</a><span>/</span><a th:href="@{/admin/sponsors}">협찬사 관리</a></nav>
 <section class="management-toolbar"><h1 th:text="${sponsorId == null ? '협찬사 등록' : '협찬사 수정'}"></h1></section>
-<div class="alert alert-error" th:if="${error}" th:text="${error}"></div>
+<div class="alert alert-error" role="alert" th:if="${error}" th:text="${error}"></div>
 <form method="post" enctype="multipart/form-data" th:action="${sponsorId == null} ? @{/admin/sponsors} : @{/admin/sponsors/{id}(id=${sponsorId})}">
 <section class="form-section">
 <label class="field-group"><span>협찬사 이름</span><input name="name" th:value="${name}" required maxlength="100"></label>
 <label class="field-group"><span>협찬사 설명</span><textarea name="description" rows="5" required maxlength="2000" th:text="${description}"></textarea></label>
 <label class="field-group"><span>사진 1장</span><input type="file" name="image" accept="image/jpeg,image/png,image/webp" th:required="${sponsorId == null}"><small>JPG·PNG·WebP, 최대 10MB. 수정할 때 선택하지 않으면 기존 사진을 유지합니다. 저장 실패 시 파일을 다시 선택해 주세요.</small></label>
-<img th:if="${imageUrl}" th:src="${imageUrl}" alt="현재 협찬사 사진" width="200" height="150" style="object-fit:contain">
+<img th:if="${imageUrl}" th:src="${imageUrl}" alt="현재 협찬사 사진" width="200" height="150" class="sponsor-image">
 <label class="field-group"><span>연결 부스 (선택)</span><select name="boothId"><option value="">연결 없음</option><option th:each="booth : ${booths}" th:value="${booth.id}" th:text="${booth.name}" th:selected="${booth.id == boothId}"></option></select></label>
 </section><div class="form-actions"><a class="button button-ghost" th:href="@{/admin/sponsors}">목록</a><button class="button button-primary" type="submit">저장</button></div>
 </form>

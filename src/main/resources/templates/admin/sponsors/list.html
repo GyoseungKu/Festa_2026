@@ -7,24 +7,21 @@
 <link rel="stylesheet" th:href="@{/css/admin-console.css}">
 </head>
 <body class="admin-page">
+<a class="skip-link" href="#admin-content">본문으로 건너뛰기</a>
 <div class="admin-layout">
 <aside th:replace="~{admin/fragments/sidebar :: sidebar}"></aside>
 <div class="admin-workspace">
-<header class="admin-header">
-<a class="admin-logo" th:href="@{/admin}"><img class="brand-logo" th:src="@{/images/Logo.webp}" alt="천보축전"></a>
-<div class="admin-account"><div><strong th:text="${adminName}"></strong><span th:text="${adminRole}"></span></div>
-<form method="post" th:action="@{/admin/logout}"><button class="button button-ghost" type="submit">로그아웃</button></form></div>
-</header>
-<main class="admin-main">
-<nav class="breadcrumb"><a th:href="@{/admin}">관리자 홈</a><span>/</span><a th:href="@{/admin/sponsors}">협찬사 관리</a></nav>
+<header th:replace="~{admin/fragments/header :: header}"></header>
+<main id="admin-content" tabindex="-1" class="admin-main">
+<nav class="breadcrumb" aria-label="현재 위치"><a th:href="@{/admin}">관리자 홈</a><span>/</span><a th:href="@{/admin/sponsors}">협찬사 관리</a></nav>
 <section class="management-toolbar"><div><h1>협찬사 관리</h1><p>협찬사 사진과 소개, 연결 부스를 관리합니다.</p></div><a class="button button-primary" th:href="@{/admin/sponsors/new}">협찬사 등록</a></section>
-<div class="alert alert-success" th:if="${message}" th:text="${message}"></div>
+<div class="alert alert-success" role="status" th:if="${message}" th:text="${message}"></div>
 <section class="empty-panel" th:if="${#lists.isEmpty(sponsors)}">등록된 협찬사가 없습니다.</section>
 <section class="lost-item-list">
 <article class="lost-item-admin-card" th:each="item : ${sponsors}">
-<img th:src="${item.imageUrl}" th:alt="${item.name}" width="160" height="120" style="object-fit:contain">
+<img th:src="${item.imageUrl}" th:alt="${item.name}" width="160" height="120" class="sponsor-image">
 <div class="lost-item-card-body"><h2 th:text="${item.name}"></h2>
-<p style="white-space:pre-wrap;overflow-wrap:anywhere" th:text="${item.description}"></p>
+<p class="preserve-text" th:text="${item.description}"></p>
 <p th:text="${item.boothName == null ? '연결된 부스 없음' : '연결 부스: ' + item.boothName}"></p>
 <div class="lost-item-quick-actions"><a class="button button-secondary" th:href="@{/admin/sponsors/{id}/edit(id=${item.id})}">수정</a>
 <form method="post" th:action="@{/admin/sponsors/{id}/delete(id=${item.id})}" onsubmit="return confirm('협찬사를 삭제할까요?');"><button type="submit" class="button button-danger">삭제</button></form>

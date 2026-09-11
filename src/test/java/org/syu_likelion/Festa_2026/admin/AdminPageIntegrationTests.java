@@ -91,6 +91,8 @@ class AdminPageIntegrationTests {
         String sidebar = html.substring(html.indexOf("<aside"), html.indexOf("</aside>"));
         assertThat(sidebar).contains("href=\"/admin/stamps\"").doesNotContain("href=\"/admin/sponsors\"");
         assertThat(sidebar).containsPattern("(?s)<a[^>]*href=\"/admin\"[^>]*aria-current=\"page\"");
+        assertThat(html).contains("/images/festa.png", "alt=\"Make a Wish\"", "href=\"#admin-content\"", "id=\"admin-content\"")
+                .doesNotContain("/images/Logo.webp", "th:replace=");
     }
     private static final UUID ADMIN_UUID = UUID.fromString("123e4567-e89b-12d3-a456-426614174010");
 

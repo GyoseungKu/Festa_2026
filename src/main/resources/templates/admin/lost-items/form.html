@@ -9,18 +9,13 @@
 <link rel="stylesheet" th:href="@{/css/admin-console.css}">
 </head>
 <body class="admin-page">
+<a class="skip-link" href="#admin-content">본문으로 건너뛰기</a>
 <div class="admin-layout">
 <aside th:replace="~{admin/fragments/sidebar :: sidebar}"></aside>
 <div class="admin-workspace">
-<header class="admin-header">
-    <a class="admin-logo" th:href="@{/admin}"><img class="brand-logo" th:src="@{/images/Logo.webp}" alt="천보축전 로고"></a>
-    <div class="admin-account">
-        <div><strong th:text="${adminName}">관리자</strong><span th:text="${adminRole}">STAFF</span></div>
-        <form method="post" th:action="@{/admin/logout}"><button class="button button-ghost button-small" type="submit">로그아웃</button></form>
-    </div>
-</header>
+<header th:replace="~{admin/fragments/header :: header}"></header>
 
-<main class="admin-main performance-form-page">
+<main id="admin-content" tabindex="-1" class="admin-main performance-form-page">
     <nav class="breadcrumb" aria-label="현재 위치"><a th:href="@{/admin}">관리자 홈</a><span>/</span><a th:href="@{/admin/lost-items}">분실물 공지 관리</a><span>/</span><strong th:text="${editing ? '수정' : '작성'}">작성</strong></nav>
     <section class="page-heading"><div><p class="eyebrow">LOST ITEM EDITOR</p><h1 th:text="${editing ? '분실물 공지 수정' : '새 분실물 공지 작성'}">새 분실물 공지 작성</h1><p>공개 즉시 로그인하지 않은 사용자도 공지를 볼 수 있습니다.</p></div></section>
     <div class="alert alert-error" role="alert" th:if="${error}" th:text="${error}"></div>
@@ -46,7 +41,7 @@
 
         <section class="form-section">
             <div class="form-section-heading"><span>03</span><div><h2>사진</h2><p>JPG, PNG, WebP 파일을 최대 5장, 장당 10MB까지 등록할 수 있습니다.</p></div></div>
-            <input class="file-input" type="file" th:field="*{imageFiles}" accept="image/jpeg,image/png,image/webp" multiple>
+            <input class="file-input" type="file" th:field="*{imageFiles}" aria-label="분실물 이미지 업로드" accept="image/jpeg,image/png,image/webp" multiple>
             <div class="existing-media" th:if="${editing and !#lists.isEmpty(notice.images)}">
                 <h3>현재 사진</h3>
                 <div class="media-preview-grid">

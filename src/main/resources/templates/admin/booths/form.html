@@ -7,18 +7,15 @@
 <link rel="stylesheet" th:href="@{/css/admin-console.css}">
 </head>
 <body class="admin-page">
+<a class="skip-link" href="#admin-content">본문으로 건너뛰기</a>
 <div class="admin-layout">
 <aside th:replace="~{admin/fragments/sidebar :: sidebar}"></aside>
 <div class="admin-workspace">
-<header class="admin-header">
-    <a class="admin-logo" th:href="@{/admin}"><img class="brand-logo" th:src="@{/images/Logo.webp}" alt="천보축전 로고"></a>
-    <div class="admin-account"><div><strong th:text="${adminName}">관리자</strong><span th:text="${adminRole}">ADMIN</span></div>
-        <form method="post" th:action="@{/admin/logout}"><button class="button button-ghost button-small" type="submit">로그아웃</button></form></div>
-</header>
-<main class="admin-main performance-form-page">
-    <nav class="breadcrumb"><a th:href="@{/admin}">관리자 홈</a><span>/</span><a th:href="@{/admin/booths}">부스 관리</a><span>/</span><strong th:text="${editing ? '수정' : '등록'}">등록</strong></nav>
+<header th:replace="~{admin/fragments/header :: header}"></header>
+<main id="admin-content" tabindex="-1" class="admin-main performance-form-page">
+    <nav class="breadcrumb" aria-label="현재 위치"><a th:href="@{/admin}">관리자 홈</a><span>/</span><a th:href="@{/admin/booths}">부스 관리</a><span>/</span><strong th:text="${editing ? '수정' : '등록'}">등록</strong></nav>
     <section class="page-heading"><div><p class="eyebrow">BOOTH EDITOR</p><h1 th:text="${editing ? '부스 수정' : '새 부스 등록'}">새 부스 등록</h1><p>저장한 부스는 별도 공개 절차 없이 지도에 바로 표시됩니다.</p></div></section>
-    <div class="alert alert-error" th:if="${error}" th:text="${error}"></div>
+    <div class="alert alert-error" role="alert" th:if="${error}" th:text="${error}"></div>
     <form class="performance-form" method="post" enctype="multipart/form-data" th:object="${form}" th:action="${editing} ? @{/admin/booths/{id}(id=${booth.booth.id})} : @{/admin/booths}">
         <section class="form-section"><div class="form-section-heading"><span>01</span><div><h2>기본 정보와 지도 좌표</h2><p>위도와 경도는 소수점 형식으로 입력합니다.</p></div></div>
             <div class="form-grid booth-form-grid">
@@ -66,8 +63,8 @@
             </div>
         </section>
         <section class="form-section"><div class="form-section-heading"><span>04</span><div><h2>이미지·동영상 업로드</h2><p>이미지 최대 5개, 동영상 최대 3개입니다. 새 파일은 기존 미디어 뒤에 추가됩니다.</p></div></div>
-            <div class="attachment-columns"><div><h3>이미지 파일</h3><input class="file-input" type="file" name="imageFiles" accept="image/jpeg,image/png,image/webp,image/gif" multiple></div>
-                <div><h3>동영상 파일</h3><input class="file-input" type="file" name="videoFiles" accept="video/mp4,video/webm,video/quicktime" multiple></div></div>
+            <div class="attachment-columns"><div><h3>이미지 파일</h3><input class="file-input" type="file" name="imageFiles" aria-label="이미지 파일 업로드" accept="image/jpeg,image/png,image/webp,image/gif" multiple></div>
+                <div><h3>동영상 파일</h3><input class="file-input" type="file" name="videoFiles" aria-label="동영상 파일 업로드" accept="video/mp4,video/webm,video/quicktime" multiple></div></div>
         </section>
         <section class="form-section" th:if="${editing and !#lists.isEmpty(booth.booth.media)}"><div class="form-section-heading"><span>05</span><div><h2>통합 미디어 순서와 대표 설정</h2><p>화살표로 이미지와 동영상의 통합 노출 순서를 바꾸고 대표 항목을 선택합니다.</p></div></div>
             <div class="booth-media-order" id="mediaOrder">
