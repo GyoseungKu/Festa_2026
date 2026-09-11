@@ -225,8 +225,6 @@ public class AdminPageController {
         model.addAttribute("managementRoleOptions", superAdmin
                 ? List.of(FestivalRole.USER, FestivalRole.STAFF, FestivalRole.ADMIN, FestivalRole.SUPER_ADMIN)
                 : canManagePerformances ? List.of(FestivalRole.USER, FestivalRole.STAFF) : List.of());
-        model.addAttribute("availableFeatureCount", 1 + (canManageStaffFeatures ? 3 : 0)
-                + (canManagePerformances ? 5 : 0) + (canManageStamps ? 1 : 0) + (superAdmin ? 2 : 0));
     }
 
     private void addSearchResult(Model model, org.syu_likelion.Festa_2026.qr.QrDtos.UserSearchResponse result) {

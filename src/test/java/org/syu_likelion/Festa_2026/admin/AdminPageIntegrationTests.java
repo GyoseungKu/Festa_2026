@@ -94,6 +94,43 @@ class AdminPageIntegrationTests {
         assertThat(html).contains("/images/festa.png", "alt=\"Make a Wish\"", "href=\"#admin-content\"", "id=\"admin-content\"")
                 .doesNotContain("/images/Logo.webp", "th:replace=");
     }
+    @Test
+    void dashboardCountAndSidebarMatchAllowedCardsForEveryRoleCombination() throws Exception {
+        FestivalRole[] roles = {FestivalRole.BOOTH_MANAGER, FestivalRole.STAFF,
+                FestivalRole.ADMIN, FestivalRole.SUPER_ADMIN};
+        for (int mask = 1; mask < 16; mask++) {
+            Set<FestivalRole> assigned = java.util.EnumSet.noneOf(FestivalRole.class);
+            FestivalRole primary = null;
+            for (int index = 0; index < roles.length; index++) {
+                if ((mask & (1 << index)) != 0) { assigned.add(roles[index]); primary = roles[index]; }
+            }
+            var actor = new AdminIdentity(UUID.randomUUID(), "운영자", primary, assigned);
+            when(adminAccess.authenticate("features", null)).thenReturn(new AuthorizedResult<>(actor, null, null));
+            String html = mvc.perform(get("/admin").cookie(new Cookie("festivalAdminAccess", "features")))
+                    .andExpect(status().isOk()).andReturn().getResponse()
+                    .getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+            Set<String> expected = new java.util.HashSet<>(Set.of("/admin/qr"));
+            boolean manager = assigned.contains(FestivalRole.ADMIN) || assigned.contains(FestivalRole.SUPER_ADMIN);
+            if (manager) expected.addAll(Set.of("/admin/booths", "/admin/performances", "/admin/polls",
+                    "/admin/student-fees", "/admin/sponsors"));
+            if (manager || assigned.contains(FestivalRole.STAFF)) expected.addAll(Set.of("/admin/notices",
+                    "/admin/lost-items", "/admin/bamboo", "/admin/birthday-messages"));
+            if (manager || assigned.contains(FestivalRole.BOOTH_MANAGER)) expected.add("/admin/stamps");
+            if (assigned.contains(FestivalRole.SUPER_ADMIN)) expected.addAll(Set.of(
+                    "/admin/school-verifications", "/admin/system"));
+            String cards = html.substring(html.indexOf("<div class=\"feature-grid\""));
+            var cardLinks = java.util.regex.Pattern.compile("<a[^>]*class=\"feature-card\"[^>]*href=\"([^\"]+)\"")
+                    .matcher(cards).results().map(match -> match.group(1)).toList();
+            assertThat(cardLinks).as("cards for %s", assigned).containsExactlyInAnyOrderElementsOf(expected);
+            String sidebar = html.substring(html.indexOf("<aside"), html.indexOf("</aside>"));
+            var navigation = java.util.regex.Pattern.compile("<a[^>]*href=\"(/admin/[^\"]+)\"")
+                    .matcher(sidebar).results().map(match -> match.group(1)).toList();
+            assertThat(navigation).as("navigation for %s", assigned).containsExactlyInAnyOrderElementsOf(expected);
+            assertThat(html).contains("class=\"feature-count\">" + cardLinks.size() + "개 기능 사용 가능</span>")
+                    .contains("<strong>" + cardLinks.size() + "개</strong>");
+        }
+    }
+
     private static final UUID ADMIN_UUID = UUID.fromString("123e4567-e89b-12d3-a456-426614174010");
 
     @Autowired MockMvc mvc;
@@ -158,7 +195,7 @@ class AdminPageIntegrationTests {
                 .andExpect(content().string(containsString("서버 장애 긴급 연락처")))
                 .andExpect(content().string(containsString("010-4953-5080")))
                 .andExpect(content().string(containsString("대나무숲 운영")))
-                .andExpect(content().string(containsString("4개 기능 사용 가능")))
+                .andExpect(content().string(containsString("5개 기능 사용 가능")))
                 .andExpect(content().string(containsString("STAFF")));
 
         mvc.perform(get("/admin/qr").cookie(new Cookie("festivalAdminAccess", "access-one")))

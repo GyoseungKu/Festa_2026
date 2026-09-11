@@ -66,11 +66,12 @@ public class NoticeController {
     @SecurityRequirement(name = "bearerAuth")
     ResponseEntity<NoticeResponse> create(
             @Valid @RequestPart("data") NoticeMutationRequest data,
-            @RequestPart(value = "attachments", required = false) List<MultipartFile> attachments,
+            @RequestPart(value = "media", required = false) List<MultipartFile> media,
+            @RequestPart(value = "files", required = false) List<MultipartFile> files,
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
             @Parameter(hidden = true) HttpServletRequest request) {
         AuthorizedResult<NoticeResponse> result = api.create(BearerTokens.require(authorization),
-                cookies.readRefreshToken(request), data, attachments);
+                cookies.readRefreshToken(request), data, media, files);
         return ResponseEntity.status(HttpStatus.CREATED).headers(headers(result)).body(result.body());
     }
 
@@ -81,11 +82,12 @@ public class NoticeController {
             @PathVariable Long id,
             @Valid @RequestPart("data") NoticeMutationRequest data,
             @RequestParam(value = "removeAttachmentIds", required = false) List<Long> removeAttachmentIds,
-            @RequestPart(value = "attachments", required = false) List<MultipartFile> attachments,
+            @RequestPart(value = "media", required = false) List<MultipartFile> media,
+            @RequestPart(value = "files", required = false) List<MultipartFile> files,
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
             @Parameter(hidden = true) HttpServletRequest request) {
         return response(api.update(id, BearerTokens.require(authorization), cookies.readRefreshToken(request),
-                data, removeAttachmentIds, attachments));
+                data, removeAttachmentIds, media, files));
     }
 
     @PatchMapping("/{id}/pin")

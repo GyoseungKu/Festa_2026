@@ -17,6 +17,7 @@ import org.syu_likelion.Festa_2026.auth.AuthorizedSsoExecutor.AuthorizedResult;
 import org.syu_likelion.Festa_2026.error.ApiException;
 import org.syu_likelion.Festa_2026.notice.NoticeDtos.NoticeResponse;
 import org.syu_likelion.Festa_2026.notice.NoticeService;
+import org.syu_likelion.Festa_2026.notice.NoticeUploads;
 import org.syu_likelion.Festa_2026.notice.NoticeSort;
 import org.syu_likelion.Festa_2026.user.FestivalRole;
 
@@ -68,7 +69,7 @@ public class AdminNoticePageController {
         AdminIdentity admin = staffOrNull(request, response);
         if (admin == null) return redirect(request);
         try {
-            notices.createAs(admin.userUuid(), admin.displayName(), form.toRequest(), form.getAttachmentFiles());
+            notices.createAs(admin.userUuid(), admin.displayName(), form.toRequest(), NoticeUploads.combine(form.getMediaFiles(), form.getAttachmentFiles()));
             redirectAttributes.addFlashAttribute("message", "일반 공지를 등록했습니다.");
             return "redirect:/admin/notices";
         } catch (ApiException exception) {
@@ -100,7 +101,7 @@ public class AdminNoticePageController {
         if (admin == null) return redirect(request);
         try {
             notices.updateAs(id, admin.userUuid(), form.toRequest(),
-                    form.getRemoveAttachmentIds(), form.getAttachmentFiles());
+                    form.getRemoveAttachmentIds(), NoticeUploads.combine(form.getMediaFiles(), form.getAttachmentFiles()));
             redirectAttributes.addFlashAttribute("message", "일반 공지를 수정했습니다.");
             return "redirect:/admin/notices";
         } catch (ApiException exception) {

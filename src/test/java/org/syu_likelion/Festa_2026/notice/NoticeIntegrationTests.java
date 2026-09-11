@@ -70,14 +70,19 @@ class NoticeIntegrationTests {
         var other = notices.createAs(ACTOR, "운영자", data("새 공지", false), List.of());
         mvc.perform(get("/api/notices")).andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].id").value(created.id()))
-                .andExpect(jsonPath("$.items[0].attachments[2].originalFilename").value("안내.pdf"));
+                .andExpect(jsonPath("$.items[0].files[0].originalFilename").value("안내.pdf"))
+                .andExpect(jsonPath("$.items[0].media.length()").value(2))
+                .andExpect(jsonPath("$.items[0].attachments").doesNotExist());
         mvc.perform(get("/api/notices/{id}", created.id())).andExpect(status().isOk())
                 .andExpect(jsonPath("$.viewCount").value(1));
-        var oldAttachment = created.attachments().get(0);
+        var oldAttachment = created.media().get(0);
         var updated = notices.updateAs(created.id(), ACTOR, data("수정 공지", true),
                 List.of(oldAttachment.id()), List.of(file("new.pdf", "application/pdf")));
-        assertThat(updated.attachments()).extracting(a -> a.originalFilename())
-                .containsExactly("clip.mp4", "안내.pdf", "new.pdf");
+        assertThat(updated.files()).extracting(a -> a.originalFilename())
+                .containsExactly("안내.pdf", "new.pdf");
+        assertThat(updated.media()).extracting(a -> a.originalFilename()).containsExactly("clip.mp4");
+        assertThat(updated.media().get(0).displayOrder()).isZero();
+        assertThat(updated.files()).extracting(a -> a.displayOrder()).containsExactly(0, 1);
         verify(storage).delete(oldAttachment.url().substring("https://example.com/".length()));
         notices.changePinnedAs(other.id(), ACTOR, true);
         assertThat(notices.listPublic(NoticeSort.OLDEST, 0, 20).items().get(0).id()).isEqualTo(other.id());
@@ -92,13 +97,13 @@ class NoticeIntegrationTests {
                 "https://example.com/new", "new", "new.pdf", "application/pdf", 1))
                 .doThrow(new IllegalStateException("upload failed")).when(storage).store(any());
         assertThatThrownBy(() -> notices.updateAs(created.id(), ACTOR, data("변경", false),
-                List.of(created.attachments().get(0).id()),
+                List.of(created.files().get(0).id()),
                 List.of(file("new.pdf", "application/pdf"), file("fail.pdf", "application/pdf"))))
                 .isInstanceOf(IllegalStateException.class);
         verify(storage).delete("new");
-        verify(storage, never()).delete(created.attachments().get(0).url().substring("https://example.com/".length()));
+        verify(storage, never()).delete(created.files().get(0).url().substring("https://example.com/".length()));
         assertThat(notices.getAdmin(created.id()).title()).isEqualTo("원본");
-        assertThat(notices.getAdmin(created.id()).attachments()).hasSize(1);
+        assertThat(notices.getAdmin(created.id()).files()).hasSize(1);
     }
 
     @Test
@@ -121,10 +126,36 @@ class NoticeIntegrationTests {
         mvc.perform(multipart("/api/notices").file(data).file(file("a.pdf", "application/pdf"))
                         .header("Authorization", "Bearer staff"))
                 .andExpect(status().isCreated()).andExpect(header().string("X-Access-Token", "rotated"))
-                .andExpect(jsonPath("$.attachments[0].contentType").value("application/pdf"));
+                .andExpect(jsonPath("$.files[0].contentType").value("application/pdf"));
         var invalid = new MockMultipartFile("data", "", "application/json", "{\"title\":\"\",\"content\":\"내용\"}".getBytes());
         mvc.perform(multipart("/api/notices").file(invalid).header("Authorization", "Bearer staff"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void multipartSeparatesMediaAndDownloadsAndRejectsWrongGroups() throws Exception {
+        var json = new MockMultipartFile("data", "", "application/json",
+                "{\"title\":\"공지\",\"content\":\"본문\",\"pinned\":false}".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        mvc.perform(multipart("/api/notices").file(json)
+                        .file(file("photo.png", "image/png")).file(file("video.mp4", "video/mp4"))
+                        .file(file("guide.pdf", "application/pdf")).header("Authorization", "Bearer staff"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.media.length()").value(2))
+                .andExpect(jsonPath("$.media[0].contentType").value("image/png"))
+                .andExpect(jsonPath("$.media[1].contentType").value("video/mp4"))
+                .andExpect(jsonPath("$.files.length()").value(1))
+                .andExpect(jsonPath("$.files[0].originalFilename").value("guide.pdf"))
+                .andExpect(jsonPath("$.attachments").doesNotExist());
+        clearInvocations(storage);
+        mvc.perform(multipart("/api/notices").file(json)
+                        .file(new MockMultipartFile("media", "guide.pdf", "application/pdf", new byte[]{1}))
+                        .header("Authorization", "Bearer staff"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(multipart("/api/notices").file(json)
+                        .file(new MockMultipartFile("files", "photo.png", "image/png", new byte[]{1}))
+                        .header("Authorization", "Bearer staff"))
+                .andExpect(status().isBadRequest());
+        verify(storage, never()).store(any());
     }
 
     @Test
@@ -156,11 +187,11 @@ class NoticeIntegrationTests {
                 "{\"title\":\"수정\",\"content\":\"본문\",\"pinned\":true}".getBytes(java.nio.charset.StandardCharsets.UTF_8));
         mvc.perform(multipart(org.springframework.http.HttpMethod.PATCH, "/api/notices/{id}", created.id())
                         .file(json).file(file("new.pdf", "application/pdf"))
-                        .param("removeAttachmentIds", created.attachments().get(0).id().toString())
+                        .param("removeAttachmentIds", created.files().get(0).id().toString())
                         .header("Authorization", "Bearer staff"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.pinned").value(true))
-                .andExpect(jsonPath("$.attachments.length()").value(1))
-                .andExpect(jsonPath("$.attachments[0].originalFilename").value("new.pdf"));
+                .andExpect(jsonPath("$.files.length()").value(1))
+                .andExpect(jsonPath("$.files[0].originalFilename").value("new.pdf"));
     }
 
     @Test
@@ -173,13 +204,22 @@ class NoticeIntegrationTests {
         mvc.perform(get("/admin/notices/new").cookie(cookie)).andExpect(status().isOk());
         mvc.perform(get("/admin/notices/{id}/edit", created.id()).cookie(cookie)).andExpect(status().isOk())
                 .andExpect(content().string(containsString("<video")))
-                .andExpect(content().string(containsString("file.pdf")));
-        mvc.perform(multipart("/admin/notices").cookie(cookie).with(csrf())
+                .andExpect(content().string(containsString("file.pdf")))
+                .andExpect(content().string(containsString("다운로드 파일")))
+                .andExpect(content().string(containsString("name=\"mediaFiles\"")))
+                .andExpect(content().string(containsString("name=\"attachmentFiles\"")));
+        mvc.perform(multipart("/admin/notices")
+                        .file(new MockMultipartFile("mediaFiles", "a.png", "image/png", new byte[]{1}))
+                        .file(new MockMultipartFile("attachmentFiles", "a.pdf", "application/pdf", new byte[]{1}))
+                        .cookie(cookie).with(csrf())
                         .param("title", "새 안내").param("content", "본문").param("pinned", "true"))
                 .andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/admin/notices"));
-        assertThat(notices.listPublic(0, 20).items().get(0).title()).isEqualTo("새 안내");
+        var saved = notices.listPublic(0, 20).items().get(0);
+        assertThat(saved.title()).isEqualTo("새 안내");
+        assertThat(saved.media()).hasSize(1);
+        assertThat(saved.files()).hasSize(1);
     }
 
     private NoticeMutationRequest data(String title, boolean pinned) { return new NoticeMutationRequest(title, "본문", pinned); }
-    private MockMultipartFile file(String name, String type) { return new MockMultipartFile("attachments", name, type, new byte[]{1}); }
+    private MockMultipartFile file(String name, String type) { return new MockMultipartFile(type.startsWith("image/") || type.startsWith("video/") ? "media" : "files", name, type, new byte[]{1}); }
 }

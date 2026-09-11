@@ -11,6 +11,7 @@ public class NoticeAdminForm {
     private String content;
     private boolean pinned;
     private List<Long> removeAttachmentIds = new ArrayList<>();
+    private List<MultipartFile> mediaFiles = new ArrayList<>();
     private List<MultipartFile> attachmentFiles = new ArrayList<>();
 
     public static NoticeAdminForm empty() {
@@ -38,6 +39,10 @@ public class NoticeAdminForm {
     public List<Long> getRemoveAttachmentIds() { return removeAttachmentIds; }
     public void setRemoveAttachmentIds(List<Long> removeAttachmentIds) {
         this.removeAttachmentIds = removeAttachmentIds == null ? new ArrayList<>() : removeAttachmentIds;
+    }
+    public List<MultipartFile> getMediaFiles() { return mediaFiles; }
+    public void setMediaFiles(List<MultipartFile> mediaFiles) {
+        this.mediaFiles = mediaFiles == null ? new ArrayList<>() : mediaFiles;
     }
     public List<MultipartFile> getAttachmentFiles() { return attachmentFiles; }
     public void setAttachmentFiles(List<MultipartFile> attachmentFiles) {

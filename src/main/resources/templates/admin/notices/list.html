@@ -45,7 +45,7 @@
             <div class="lost-item-card-body">
                 <div class="lost-item-card-flags">
                     <span class="publish-chip is-public" th:if="${notice.pinned}">상단 고정</span>
-                    <span class="media-count" th:text="|첨부 ${#lists.size(notice.attachments)}개 · 조회 ${notice.viewCount}|">첨부 0개 · 조회 0</span>
+                    <span class="media-count" th:text="|미디어 ${#lists.size(notice.media)}개 · 파일 ${#lists.size(notice.files)}개 · 조회 ${notice.viewCount}|">첨부 0개 · 조회 0</span>
                 </div>
                 <h2 th:text="${notice.title}">공지 제목</h2>
                 <p class="member-summary lost-item-summary" th:text="${notice.content}">내용</p>

@@ -25,21 +25,21 @@ public class NoticeApiService {
 
     public AuthorizedResult<NoticeResponse> create(String accessToken, String refreshToken,
                                                      NoticeMutationRequest request,
-                                                     List<MultipartFile> attachments) {
+                                                     List<MultipartFile> media, List<MultipartFile> files) {
         AuthorizedResult<MeResponse> authenticated = authenticateStaff(accessToken, refreshToken);
         MeResponse actor = authenticated.body();
         String authorName = actor.name() == null || actor.name().isBlank() ? actor.loginId() : actor.name();
         return rotated(authenticated,
-                notices.createAs(actor.userUuid(), authorName, request, attachments));
+                notices.createAs(actor.userUuid(), authorName, request, NoticeUploads.combine(media, files)));
     }
 
     public AuthorizedResult<NoticeResponse> update(Long id, String accessToken, String refreshToken,
                                                      NoticeMutationRequest request,
                                                      List<Long> removeAttachmentIds,
-                                                     List<MultipartFile> attachments) {
+                                                     List<MultipartFile> media, List<MultipartFile> files) {
         AuthorizedResult<MeResponse> authenticated = authenticateStaff(accessToken, refreshToken);
         return rotated(authenticated, notices.updateAs(id, authenticated.body().userUuid(), request,
-                removeAttachmentIds, attachments));
+                removeAttachmentIds, NoticeUploads.combine(media, files)));
     }
 
     public AuthorizedResult<NoticeResponse> changePinned(Long id, String accessToken, String refreshToken,

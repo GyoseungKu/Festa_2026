@@ -17,9 +17,11 @@
 
 `Authorization: Bearer ACCESS_TOKEN`이 필요합니다. 기존 API와 동일하게 토큰 갱신 시 `X-Access-Token` 응답 헤더와 Refresh Token 쿠키를 반영합니다.
 
-- `data`: `application/json` 파트. 제목(필수, 최대 150자), 내용(필수, 최대 5,000자), `pinned`(생략 시 false).
-- `attachments`: 선택한 파일을 같은 파트 이름으로 여러 개 추가합니다. 파일 없는 글도 가능합니다.
-- 수정 시 `removeAttachmentIds`: 삭제할 기존 첨부 ID를 같은 필드 이름으로 반복 전송합니다. 해당 글에 속하지 않은 ID는 400입니다.
+- `data`: `application/json` 파트. 제목(필수, 최대 150자), 내용(필수, 최대 5,000자), `pinned`(true 또는 false 필수).
+- `media`: 본문에 표시할 이미지·영상 파일을 같은 파트 이름으로 여러 개 추가합니다.
+- `files`: 다운로드할 PDF·문서·압축파일을 같은 파트 이름으로 여러 개 추가합니다.
+- 두 파트 모두 선택 사항이며 파일 없는 글도 가능합니다. 잘못된 그룹의 파일은 `NOTICE_ATTACHMENT_GROUP_MISMATCH`(400)로 거부합니다.
+- 수정 시 `removeAttachmentIds`: 삭제할 기존 미디어 또는 파일 ID를 같은 필드 이름으로 반복 전송합니다. 해당 글에 속하지 않은 ID는 400입니다.
 - 수정은 제목·내용·고정 여부를 모두 보내는 방식입니다. 유지할 기존 첨부는 자동 보존되고 새 첨부는 뒤에 추가됩니다.
 - 제목·내용은 일반 텍스트입니다. HTML로 삽입하지 말고 텍스트로 렌더링하고 내용의 줄바꿈을 보존하세요.
 
@@ -28,7 +30,8 @@ const form = new FormData();
 form.append('data', new Blob([JSON.stringify({
   title: '축제 운영 안내', content: '운영 시간을 안내합니다.\n첨부 문서를 확인해 주세요.', pinned: true
 })], { type: 'application/json' }));
-for (const file of selectedFiles) form.append('attachments', file);
+for (const file of selectedMedia) form.append('media', file);
+for (const file of selectedFiles) form.append('files', file);
 // 수정 요청에서만: for (const id of removedIds) form.append('removeAttachmentIds', String(id));
 const response = await fetch('/api/notices', {
   method: 'POST', headers: { Authorization: `Bearer ${accessToken}` },
@@ -49,7 +52,17 @@ const response = await fetch('/api/notices', {
   "content": "운영 시간을 안내합니다.",
   "pinned": true,
   "viewCount": 0,
-  "attachments": [
+  "media": [
+    {
+      "id": 9,
+      "url": "https://cdn.example.com/festa2026_notices/attachments/example.png",
+      "originalFilename": "축제안내.png",
+      "contentType": "image/png",
+      "size": 4096,
+      "displayOrder": 0
+    }
+  ],
+  "files": [
     {
       "id": 10,
       "url": "https://cdn.example.com/festa2026_notices/attachments/example.pdf",
@@ -70,9 +83,24 @@ const response = await fetch('/api/notices', {
 항상 고정 글이 먼저 나오고 고정 글끼리는 최근 고정 순, 이후 작성일과 ID로 정렬합니다.
 목록 조회와 관리자 편집 화면에서는 조회수를 증가시키지 않습니다.
 
-`attachments`를 `displayOrder` 순서로 표시합니다. `contentType`이 `image/`면 이미지,
-`video/`면 controls가 있는 동영상, 나머지는 원본 파일명과 다운로드 링크로 표시합니다.
-문서·압축파일은 저장 시 `Content-Disposition: attachment`로 제공됩니다.
+응답은 두 배열로 구분됩니다. 비어 있는 그룹은 `[]`이며 기존 통합 `attachments` 응답은 제공하지 않습니다.
+
+- `media`: `contentType`이 `image/`면 `<img>`, `video/`면 controls가 있는 `<video>`로 본문에 바로 표시합니다.
+- `files`: 원본 파일명과 다운로드 버튼을 표시합니다. `url`이 다운로드 주소이며 문서·압축파일은 저장 시 `Content-Disposition: attachment`로 제공됩니다.
+- `displayOrder`는 각 배열 안에서 0부터 시작합니다. 각 그룹 내 기존 순서를 유지하고 새 항목을 뒤에 추가합니다.
+
+```javascript
+// React 예시
+{notice.media.map(item => item.contentType.startsWith('image/')
+  ? <img key={item.id} src={item.url} alt={item.originalFilename} />
+  : <video key={item.id} src={item.url} controls preload="metadata" />)}
+{notice.files.map(file => <a key={file.id} href={file.url} download={file.originalFilename}>
+  {file.originalFilename} 다운로드
+</a>)}
+```
+
+기존 클라이언트의 업로드 `attachments` 파트는 `media`/`files`로 변경해야 합니다.
+DB 첨부 테이블 구조는 동일하며 기존 저장 파일도 MIME 형식에 따라 분리해 반환됩니다.
 
 ## 첨부 제한 (기본값)
 

@@ -207,12 +207,17 @@ public class NoticeService {
     }
 
     private NoticeResponse toResponse(Notice notice) {
-        List<NoticeAttachmentResponse> attachments = new ArrayList<>();
-        for (int index = 0; index < notice.getAttachments().size(); index++) {
-            NoticeAttachment attachment = notice.getAttachments().get(index);
-            attachments.add(new NoticeAttachmentResponse(attachment.getId(), attachment.getUrl(), attachment.getOriginalFilename(), attachment.getContentType(), attachment.getSize(), index));
+        List<NoticeAttachmentResponse> media = new ArrayList<>();
+        List<NoticeAttachmentResponse> files = new ArrayList<>();
+        for (NoticeAttachment attachment : notice.getAttachments()) {
+            String type = attachment.getContentType();
+            List<NoticeAttachmentResponse> target = type.startsWith("image/") || type.startsWith("video/")
+                    ? media : files;
+            target.add(new NoticeAttachmentResponse(attachment.getId(), attachment.getUrl(),
+                    attachment.getOriginalFilename(), type, attachment.getSize(), target.size()));
         }
-        return new NoticeResponse(notice.getId(), notice.getTitle(), notice.getContent(), notice.isPinned(), notice.getViewCount(), attachments,
+        return new NoticeResponse(notice.getId(), notice.getTitle(), notice.getContent(), notice.isPinned(),
+                notice.getViewCount(), List.copyOf(media), List.copyOf(files),
                 notice.getAuthorName(), notice.getCreatedAt(), notice.getUpdatedAt());
     }
 

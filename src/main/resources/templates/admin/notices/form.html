@@ -38,19 +38,35 @@
         </section>
 
         <section class="form-section">
-            <div class="form-section-heading"><span>03</span><div><h2>첨부파일</h2><p>최대 10개. 사진 10MB, 영상 200MB, 문서 20MB까지 등록할 수 있습니다. 전체 요청은 650MB까지 가능합니다.</p><p>JPG·PNG·WebP·GIF, MP4·WebM·MOV, PDF·TXT·DOC(X)·XLS(X)·PPT(X)·HWP·HWPX·ZIP</p></div></div>
-            <input class="file-input" type="file" th:field="*{attachmentFiles}" aria-label="공지 첨부파일 업로드" accept=".jpg,.jpeg,.png,.webp,.gif,.mp4,.webm,.mov,.pdf,.txt,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.hwp,.hwpx,.zip" multiple>
-            <div class="existing-media" th:if="${editing and !#lists.isEmpty(notice.attachments)}">
-                <h3>현재 첨부파일</h3>
+            <div class="form-section-heading"><span>03</span><div><h2>이미지·영상</h2><p>공지 본문에 바로 표시됩니다. 사진 10MB, 영상 200MB까지 가능합니다.</p></div></div>
+            <input class="file-input" type="file" th:field="*{mediaFiles}" aria-label="이미지·영상 업로드" accept=".jpg,.jpeg,.png,.webp,.gif,.mp4,.webm,.mov" multiple>
+            <div class="existing-media" th:if="${editing and !#lists.isEmpty(notice.media)}">
+                <h3>현재 이미지·영상</h3>
                 <div class="media-preview-grid">
-                    <div class="media-preview notice-attachment-preview" th:each="attachment : ${notice.attachments}">
+                    <div class="media-preview notice-attachment-preview" th:each="attachment : ${notice.media}">
                         <img th:if="${#strings.startsWith(attachment.contentType, 'image/')}" th:src="${attachment.url}" alt="공지 첨부 사진">
                         <video th:if="${#strings.startsWith(attachment.contentType, 'video/')}" th:src="${attachment.url}" controls preload="metadata"></video>
-                        <a th:href="${attachment.url}" th:text="${attachment.originalFilename}" target="_blank" rel="noopener noreferrer">첨부파일</a>
+                        <span th:text="${attachment.originalFilename}">파일명</span>
                         <label><input type="checkbox" name="removeAttachmentIds" th:value="${attachment.id}"> 삭제</label>
                     </div>
                 </div>
             </div>
+        </section>
+
+        <section class="form-section">
+            <div class="form-section-heading"><span>04</span><div><h2>다운로드 파일</h2><p>PDF·문서·압축파일을 다운로드 버튼으로 제공합니다. 파일당 20MB까지 가능합니다.</p></div></div>
+            <input class="file-input" type="file" th:field="*{attachmentFiles}" aria-label="다운로드 파일 업로드" accept=".pdf,.txt,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.hwp,.hwpx,.zip" multiple>
+            <div class="existing-media" th:if="${editing and !#lists.isEmpty(notice.files)}">
+                <h3>현재 다운로드 파일</h3>
+                <div class="media-preview-grid">
+                    <div class="media-preview notice-attachment-preview" th:each="attachment : ${notice.files}">
+                        <span th:text="${attachment.originalFilename}">파일명</span>
+                        <a class="button button-secondary" th:href="${attachment.url}" th:download="${attachment.originalFilename}">다운로드</a>
+                        <label><input type="checkbox" name="removeAttachmentIds" th:value="${attachment.id}"> 삭제</label>
+                    </div>
+                </div>
+            </div>
+            <p class="support-copy">이미지·영상과 다운로드 파일을 합쳐 최대 10개, 전체 요청은 650MB까지 가능합니다.</p>
         </section>
 
         <div class="form-actions">
