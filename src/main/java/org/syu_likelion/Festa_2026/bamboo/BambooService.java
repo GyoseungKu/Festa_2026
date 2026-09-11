@@ -519,6 +519,8 @@ public class BambooService {
 
     @Transactional(readOnly = true)
     public String nicknameOf(UUID userUuid) {
+        if (org.syu_likelion.Festa_2026.user.DeletedUserIdentity.matches(userUuid))
+            return org.syu_likelion.Festa_2026.user.DeletedUserIdentity.NAME;
         return nicknames.findById(userUuid).map(BambooNickname::getNickname).orElse(null);
     }
 

@@ -235,6 +235,7 @@ public class QrService {
     private String digits(String value) { return value == null ? "" : value.replaceAll("\\D", ""); }
 
     public static String maskName(String name) {
+        if (org.syu_likelion.Festa_2026.user.DeletedUserIdentity.NAME.equals(name)) return name;
         if (name == null || name.isBlank()) return name;
         int[] codePoints = name.codePoints().toArray();
         if (codePoints.length == 1) return "*";

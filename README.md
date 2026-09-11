@@ -196,10 +196,11 @@ Origin은 경로나 마지막 `/` 없이 `scheme://host[:port]` 형식으로 입
 | PATCH | `/api/users/me/email` | 인증된 이메일로 변경 |
 | PATCH | `/api/users/me/password` | SSO 비밀번호 변경 후 인증 쿠키 제거 |
 | DELETE | `/api/users/me` | SSO 계정 탈퇴 |
+| DELETE | `/api/users/me/festival` | SSO 계정 유지, 본인 축제 이용 정보 삭제 및 기존 기록 익명화 ([상세](docs/frontend-user-api.md)) |
 
 이름·학번 불일치 인증은 `/api/admin/school-verifications`에서 `SUPER_ADMIN`만 목록 조회, 승인, 삭제할 수 있습니다. 인증된 사용자가 프로필 API로 학과를 수정하면 학생 인증 상태는 `REVOKED`가 되며 기존 학교 토큰 확인 시각은 유지됩니다. 관리자 승인은 축제 인증 상태만 변경하며 동아리 SSO 회원정보를 수정하지 않습니다.
 
-현재 미승인 요청에는 자동 만료·정리와 회원 탈퇴 연계가 없고, 동아리 SSO 변경과 축제 DB 저장도 하나의 분산 트랜잭션이 아닙니다. 운영 적용 전 필요한 보완 사항과 정확한 상태·시각 의미는 [학생 인증 기능 문서](docs/student-verification.md)를 기준으로 확인합니다.
+현재 미승인 요청에는 자동 만료·정리와 SSO 회원 탈퇴 연계가 없습니다. 축제 이용 정보 삭제 API는 해당 사용자의 미승인 요청도 함께 삭제합니다. 동아리 SSO 변경과 축제 DB 저장은 하나의 분산 트랜잭션이 아닙니다. 운영 적용 전 필요한 보완 사항과 정확한 상태·시각 의미는 [학생 인증 기능 문서](docs/student-verification.md)를 기준으로 확인합니다.
 
 ### 부스 지도와 찜
 

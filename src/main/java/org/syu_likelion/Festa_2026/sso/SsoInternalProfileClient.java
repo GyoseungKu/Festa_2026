@@ -8,6 +8,8 @@ import java.net.http.HttpTimeoutException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.Map;
+import java.util.LinkedHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -42,6 +44,11 @@ public class SsoInternalProfileClient {
 
     public List<InternalUserProfile> getProfiles(List<UUID> userUuids) {
         if (userUuids == null || userUuids.isEmpty()) return List.of();
+        List<InternalUserProfile> deleted = userUuids.stream()
+                .filter(org.syu_likelion.Festa_2026.user.DeletedUserIdentity::matches)
+                .map(SsoInternalProfileClient::unknownProfile).toList();
+        userUuids = userUuids.stream().filter(id -> !org.syu_likelion.Festa_2026.user.DeletedUserIdentity.matches(id)).toList();
+        if (userUuids.isEmpty()) return deleted;
         String token = tokenProvider.getToken();
         HttpResponse<String> response = request(token, userUuids);
         if (response.statusCode() == 401) {
@@ -53,7 +60,23 @@ public class SsoInternalProfileClient {
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
             throw new SsoException(response.statusCode() >= 500 ? 503 : 502, "SSO internal profile request failed");
         }
-        return parseProfiles(response.body());
+        Map<UUID, InternalUserProfile> returned = new LinkedHashMap<>();
+        for (InternalUserProfile profile : parseProfiles(response.body())) {
+            if (profile.userUuid() == null) throw new SsoException(502, "SSO profile response contained no user UUID");
+            returned.put(profile.userUuid(), profile);
+        }
+        // A valid batch response omits users that no longer exist in SSO.
+        // Preserve their local identity for history, without exposing stale personal information.
+        List<InternalUserProfile> result = new ArrayList<>();
+        for (UUID id : userUuids) result.add(returned.getOrDefault(id, unknownProfile(id)));
+        result.addAll(deleted);
+        return List.copyOf(result);
+    }
+
+    private static InternalUserProfile unknownProfile(UUID id) {
+        return new InternalUserProfile(id, null, null, null, null,
+                org.syu_likelion.Festa_2026.user.DeletedUserIdentity.NAME,
+                null, null, null, null, null, null, null, null);
     }
 
     private HttpResponse<String> request(String token, List<UUID> userUuids) {

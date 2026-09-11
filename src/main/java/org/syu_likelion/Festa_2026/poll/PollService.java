@@ -550,6 +550,8 @@ public class PollService {
         return result;
     }
     private String name(InternalUserProfile profile, UUID fallback) {
+        if (org.syu_likelion.Festa_2026.user.DeletedUserIdentity.matches(fallback))
+            return org.syu_likelion.Festa_2026.user.DeletedUserIdentity.NAME;
         return profile == null || profile.name() == null || profile.name().isBlank()
                 ? fallback.toString() : profile.name();
     }

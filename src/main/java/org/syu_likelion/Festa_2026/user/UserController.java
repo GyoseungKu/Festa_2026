@@ -33,10 +33,12 @@ public class UserController {
     public static final String REFRESHED_ACCESS_TOKEN = "X-Access-Token";
     private final UserService userService;
     private final TokenCookieManager cookies;
+    private final FestivalWithdrawalService withdrawal;
 
-    public UserController(UserService userService, TokenCookieManager cookies) {
+    public UserController(UserService userService, TokenCookieManager cookies, FestivalWithdrawalService withdrawal) {
         this.userService = userService;
         this.cookies = cookies;
+        this.withdrawal = withdrawal;
     }
 
     @GetMapping
@@ -103,6 +105,18 @@ public class UserController {
                                         @Parameter(hidden = true) HttpServletRequest servletRequest,
                                         @Valid @RequestBody PasswordChangeRequest request) {
         userService.changePassword(BearerTokens.require(authorization), cookies.readRefreshToken(servletRequest), request);
+        return ResponseEntity.noContent().header(TokenCookieManager.SET_COOKIE, cookies.clear()).build();
+    }
+
+    @DeleteMapping("/festival")
+    @Operation(summary = "축제 서비스 이용 정보 삭제",
+            description = "SSO 계정은 유지하고 본인의 축제 사용자 정보와 개인 연결 데이터를 삭제합니다. 게시글과 투표 기록은 작성자를 알 수 없음으로 익명화하여 보존합니다. 성공 후 Access Token을 버리고 로그인 화면으로 이동하세요. 다시 로그인하면 신규 사용자로 연결됩니다.")
+    ResponseEntity<Void> withdrawFestival(
+            @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
+            @Parameter(hidden = true) HttpServletRequest request) {
+        withdrawal.withdraw(userService.authenticateForWithdrawal(BearerTokens.require(authorization),
+                cookies.readRefreshToken(request)));
+        if (request.getSession(false) != null) request.getSession(false).invalidate();
         return ResponseEntity.noContent().header(TokenCookieManager.SET_COOKIE, cookies.clear()).build();
     }
 
