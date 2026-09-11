@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>일반 공지 관리 | 천보축전 관리자</title>
+    <link rel="icon" type="image/svg+xml" th:href="@{/images/favicon.svg}">
+    <link rel="stylesheet" th:href="@{/css/admin.css}">
+<link rel="stylesheet" th:href="@{/css/admin-console.css}">
+</head>
+<body class="admin-page">
+<a class="skip-link" href="#admin-content">본문으로 건너뛰기</a>
+<div class="admin-layout">
+<aside th:replace="~{admin/fragments/sidebar :: sidebar}"></aside>
+<div class="admin-workspace">
+<header th:replace="~{admin/fragments/header :: header}"></header>
+
+<main id="admin-content" tabindex="-1" class="admin-main">
+    <nav class="breadcrumb" aria-label="현재 위치"><a th:href="@{/admin}">관리자 홈</a><span>/</span><strong>일반 공지 관리</strong></nav>
+    <section class="management-toolbar">
+        <div><p class="eyebrow">NOTICES</p><h1>일반 공지 관리</h1><p>일반 공지와 첨부파일, 상단 고정을 관리합니다.</p></div>
+        <a class="button button-primary" th:href="@{/admin/notices/new}">일반 공지 작성</a>
+    </section>
+    <div class="alert alert-success" role="status" th:if="${message}" th:text="${message}"></div>
+
+    <form class="lost-item-filter" method="get" th:action="@{/admin/notices}">
+        <label class="field-group">
+            <span>정렬</span>
+            <select name="sort">
+                <option th:each="item : ${sortOptions}" th:value="${item}" th:text="${item.label}"
+                        th:selected="${selectedSort == item}">최신순</option>
+            </select>
+        </label>
+        <button class="button button-primary" type="submit">필터 적용</button>
+        <a class="button button-secondary" th:href="@{/admin/notices}">초기화</a>
+    </form>
+
+    <section class="empty-panel" th:if="${#lists.isEmpty(notices)}">
+        <strong>등록된 일반 공지가 없습니다.</strong><p>첫 번째 일반 공지를 작성해 주세요.</p>
+        <a class="button button-primary" th:href="@{/admin/notices/new}">공지 작성</a>
+    </section>
+
+    <section class="lost-item-list" th:unless="${#lists.isEmpty(notices)}">
+        <article class="lost-item-admin-card notice-admin-card" th:each="notice : ${notices}">
+            <div class="lost-item-card-body">
+                <div class="lost-item-card-flags">
+                    <span class="publish-chip is-public" th:if="${notice.pinned}">상단 고정</span>
+                    <span class="media-count" th:text="|첨부 ${#lists.size(notice.attachments)}개 · 조회 ${notice.viewCount}|">첨부 0개 · 조회 0</span>
+                </div>
+                <h2 th:text="${notice.title}">공지 제목</h2>
+                <p class="member-summary lost-item-summary" th:text="${notice.content}">내용</p>
+                <dl class="performance-meta">
+                    <div><dt>작성자</dt><dd th:text="${notice.authorName}">관리자</dd></div>
+                    <div><dt>작성</dt><dd th:text="${#temporals.format(notice.createdAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm')} + ' KST'">2026-08-13 12:00 KST</dd></div>
+                    <div><dt>수정</dt><dd th:text="${#temporals.format(notice.updatedAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm')} + ' KST'">2026-08-13 12:00 KST</dd></div>
+                </dl>
+                <div class="lost-item-quick-actions">
+                    <form method="post" th:action="@{/admin/notices/{id}/pin(id=${notice.id})}">
+                        <input type="hidden" name="pinned" th:value="${!notice.pinned}">
+                        <button class="button button-secondary" type="submit" th:text="${notice.pinned ? '고정 해제' : '상단 고정'}">상단 고정</button>
+                    </form>
+                    <a class="button button-secondary" th:href="@{/admin/notices/{id}/edit(id=${notice.id})}">수정</a>
+                    <form method="post" th:action="@{/admin/notices/{id}/delete(id=${notice.id})}" onsubmit="return confirm('이 공지와 첨부파일을 삭제할까요?');">
+                        <button class="button button-danger" type="submit">삭제</button>
+                    </form>
+                </div>
+            </div>
+        </article>
+    </section>
+    <nav class="number-pagination" th:if="${result.totalPages > 1}" aria-label="일반 공지 페이지">
+        <a th:if="${result.page > 0}" th:href="@{/admin/notices(sort=${selectedSort},page=${result.page - 1})}" aria-label="이전 페이지">‹</a>
+        <a th:each="number : ${pageNumbers}" th:href="@{/admin/notices(sort=${selectedSort},page=${number})}" th:text="${number + 1}" th:classappend="${number == result.page} ? ' is-current'" th:attr="aria-current=${number == result.page ? 'page' : null}">1</a>
+        <a th:if="${result.page + 1 < result.totalPages}" th:href="@{/admin/notices(sort=${selectedSort},page=${result.page + 1})}" aria-label="다음 페이지">›</a>
+    </nav>
+</main>
+<div th:replace="~{admin/fragments/footer :: footer(true)}"></div>
+</div></div>
+</body>
+</html>

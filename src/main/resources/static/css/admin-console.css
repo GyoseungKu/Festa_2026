@@ -221,3 +221,8 @@
 @media(max-width:560px) {
  .admin-page .fee-search-form { grid-template-columns:1fr; }
 }
+
+/* General notices share the existing card styles without a thumbnail column. */
+.admin-page .notice-admin-card { grid-template-columns:minmax(0,1fr); }
+.admin-page .notice-attachment-preview video { width:100%; max-height:240px; border-radius:8px; }
+.admin-page .notice-attachment-preview a { overflow-wrap:anywhere; }

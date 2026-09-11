@@ -537,3 +537,10 @@ Swagger UI의 **Authorize**에는 SSO Access Token 원문만 입력합니다. `B
 - [생일축하 쪽지](docs/frontend-birthday-messages-api.md)
 - [프런트 이벤트](docs/frontend-analytics-api.md)
 - [접속 현황 heartbeat](docs/frontend-presence-api.md)
+
+### 일반 공지
+
+- 공개 조회: `GET /api/notices`, `GET /api/notices/{id}`
+- STAFF 이상 작성·수정·삭제·상단 고정, 관리자 메뉴 `/admin/notices`
+- 제목·내용, 사진·영상·PDF 등 최대 10개 첨부. 댓글 없음.
+- [일반 공지 프론트엔드 API](docs/frontend-notices-api.md)

@@ -75,6 +75,8 @@ public final class EarlyMultipartAuthenticationFilter extends OncePerRequestFilt
         if ("POST".equals(method) && "/api/lost-items".equals(stripTrailingSlash(path)))
             return RequiredAccess.STAFF;
         if ("PATCH".equals(method) && LOST_ITEM_DETAIL.matcher(path).matches()) return RequiredAccess.STAFF;
+        if ("POST".equals(method) && "/api/notices".equals(stripTrailingSlash(path))) return RequiredAccess.STAFF;
+        if ("PATCH".equals(method) && path.matches("^/api/notices/[^/]+/?$")) return RequiredAccess.STAFF;
         return null;
     }
 

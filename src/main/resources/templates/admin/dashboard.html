@@ -135,6 +135,13 @@
                 </div>
                 <span class="feature-arrow" aria-hidden="true">→</span>
             </a>
+            <a class="feature-card" th:if="${canManageLostItems}" th:href="@{/admin/notices}">
+                <span class="feature-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" role="img"><path d="M4 5h16v14H4V5Zm2 2v10h12V7H6Zm2 2h8v2H8V9Zm0 4h5v2H8v-2Z"/></svg>
+                </span>
+                <div><span class="feature-status">STAFF 이상</span><h3>일반 공지 관리</h3><p>공지 작성, 사진·영상·문서 첨부와 상단 고정을 관리합니다.</p></div>
+                <span class="feature-arrow" aria-hidden="true">→</span>
+            </a>
             <a class="feature-card" th:if="${canManageLostItems}" th:href="@{/admin/lost-items}">
                 <span class="feature-icon feature-icon-lost" aria-hidden="true">
                     <svg viewBox="0 0 24 24" role="img"><path d="M4 5h16v14H4V5Zm2 2v10h12V7H6Zm2 2h8v2H8V9Zm0 4h5v2H8v-2Z"/></svg>

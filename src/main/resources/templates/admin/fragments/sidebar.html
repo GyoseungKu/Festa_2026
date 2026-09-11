@@ -12,6 +12,7 @@
  <a th:if="${manager}" th:href="@{/admin/polls}" th:attr="aria-current=${#strings.startsWith(adminCurrentPath, '/admin/polls') ? 'page' : null}">투표·응답 폼</a>
  <a th:if="${manager}" th:href="@{/admin/sponsors}" th:attr="aria-current=${#strings.startsWith(adminCurrentPath, '/admin/sponsors') ? 'page' : null}">협찬사 관리</a>
  <a th:if="${manager}" th:href="@{/admin/student-fees}" th:attr="aria-current=${#strings.startsWith(adminCurrentPath, '/admin/student-fees') ? 'page' : null}">학생회비 납부자</a>
+ <a th:if="${staff}" th:href="@{/admin/notices}" th:attr="aria-current=${#strings.startsWith(adminCurrentPath, '/admin/notices') ? 'page' : null}">일반 공지 관리</a>
  <a th:if="${staff}" th:href="@{/admin/lost-items}" th:attr="aria-current=${#strings.startsWith(adminCurrentPath, '/admin/lost-items') ? 'page' : null}">분실물 관리</a>
  <a th:if="${staff}" th:href="@{/admin/birthday-messages}" th:attr="aria-current=${#strings.startsWith(adminCurrentPath, '/admin/birthday-messages') ? 'page' : null}">생일축하 쪽지</a>
  <a th:if="${staff}" th:href="@{/admin/bamboo}" th:attr="aria-current=${#strings.startsWith(adminCurrentPath, '/admin/bamboo') ? 'page' : null}">오픈채팅 관리</a>
