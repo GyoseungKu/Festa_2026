@@ -19,7 +19,7 @@ public final class AuthDtos {
             @NotBlank @Size(min = 4, max = 12) String code) { }
 
     public record SignupRequest(
-            @NotBlank @Size(max = 100) String loginId,
+            @NotBlank @Size(min = 4, max = 50, message = "아이디는 4~50자여야 합니다.") String loginId,
             @SignupPassword String password,
             @NotBlank @Email String email,
             @NotBlank @Size(max = 100) String name,

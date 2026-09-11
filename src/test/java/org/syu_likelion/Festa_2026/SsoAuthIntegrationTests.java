@@ -148,6 +148,42 @@ class SsoAuthIntegrationTests {
     }
 
     @Test
+    void signupAndAvailabilityRejectOutOfRangeIdsBeforeCallingSso() throws Exception {
+        for (int length : new int[]{3, 51}) {
+            String id = "a".repeat(length);
+            mvc.perform(post("/api/auth/signup").contentType(MediaType.APPLICATION_JSON)
+                            .content(signupWithId(id)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+            mvc.perform(get("/api/auth/check/login-id").param("loginId", id))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+        }
+        org.assertj.core.api.Assertions.assertThat(REQUESTS).isEmpty();
+    }
+
+    @Test
+    void signupAndAvailabilityAcceptBothIdLengthBoundaries() throws Exception {
+        for (int length : new int[]{4, 50}) {
+            String id = "a".repeat(length);
+            enqueue(201, "{\"userUuid\":\"" + UUID + "\"}");
+            mvc.perform(post("/api/auth/signup").contentType(MediaType.APPLICATION_JSON)
+                            .content(signupWithId(id)))
+                    .andExpect(status().isOk());
+            enqueue(200, "{\"available\":true}");
+            mvc.perform(get("/api/auth/check/login-id").param("loginId", id))
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.available").value(true));
+        }
+        org.assertj.core.api.Assertions.assertThat(REQUESTS).hasSize(4);
+    }
+
+    private static String signupWithId(String id) {
+        return "{\"loginId\":\"" + id + "\",\"password\":\"Password123!\","
+                + "\"email\":\"student@example.com\",\"name\":\"홍길동\","
+                + "\"studentNo\":\"20260001\",\"department\":\"컴퓨터공학과\"}";
+    }
+
+    @Test
     void signupAcceptsAndForwardsAllOptionalUserFields() throws Exception {
         enqueue(201, "{\"userUuid\":\"" + UUID + "\"}");
         mvc.perform(post("/api/auth/signup").contentType(MediaType.APPLICATION_JSON)

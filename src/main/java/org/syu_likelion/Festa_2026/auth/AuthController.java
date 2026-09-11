@@ -56,7 +56,7 @@ public class AuthController {
     @GetMapping("/check/login-id")
     @Operation(summary = "로그인 아이디 중복 확인")
     AvailabilityResponse checkLoginId(
-            @RequestParam @NotBlank @Size(max = 100) String loginId) {
+            @RequestParam @NotBlank @Size(min = 4, max = 50, message = "아이디는 4~50자여야 합니다.") String loginId) {
         return authService.checkLoginId(loginId);
     }
 
