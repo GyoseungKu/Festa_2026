@@ -10,6 +10,7 @@ public class NoticeAdminForm {
     private String title;
     private String content;
     private boolean pinned;
+    private boolean banner;
     private List<Long> removeAttachmentIds = new ArrayList<>();
     private List<MultipartFile> mediaFiles = new ArrayList<>();
     private List<MultipartFile> attachmentFiles = new ArrayList<>();
@@ -23,11 +24,12 @@ public class NoticeAdminForm {
         form.title = response.title();
         form.content = response.content();
         form.pinned = response.pinned();
+        form.banner = response.banner();
         return form;
     }
 
     public NoticeMutationRequest toRequest() {
-        return new NoticeMutationRequest(title, content, pinned);
+        return new NoticeMutationRequest(title, content, pinned, banner);
     }
 
     public String getTitle() { return title; }
@@ -35,6 +37,8 @@ public class NoticeAdminForm {
     public String getContent() { return content; }
     public void setContent(String content) { this.content = content; }
     public boolean isPinned() { return pinned; }
+    public boolean isBanner() { return banner; }
+    public void setBanner(boolean banner) { this.banner = banner; }
     public void setPinned(boolean pinned) { this.pinned = pinned; }
     public List<Long> getRemoveAttachmentIds() { return removeAttachmentIds; }
     public void setRemoveAttachmentIds(List<Long> removeAttachmentIds) {

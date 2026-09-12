@@ -540,6 +540,9 @@ Swagger UI의 **Authorize**에는 SSO Access Token 원문만 입력합니다. `B
 
 ### 일반 공지
 
+- 기존 작성·수정 API의 `banner` 옵션으로 최상단 배너 공지를 지정합니다. 관리자 작성 화면에도 체크박스를 제공합니다.
+- 배너 공지만 조회: `GET /api/notices?bannerOnly=true`. 사용자 프런트는 응답으로 최상단 배너를 렌더링합니다.
+
 - 공개 조회: `GET /api/notices`, `GET /api/notices/{id}`
 - STAFF 이상 작성·수정·삭제·상단 고정, 관리자 메뉴 `/admin/notices`
 - 제목·내용, 사진·영상·PDF 등 최대 10개 첨부. 댓글 없음.

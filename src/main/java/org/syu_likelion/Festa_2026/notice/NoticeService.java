@@ -38,11 +38,16 @@ public class NoticeService {
 
     @Transactional(readOnly = true)
     public NoticePageResponse listPublic(NoticeSort order, int page, int size) {
+        return listPublic(order, page, size, false);
+    }
+
+    @Transactional(readOnly = true)
+    public NoticePageResponse listPublic(NoticeSort order, int page, int size, boolean bannerOnly) {
         int safePage = Math.max(0, page);
         int safeSize = Math.max(1, Math.min(size, MAX_PAGE_SIZE));
         NoticeSort safeOrder = order == null ? NoticeSort.NEWEST : order;
         PageRequest pageable = PageRequest.of(safePage, safeSize, sort(safeOrder));
-        Page<Notice> notices = repository.findAll(pageable);
+        Page<Notice> notices = bannerOnly ? repository.findByBannerTrue(pageable) : repository.findAll(pageable);
         return new NoticePageResponse(notices.getContent().stream().map(this::toResponse).toList(),
                 notices.getNumber(), notices.getSize(), notices.getTotalElements(), notices.getTotalPages());
     }
@@ -90,6 +95,7 @@ public class NoticeService {
         String cleanAuthor = requiredText(authorName, 100, "작성자");
         Notice notice = new Notice(data.title(), data.content(), data.pinned(),
                 actorUuid, cleanAuthor, clock.instant());
+        notice.changeBanner(Boolean.TRUE.equals(request.banner()));
         List<StoredAttachment> uploaded = new ArrayList<>();
         boolean rollbackCleanup = TransactionalFileActions.deleteOnRollback(() -> deleteStored(uploaded));
         try {
@@ -119,6 +125,7 @@ public class NoticeService {
                 .filter(attachment -> removals.contains(attachment.getId())).toList();
         removed.forEach(notice::removeAttachment);
         notice.update(data.title(), data.content(), data.pinned(), actorUuid, clock.instant());
+        if (request.banner() != null) notice.changeBanner(request.banner());
 
         List<StoredAttachment> uploaded = new ArrayList<>();
         boolean rollbackCleanup = TransactionalFileActions.deleteOnRollback(() -> deleteStored(uploaded));
@@ -200,7 +207,7 @@ public class NoticeService {
     }
 
     private Sort sort(NoticeSort order) {
-        Sort pinned = Sort.by(Sort.Order.desc("pinned"), Sort.Order.desc("pinnedAt"));
+        Sort pinned = Sort.by(Sort.Order.desc("banner"), Sort.Order.desc("pinned"), Sort.Order.desc("pinnedAt"));
         Sort.Direction direction = order == NoticeSort.OLDEST ? Sort.Direction.ASC : Sort.Direction.DESC;
         return pinned.and(Sort.by(new Sort.Order(direction, "createdAt"),
                 new Sort.Order(direction, "id")));
@@ -217,7 +224,7 @@ public class NoticeService {
                     attachment.getOriginalFilename(), type, attachment.getSize(), target.size()));
         }
         return new NoticeResponse(notice.getId(), notice.getTitle(), notice.getContent(), notice.isPinned(),
-                notice.getViewCount(), List.copyOf(media), List.copyOf(files),
+                notice.isBanner(), notice.getViewCount(), List.copyOf(media), List.copyOf(files),
                 notice.getAuthorName(), notice.getCreatedAt(), notice.getUpdatedAt());
     }
 

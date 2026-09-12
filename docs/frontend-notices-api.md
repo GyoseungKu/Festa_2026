@@ -4,6 +4,22 @@
 목록·상세는 비로그인 공개이며 작성·수정·삭제·상단 고정은 STAFF, ADMIN, SUPER_ADMIN만 가능합니다.
 관리자 웹 메뉴는 `/admin/notices`입니다.
 
+## 최상단 배너 공지
+
+기존 등록·수정 API의 `data`에 `banner: true`를 넣으면 최상단 배너 공지로 지정합니다.
+관리자 작성·수정 화면의 **최상단 고정 (배너 공지)** 체크박스로도 설정합니다.
+`pinned`와 독립적인 값이며 여러 공지를 동시에 배너로 지정할 수 있습니다.
+등록 시 `banner`를 생략하거나 null로 보내면 false, 수정 시 생략하거나 null로 보내면 기존 값을 유지합니다.
+해제하려면 수정 API에 `banner: false`를 보냅니다. 기존 `/pin` API는 `pinned`만 변경합니다.
+
+목록과 상세 응답에 `banner` boolean이 포함됩니다. 공개 배너 영역은
+`GET /api/notices?bannerOnly=true&page=0&size=20`으로 조회합니다. 필터 적용 후 페이지네이션하며
+`totalElements`와 `totalPages`도 배너 공지만 집계합니다. `bannerOnly` 기본값은 false입니다.
+배너가 여러 페이지면 필요한 페이지를 추가 조회합니다. 목록 조회로 조회수는 증가하지 않습니다.
+
+사용자 프런트는 조회한 공지 제목을 페이지 최상단 배너로 렌더링하고 클릭하면 해당 공지 상세로 이동하도록 연결합니다.
+이 저장소는 배너 지정·조회 API와 관리자 설정 화면을 제공하며, 사용자 사이트의 실제 배너 UI는 프런트에서 구현해야 합니다.
+
 | 메서드 | 경로 | 기능 |
 |---|---|---|
 | GET | `/api/notices?sort=NEWEST&page=0&size=20` | 목록 |
@@ -17,7 +33,7 @@
 
 `Authorization: Bearer ACCESS_TOKEN`이 필요합니다. 기존 API와 동일하게 토큰 갱신 시 `X-Access-Token` 응답 헤더와 Refresh Token 쿠키를 반영합니다.
 
-- `data`: `application/json` 파트. 제목(필수, 최대 150자), 내용(필수, 최대 5,000자), `pinned`(true 또는 false 필수).
+- `data`: `application/json` 파트. 제목(필수, 최대 150자), 내용(필수, 최대 5,000자), `pinned`(true 또는 false), `banner`(선택).
 - `media`: 본문에 표시할 이미지·영상 파일을 같은 파트 이름으로 여러 개 추가합니다.
 - `files`: 다운로드할 PDF·문서·압축파일을 같은 파트 이름으로 여러 개 추가합니다.
 - 두 파트 모두 선택 사항이며 파일 없는 글도 가능합니다. 잘못된 그룹의 파일은 `NOTICE_ATTACHMENT_GROUP_MISMATCH`(400)로 거부합니다.
@@ -28,7 +44,7 @@
 ```javascript
 const form = new FormData();
 form.append('data', new Blob([JSON.stringify({
-  title: '축제 운영 안내', content: '운영 시간을 안내합니다.\n첨부 문서를 확인해 주세요.', pinned: true
+  title: '축제 운영 안내', content: '운영 시간을 안내합니다.\n첨부 문서를 확인해 주세요.', pinned: true, banner: true
 })], { type: 'application/json' }));
 for (const file of selectedMedia) form.append('media', file);
 for (const file of selectedFiles) form.append('files', file);
@@ -51,6 +67,7 @@ const response = await fetch('/api/notices', {
   "title": "축제 운영 안내",
   "content": "운영 시간을 안내합니다.",
   "pinned": true,
+  "banner": true,
   "viewCount": 0,
   "media": [
     {
@@ -80,7 +97,8 @@ const response = await fetch('/api/notices', {
 
 목록은 `{ "items": [상세 응답], "page": 0, "size": 20, "totalElements": 1, "totalPages": 1 }` 구조입니다.
 `size`는 1~100으로 보정됩니다. `sort`는 `NEWEST` 또는 `OLDEST`입니다.
-항상 고정 글이 먼저 나오고 고정 글끼리는 최근 고정 순, 이후 작성일과 ID로 정렬합니다.
+배너 글이 가장 먼저 나오고 각 그룹에서 고정 여부, 최근 고정 시각, 작성일과 ID 순으로 정렬합니다.
+즉 배너 공지 → 일반 상단 고정 공지 → 일반 공지 순이며, NEWEST/OLDEST는 작성일과 ID 정렬 방향에 적용됩니다.
 목록 조회와 관리자 편집 화면에서는 조회수를 증가시키지 않습니다.
 
 응답은 두 배열로 구분됩니다. 비어 있는 그룹은 `[]`이며 기존 통합 `attachments` 응답은 제공하지 않습니다.
@@ -125,5 +143,7 @@ DB 첨부 테이블 구조는 동일하며 기존 저장 파일도 MIME 형식�
 
 신규 테이블은 `notices`, `notice_attachments`입니다. 현재 기본 `spring.jpa.hibernate.ddl-auto=update`에서는
 애플리케이션 시작 시 생성됩니다. 수동 DDL 환경은 [공지 스키마](notices-schema.sql)를 먼저 적용합니다.
+기존 테이블에서 수동 DDL을 사용하면 [배너 컬럼 추가 SQL](notices-banner-migration.sql)을 한 번 적용합니다.
+`notices.banner`는 NOT NULL, 기본값 false이므로 기존 공지는 배너로 지정되지 않습니다.
 기존 R2 버킷·공개 URL·인증정보를 사용하며 기본 키 접두사는 `festa2026_notices`입니다.
 DB 롤백 시 이번 요청에서 업로드한 파일을 정리하고, 첨부 교체·공지 삭제는 DB 커밋 후 기존 파일을 삭제합니다.

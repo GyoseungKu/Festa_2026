@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS notices (
     title VARCHAR(150) NOT NULL,
     content LONGTEXT NOT NULL,
     pinned BIT NOT NULL,
+    banner BOOLEAN NOT NULL DEFAULT FALSE,
     pinned_at DATETIME(6),
     view_count BIGINT NOT NULL,
     author_uuid BINARY(16) NOT NULL,

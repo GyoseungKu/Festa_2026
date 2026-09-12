@@ -44,6 +44,7 @@
             <div class="lost-item-card-body">
                 <div class="lost-item-card-flags">
                     <span class="publish-chip is-public" th:if="${notice.pinned}">상단 고정</span>
+                    <span class="publish-chip is-scheduled" th:if="${notice.banner}">최상단 배너</span>
                     <span class="media-count" th:text="|미디어 ${#lists.size(notice.media)}개 · 파일 ${#lists.size(notice.files)}개 · 조회 ${notice.viewCount}|">첨부 0개 · 조회 0</span>
                 </div>
                 <h2 th:text="${notice.title}">공지 제목</h2>
@@ -54,10 +55,6 @@
                     <div><dt>수정</dt><dd th:text="${#temporals.format(notice.updatedAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm')} + ' KST'">2026-08-13 12:00 KST</dd></div>
                 </dl>
                 <div class="lost-item-quick-actions">
-                    <form method="post" th:action="@{/admin/notices/{id}/pin(id=${notice.id})}">
-                        <input type="hidden" name="pinned" th:value="${!notice.pinned}">
-                        <button class="button button-secondary" type="submit" th:text="${notice.pinned ? '고정 해제' : '상단 고정'}">상단 고정</button>
-                    </form>
                     <a class="button button-secondary" th:href="@{/admin/notices/{id}/edit(id=${notice.id})}">수정</a>
                     <form method="post" th:action="@{/admin/notices/{id}/delete(id=${notice.id})}" onsubmit="return confirm('이 공지와 첨부파일을 삭제할까요?');">
                         <button class="button button-danger" type="submit">삭제</button>

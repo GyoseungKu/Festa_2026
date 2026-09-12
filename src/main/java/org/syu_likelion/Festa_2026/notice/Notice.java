@@ -41,6 +41,9 @@ public class Notice {
     @Column(nullable = false)
     private boolean pinned;
 
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean banner;
+
     @Column(name = "pinned_at")
     @Convert(converter = KstInstantAttributeConverter.class)
     private Instant pinnedAt;
@@ -121,6 +124,8 @@ public class Notice {
     public String getTitle() { return title; }
     public String getContent() { return content; }
     public boolean isPinned() { return pinned; }
+    public boolean isBanner() { return banner; }
+    void changeBanner(boolean banner) { this.banner = banner; }
     public Instant getPinnedAt() { return pinnedAt; }
     public long getViewCount() { return viewCount; }
     public UUID getAuthorUuid() { return authorUuid; }

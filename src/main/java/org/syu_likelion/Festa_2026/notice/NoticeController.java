@@ -47,12 +47,13 @@ public class NoticeController {
     }
 
     @GetMapping
-    @Operation(summary = "일반 공지 목록 조회")
+    @Operation(summary = "일반 공지 목록 조회", description = "최상단 배너, 상단 고정, 일반 공지 순으로 조회합니다. bannerOnly=true이면 배너 공지만 조회합니다.")
     ResponseEntity<NoticePageResponse> list(
             @RequestParam(defaultValue = "NEWEST") NoticeSort sort,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(notices.listPublic(sort, page, size));
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "false") boolean bannerOnly) {
+        return ResponseEntity.ok(notices.listPublic(sort, page, size, bannerOnly));
     }
 
     @GetMapping("/{id}")
@@ -62,7 +63,7 @@ public class NoticeController {
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "일반 공지 등록", description = "STAFF 이상이 공지와 첨부파일을 등록합니다.")
+    @Operation(summary = "일반 공지 등록", description = "STAFF 이상이 공지와 첨부파일을 등록합니다. data.banner=true이면 최상단 배너 공지로 등록합니다. pinned와 별개이며 여러 배너를 등록할 수 있습니다.")
     @SecurityRequirement(name = "bearerAuth")
     ResponseEntity<NoticeResponse> create(
             @Valid @RequestPart("data") NoticeMutationRequest data,
@@ -76,7 +77,7 @@ public class NoticeController {
     }
 
     @PatchMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "일반 공지 수정", description = "STAFF 이상이 내용과 첨부파일 구성을 수정합니다.")
+    @Operation(summary = "일반 공지 수정", description = "STAFF 이상이 내용과 첨부파일 구성을 수정합니다. data.banner로 최상단 배너를 설정하거나 해제하며, 생략하면 기존 설정을 유지합니다.")
     @SecurityRequirement(name = "bearerAuth")
     ResponseEntity<NoticeResponse> update(
             @PathVariable Long id,

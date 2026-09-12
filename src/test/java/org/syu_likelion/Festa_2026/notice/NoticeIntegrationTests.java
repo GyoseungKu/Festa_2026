@@ -91,6 +91,41 @@ class NoticeIntegrationTests {
     }
 
     @Test
+    void bannerApiPersistsFiltersAndPreservesLegacyUpdates() throws Exception {
+        var pinned = notices.createAs(ACTOR, "운영자", data("Pinned", true), List.of());
+        var bannerData = new MockMultipartFile("data", "", "application/json",
+                "{\"title\":\"Banner\",\"content\":\"Important\",\"pinned\":false,\"banner\":true}".getBytes());
+        mvc.perform(multipart("/api/notices").file(bannerData).header("Authorization", "Bearer staff"))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.banner").value(true));
+        var banner = notices.listPublic(0, 20).items().get(0);
+        assertThat(banner.title()).isEqualTo("Banner");
+        for (var order : NoticeSort.values()) {
+            mvc.perform(get("/api/notices").param("sort", order.name()))
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.items[0].id").value(banner.id()))
+                    .andExpect(jsonPath("$.items[1].id").value(pinned.id()));
+        }
+        mvc.perform(get("/api/notices").param("bannerOnly", "true").param("size", "1"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.items[0].banner").value(true));
+        assertThat(notices.getAdmin(banner.id()).viewCount()).isZero();
+        var legacy = new MockMultipartFile("data", "", "application/json",
+                "{\"title\":\"Edited\",\"content\":\"Important\",\"pinned\":false}".getBytes());
+        mvc.perform(multipart(org.springframework.http.HttpMethod.PATCH, "/api/notices/{id}", banner.id())
+                        .file(legacy).header("Authorization", "Bearer staff"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.banner").value(true));
+        mvc.perform(patch("/api/notices/{id}/pin", banner.id()).header("Authorization", "Bearer staff")
+                        .contentType("application/json").content("{\"pinned\":true}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.banner").value(true));
+        var disabled = new MockMultipartFile("data", "", "application/json",
+                "{\"title\":\"Edited\",\"content\":\"Important\",\"pinned\":true,\"banner\":false}".getBytes());
+        mvc.perform(multipart(org.springframework.http.HttpMethod.PATCH, "/api/notices/{id}", banner.id())
+                        .file(disabled).header("Authorization", "Bearer staff"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.banner").value(false));
+        mvc.perform(get("/api/notices").param("bannerOnly", "true"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(0));
+    }
+
+    @Test
     void uploadRollbackRemovesNewFilesAndPreservesExistingAttachments() {
         var created = notices.createAs(ACTOR, "운영자", data("원본", false), List.of(file("old.pdf", "application/pdf")));
         doReturn(new NoticeAttachmentStorage.StoredAttachment(
@@ -207,19 +242,30 @@ class NoticeIntegrationTests {
                 .andExpect(content().string(containsString("file.pdf")))
                 .andExpect(content().string(containsString("다운로드 파일")))
                 .andExpect(content().string(containsString("name=\"mediaFiles\"")))
-                .andExpect(content().string(containsString("name=\"attachmentFiles\"")));
+                .andExpect(content().string(containsString("name=\"attachmentFiles\"")))
+                .andExpect(content().string(containsString("name=\"banner\"")));
         mvc.perform(multipart("/admin/notices")
                         .file(new MockMultipartFile("mediaFiles", "a.png", "image/png", new byte[]{1}))
                         .file(new MockMultipartFile("attachmentFiles", "a.pdf", "application/pdf", new byte[]{1}))
                         .cookie(cookie).with(csrf())
-                        .param("title", "새 안내").param("content", "본문").param("pinned", "true"))
+                        .param("title", "새 안내").param("content", "본문").param("pinned", "true").param("banner", "true"))
                 .andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/admin/notices"));
         var saved = notices.listPublic(0, 20).items().get(0);
         assertThat(saved.title()).isEqualTo("새 안내");
+        assertThat(saved.banner()).isTrue();
+        mvc.perform(get("/admin/notices/{id}/edit", saved.id()).cookie(cookie))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.matchesPattern(
+                        "(?s).*<input(?=[^>]*name=\"banner\")(?=[^>]*checked=\"checked\")[^>]*>.*")));
+        mvc.perform(multipart("/admin/notices/{id}", saved.id()).cookie(cookie).with(csrf())
+                        .param("title", "새 안내").param("content", "본문").param("pinned", "true")
+                        .param("_banner", "on"))
+                .andExpect(status().is3xxRedirection());
+        assertThat(notices.getAdmin(saved.id()).banner()).isFalse();
         assertThat(saved.media()).hasSize(1);
         assertThat(saved.files()).hasSize(1);
     }
 
-    private NoticeMutationRequest data(String title, boolean pinned) { return new NoticeMutationRequest(title, "본문", pinned); }
+    private NoticeMutationRequest data(String title, boolean pinned) { return new NoticeMutationRequest(title, "본문", pinned, null); }
     private MockMultipartFile file(String name, String type) { return new MockMultipartFile(type.startsWith("image/") || type.startsWith("video/") ? "media" : "files", name, type, new byte[]{1}); }
 }
