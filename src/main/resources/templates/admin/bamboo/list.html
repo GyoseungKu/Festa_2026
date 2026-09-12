@@ -13,7 +13,6 @@
 <div class="admin-layout">
 <aside th:replace="~{admin/fragments/sidebar :: sidebar}"></aside>
 <div class="admin-workspace">
-<header th:replace="~{admin/fragments/header :: header}"></header>
 
 <main tabindex="-1" class="admin-main" id="bamboo-admin"
       th:attr="data-tab=${tab},data-cursor=${liveCursor},data-cursor-url=@{/admin/bamboo/cursor}">

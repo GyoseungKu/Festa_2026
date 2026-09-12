@@ -127,7 +127,9 @@ class AdminPageIntegrationTests {
                     .matcher(sidebar).results().map(match -> match.group(1)).toList();
             assertThat(navigation).as("navigation for %s", assigned).containsExactlyInAnyOrderElementsOf(expected);
             assertThat(html).contains("class=\"feature-count\">" + cardLinks.size() + "개 기능 사용 가능</span>")
-                    .contains("<strong>" + cardLinks.size() + "개</strong>");
+                    .doesNotContain("class=\"admin-header\"", "class=\"admin-stats\"", "class=\"admin-panel\"");
+            assertThat(sidebar).contains("<strong>운영자</strong>", "<span>" + primary + "</span>",
+                    "method=\"post\"", "action=\"/admin/logout\"", "name=\"_csrf\"", "로그아웃");
         }
     }
 

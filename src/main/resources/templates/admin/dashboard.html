@@ -13,7 +13,6 @@
 <div class="admin-layout">
 <aside th:replace="~{admin/fragments/sidebar :: sidebar}"></aside>
 <div class="admin-workspace">
-<header th:replace="~{admin/fragments/header :: header}"></header>
 
 <main id="admin-content" tabindex="-1" class="admin-main" th:with="features=${@adminFeatures.available(adminNavigationRoles, adminRole)}">
     <section class="hero-panel">
@@ -25,11 +24,6 @@
         <div class="hero-orb" aria-hidden="true"><span>2026</span></div>
     </section>
 
-    <section class="admin-stats" aria-label="운영 계정 요약">
-        <article class="admin-panel"><span class="admin-muted">사용 가능한 관리 기능</span><strong th:text="|${#lists.size(features)}개|"></strong></article>
-        <article class="admin-panel"><span class="admin-muted">현재 관리 권한</span><strong th:text="${adminRole}"></strong></article>
-        <article class="admin-panel"><span class="admin-muted">로그인 계정</span><strong th:text="${adminName}"></strong></article>
-    </section>
     <section class="feature-section">
         <div class="section-heading">
             <div>

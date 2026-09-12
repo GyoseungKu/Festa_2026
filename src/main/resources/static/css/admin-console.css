@@ -20,6 +20,15 @@
 .sidebar-logo { display:block; width:100%; max-width:180px; height:auto; margin:auto; object-fit:contain; }
 .admin-brand span { display:block; margin-top:12px; color:var(--admin-accent); font-size:10px; letter-spacing:.1em; }
 .admin-nav { display:grid; gap:6px; }
+.sidebar-account { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-bottom:24px; padding-bottom:20px; border-bottom:1px solid var(--admin-line); }
+.sidebar-account-identity { display:grid; flex:1 1 100%; min-width:0; gap:4px; }
+.sidebar-account-identity strong { font-size:14px; overflow-wrap:anywhere; }
+.sidebar-account-identity span { color:var(--admin-muted); font-size:12px; overflow-wrap:anywhere; }
+.sidebar-account form { margin:0; }
+@media(max-width:800px) {
+ .sidebar-account { justify-content:space-between; margin-bottom:12px; padding-bottom:16px; }
+ .sidebar-account-identity { flex:1 1 120px; }
+}
 .admin-nav a { padding:11px 12px; border:1px solid transparent; border-radius:12px; color:var(--admin-muted); font-size:14px; overflow-wrap:anywhere; }
 .admin-nav a:hover { color:var(--admin-text); background:rgba(132,233,238,.06); }
 .admin-nav a[aria-current="page"] { color:var(--admin-accent); background:rgba(132,233,238,.1); border-color:var(--admin-line); box-shadow:inset 3px 0 var(--admin-accent); }

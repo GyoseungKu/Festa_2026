@@ -11,7 +11,6 @@
 <div class="admin-layout">
 <aside th:replace="~{admin/fragments/sidebar :: sidebar}"></aside>
 <div class="admin-workspace">
-<header th:replace="~{admin/fragments/header :: header}"></header>
 <main id="admin-content" tabindex="-1" class="admin-main">
     <nav class="breadcrumb" aria-label="현재 위치"><a th:href="@{/admin}">관리자 홈</a><span>/</span><a th:href="@{/admin/birthday-messages}">생일축하 쪽지</a><span>/</span><strong>하트 사용자</strong></nav>
     <section class="management-toolbar"><div><p class="eyebrow">HEARTED USERS</p><h1 th:text="|하트 사용자 ${result.heartCount}명|">하트 사용자</h1><p>현재 하트를 유지하고 있는 사용자만 표시됩니다.</p></div></section>

@@ -7,7 +7,7 @@
 <a class="skip-link" href="#admin-content">본문으로 건너뛰기</a>
 <div class="admin-layout">
 <aside th:replace="~{admin/fragments/sidebar :: sidebar}"></aside>
-<div class="admin-workspace"><header th:replace="~{admin/fragments/header :: header}"></header>
+<div class="admin-workspace">
 <main id="admin-content" tabindex="-1" class="admin-main"><section class="management-toolbar"><div><h1>학생회비 납부자 관리</h1>
 <p>사용자 조회와 별개의 납부자 명단입니다. 명단 등록만으로 학생인증되지는 않습니다.</p></div></section>
 <p class="alert alert-success" role="status" th:if="${message}" th:text="${message}"></p>

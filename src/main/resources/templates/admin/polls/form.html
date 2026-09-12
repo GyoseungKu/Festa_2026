@@ -8,7 +8,7 @@
 <a class="skip-link" href="#admin-content">본문으로 건너뛰기</a>
 <div class="admin-layout">
 <aside th:replace="~{admin/fragments/sidebar :: sidebar}"></aside>
-<div class="admin-workspace"><header th:replace="~{admin/fragments/header :: header}"></header>
+<div class="admin-workspace">
 <main id="admin-content" tabindex="-1" class="admin-main poll-form-page"><nav class="breadcrumb" aria-label="현재 위치"><a th:href="@{/admin}">관리자 홈</a><span>/</span><a th:href="@{/admin/polls}">투표 관리</a><span>/</span><strong th:text="${editing ? '수정' : '생성'}">생성</strong></nav>
 <section class="page-heading"><div><p class="eyebrow">POLL EDITOR</p><h1 th:text="${editing ? '투표 수정' : '새 투표 만들기'}">새 투표 만들기</h1>
 <p th:if="${structureLocked}">응답이 있어 질문·선택지는 잠겼습니다. 제목, 설명, 종료일시와 결과 공개일시만 수정할 수 있습니다.</p>

@@ -11,7 +11,6 @@
 <div class="admin-layout">
 <aside th:replace="~{admin/fragments/sidebar :: sidebar}"></aside>
 <div class="admin-workspace">
-<header th:replace="~{admin/fragments/header :: header}"></header>
 <main id="admin-content" tabindex="-1" class="admin-main">
 <nav class="breadcrumb" aria-label="현재 위치"><a th:href="@{/admin}">관리자 홈</a><span>/</span><a th:href="@{/admin/sponsors}">협찬사 관리</a></nav>
 <section class="management-toolbar"><h1 th:text="${sponsorId == null ? '협찬사 등록' : '협찬사 수정'}"></h1></section>

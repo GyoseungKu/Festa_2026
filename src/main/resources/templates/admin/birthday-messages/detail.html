@@ -11,7 +11,6 @@
 <div class="admin-layout">
 <aside th:replace="~{admin/fragments/sidebar :: sidebar}"></aside>
 <div class="admin-workspace">
-<header th:replace="~{admin/fragments/header :: header}"></header>
 <main id="admin-content" tabindex="-1" class="admin-main">
     <nav class="breadcrumb" aria-label="현재 위치"><a th:href="@{/admin}">관리자 홈</a><span>/</span><a th:href="@{/admin/birthday-messages}">생일축하 쪽지</a><span>/</span><strong>상세</strong></nav>
     <section class="management-toolbar"><div><p class="eyebrow">MESSAGE DETAIL</p><h1>생일축하 쪽지 상세</h1><p>작성자 정보는 현재 관리자 권한 범위에 맞춰 표시됩니다.</p></div></section>

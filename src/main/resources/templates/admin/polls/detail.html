@@ -4,7 +4,7 @@
 <a class="skip-link" href="#admin-content">본문으로 건너뛰기</a>
 <div class="admin-layout">
 <aside th:replace="~{admin/fragments/sidebar :: sidebar}"></aside>
-<div class="admin-workspace"><header th:replace="~{admin/fragments/header :: header}"></header>
+<div class="admin-workspace">
 <main id="admin-content" tabindex="-1" class="admin-main"><nav class="breadcrumb" aria-label="현재 위치"><a th:href="@{/admin}">관리자 홈</a><span>/</span><a th:href="@{/admin/polls}">투표 관리</a><span>/</span><strong>현황</strong></nav>
 <div class="alert alert-success" role="status" th:if="${message}" th:text="${message}"></div><div class="alert alert-error" role="alert" th:if="${error}" th:text="${error}"></div>
 <section class="management-toolbar"><div><p class="eyebrow">LIVE POLL STATUS</p><h1 th:text="${detail.poll.title}">투표</h1><p><span th:text="${detail.poll.anonymous ? '익명' : '기명'}">익명</span> · <strong th:text="|총 ${detail.submissionCount}건 제출|">0건</strong> · <span id="refresh-count">15초 후 자동 갱신</span></p></div><div class="poll-detail-actions"><a class="button button-secondary" th:href="@{/admin/polls/{id}/edit(id=${detail.poll.id})}">수정</a><button class="button button-secondary" type="button" onclick="location.reload()">새로고침</button></div></section>
