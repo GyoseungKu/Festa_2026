@@ -1,6 +1,8 @@
 package org.syu_likelion.Festa_2026.booth;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -57,7 +59,9 @@ public class BoothController {
 
     @PostMapping("/{id}/favorite")
     @SecurityRequirement(name = "bearerAuth")
-    @Operation(summary = "부스 찜 등록")
+    @ApiResponse(responseCode = "204", description = "처리 완료, 응답 본문 없음", content = @Content)
+    @Operation(summary = "부스 찜 등록",
+            description = "로그인한 사용자의 찜 목록에 해당 부스를 추가합니다. 성공 시 응답 본문 없이 204를 반환합니다.")
     ResponseEntity<Void> favorite(@PathVariable Long id,
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
             @Parameter(hidden = true) HttpServletRequest request) {
@@ -66,7 +70,9 @@ public class BoothController {
 
     @DeleteMapping("/{id}/favorite")
     @SecurityRequirement(name = "bearerAuth")
-    @Operation(summary = "부스 찜 해제")
+    @ApiResponse(responseCode = "204", description = "처리 완료, 응답 본문 없음", content = @Content)
+    @Operation(summary = "부스 찜 해제",
+            description = "로그인한 사용자의 찜 목록에서 해당 부스를 제거합니다. 성공 시 응답 본문 없이 204를 반환합니다.")
     ResponseEntity<Void> unfavorite(@PathVariable Long id,
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
             @Parameter(hidden = true) HttpServletRequest request) {
@@ -75,6 +81,7 @@ public class BoothController {
 
     @PostMapping
     @SecurityRequirement(name = "bearerAuth")
+    @ApiResponse(responseCode = "201", description = "생성 완료", useReturnTypeSchema = true)
     @Operation(summary = "부스 등록", description = "ADMIN 또는 SUPER_ADMIN이 기본 정보를 등록합니다. 미디어는 등록 후 업로드합니다.")
     ResponseEntity<BoothAdminResponse> create(@Valid @RequestBody BoothMutationRequest body,
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
@@ -113,7 +120,8 @@ public class BoothController {
 
     @PatchMapping("/{id}/media/order")
     @SecurityRequirement(name = "bearerAuth")
-    @Operation(summary = "통합 미디어 순서와 대표 미디어 설정")
+    @Operation(summary = "통합 미디어 순서와 대표 미디어 설정",
+            description = "ADMIN 또는 SUPER_ADMIN이 부스 이미지·동영상의 표시 순서와 대표 미디어를 변경합니다. 현재 미디어 ID를 원하는 순서로 전달합니다.")
     ResponseEntity<BoothAdminResponse> orderMedia(@PathVariable Long id, @Valid @RequestBody BoothMediaOrderRequest body,
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
             @Parameter(hidden = true) HttpServletRequest request) {
@@ -122,7 +130,8 @@ public class BoothController {
 
     @DeleteMapping("/{id}/media/{mediaId}")
     @SecurityRequirement(name = "bearerAuth")
-    @Operation(summary = "부스 미디어 삭제")
+    @Operation(summary = "부스 미디어 삭제",
+            description = "ADMIN 또는 SUPER_ADMIN이 해당 부스의 미디어와 저장된 파일을 삭제합니다.")
     ResponseEntity<BoothAdminResponse> deleteMedia(@PathVariable Long id, @PathVariable Long mediaId,
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
             @Parameter(hidden = true) HttpServletRequest request) {
@@ -131,6 +140,7 @@ public class BoothController {
 
     @DeleteMapping("/{id}")
     @SecurityRequirement(name = "bearerAuth")
+    @ApiResponse(responseCode = "204", description = "처리 완료, 응답 본문 없음", content = @Content)
     @Operation(summary = "부스 삭제", description = "ADMIN 또는 SUPER_ADMIN이 찜과 업로드 미디어를 함께 삭제합니다.")
     ResponseEntity<Void> delete(@PathVariable Long id,
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,

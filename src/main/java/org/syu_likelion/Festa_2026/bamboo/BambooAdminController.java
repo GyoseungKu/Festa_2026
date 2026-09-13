@@ -115,7 +115,7 @@ public class BambooAdminController {
     }
 
     @GetMapping("/settings")
-    @Operation(summary = "운영 설정 조회", description = "STAFF 이상.")
+    @Operation(summary = "운영 설정 조회", description = "STAFF 이상이 대나무숲의 개방 여부(enabled), 읽기 전용 여부(readOnly), 종료 시각(closesAt)을 조회합니다.")
     @SecurityRequirement(name = "bearerAuth")
     ResponseEntity<BambooSettingsResponse> settings(
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,

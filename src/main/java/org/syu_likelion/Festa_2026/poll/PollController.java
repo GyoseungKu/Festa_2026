@@ -1,6 +1,7 @@
 package org.syu_likelion.Festa_2026.poll;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -49,7 +50,8 @@ public class PollController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "투표 상세")
+    @Operation(summary = "투표 상세",
+            description = "로그인한 사용자가 공개된 투표의 질문·선택지·미디어와 내 참여 상태를 조회합니다. 공개 시각 전에는 404를 반환합니다.")
     ResponseEntity<PollDetailResponse> detail(@PathVariable Long id,
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
             @Parameter(hidden = true) HttpServletRequest request) {
@@ -57,7 +59,9 @@ public class PollController {
     }
 
     @PostMapping("/{id}/submissions")
-    @Operation(summary = "투표 제출")
+    @ApiResponse(responseCode = "201", description = "생성 완료", useReturnTypeSchema = true)
+    @Operation(summary = "투표 제출",
+            description = "로그인한 사용자가 진행 중인 투표에 답변을 제출합니다. 필수 질문과 질문 유형별 답변 형식을 검증합니다. 중복 참여를 허용하지 않는 투표는 사용자당 한 번만 제출할 수 있으며 성공 시 201을 반환합니다.")
     ResponseEntity<SubmissionReceipt> submit(@PathVariable Long id, @Valid @RequestBody PollSubmissionRequest body,
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
             @Parameter(hidden = true) HttpServletRequest request) {
@@ -67,7 +71,8 @@ public class PollController {
     }
 
     @GetMapping("/{id}/submissions/me")
-    @Operation(summary = "내 제출 내역")
+    @Operation(summary = "내 제출 내역",
+            description = "로그인한 사용자의 해당 투표 제출 내역을 최신순으로 반환합니다. 익명 투표에서도 자신의 답변은 조회할 수 있습니다.")
     ResponseEntity<List<MySubmissionResponse>> mine(@PathVariable Long id,
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
             @Parameter(hidden = true) HttpServletRequest request) {

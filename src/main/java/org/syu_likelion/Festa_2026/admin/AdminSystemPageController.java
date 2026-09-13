@@ -1,5 +1,7 @@
 package org.syu_likelion.Festa_2026.admin;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
@@ -46,6 +48,8 @@ public class AdminSystemPageController {
 
     @GetMapping(value = "/admin/system/snapshot", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
+    @Tag(name = "Admin Console", description = "관리자 웹 로그인 쿠키로 인증하는 운영 화면용 JSON API")
+    @Operation(summary = "시스템 모니터링 스냅샷 조회", description = "관리자 웹 로그인 쿠키가 필요하며 SUPER_ADMIN만 사용할 수 있습니다. 애플리케이션, HTTP 요청, 데이터베이스 등 현재 모니터링 지표를 반환합니다.")
     ResponseEntity<SystemSnapshot> snapshot(HttpServletRequest request, HttpServletResponse response) {
         AuthorizedResult<AdminIdentity> authenticated = authenticate(request, response);
         if (authenticated.body().role() != FestivalRole.SUPER_ADMIN) {

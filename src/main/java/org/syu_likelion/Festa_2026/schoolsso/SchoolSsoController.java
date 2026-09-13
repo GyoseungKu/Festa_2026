@@ -1,6 +1,8 @@
 package org.syu_likelion.Festa_2026.schoolsso;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -60,6 +62,9 @@ public class SchoolSsoController {
     }
 
     @GetMapping("/api/auth/school/authorize")
+    @ApiResponse(responseCode = "302", description = "Location 헤더의 URL로 이동", content = @Content)
+    @Operation(summary = "회원가입용 학교 SSO 인증 시작",
+            description = "브라우저에서 이동하면 인증 state를 세션에 저장하고 학교 인증 화면으로 302 리다이렉트합니다. 콜백과 학적정보 조회까지 같은 세션 쿠키를 유지해야 합니다. Swagger의 fetch 실행 대신 브라우저 페이지 이동으로 사용합니다.")
     String authorize(HttpServletRequest request, HttpServletResponse response) {
         noStore(response);
         client.requireConfigured();
@@ -97,6 +102,9 @@ public class SchoolSsoController {
     }
 
     @GetMapping("/auth/sso/callback")
+    @ApiResponse(responseCode = "302", description = "Location 헤더의 URL로 이동", content = @Content)
+    @Operation(summary = "학교 SSO 인증 콜백",
+            description = "학교가 전달한 code와 state를 검증하고 회원가입용 학적정보를 세션에 저장하거나 기존 회원의 학생 인증을 처리합니다. 결과는 프런트엔드 URL의 schoolSso 또는 schoolVerification 쿼리로 302 리다이렉트합니다. 인증 시작 시의 세션 쿠키가 필요하며 학교 인증 흐름에서 호출됩니다.")
     String callback(@RequestParam(required = false) String code,
                     @RequestParam(required = false) String state,
                     @RequestParam(required = false) String error,
@@ -157,6 +165,7 @@ public class SchoolSsoController {
 
     @DeleteMapping("/api/auth/school/profile")
     @ResponseBody
+    @ApiResponse(responseCode = "204", description = "처리 완료, 응답 본문 없음", content = @Content)
     @Operation(summary = "회원가입용 학교 학적정보 삭제",
             description = "세션에 임시 보관된 학교 학적정보를 삭제합니다.")
     ResponseEntity<Void> clear(@Parameter(hidden = true) HttpServletRequest request) {

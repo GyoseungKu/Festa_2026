@@ -250,9 +250,9 @@ type SchoolVerificationFields = {
 |---|---|
 | `UNVERIFIED` | `학교 학생 인증하기` 버튼 |
 | `VERIFIED` | 인증 완료 표시와 인증 시각 |
-| `REVOKED` | 학과 변경으로 인증이 취소되었다는 안내와 `다시 인증하기` 버튼 |
+| `REVOKED` | 학생 인증이 취소되었다는 안내와 `다시 인증하기` 버튼 (학과 변경 또는 관리자 회수) |
 
-`schoolVerified`는 상태가 `VERIFIED`일 때만 `true`입니다.
+`schoolVerified`는 상태가 `VERIFIED`이고 `schoolVerifiedAt`이 존재할 때만 `true`입니다.
 
 ### 5.2 인증 URL 발급
 

@@ -111,7 +111,7 @@ Content-Type: application/json
 
 ### 중복 확인
 
-회원가입 전에 Festa 백엔드를 통해 동아리 SSO의 중복 여부를 확인합니다. 세 API 모두 `{ "available": true }`이면 사용할 수 있는 값입니다.
+회원가입 전에 Festa 백엔드를 통해 동아리 SSO의 중복 여부를 확인합니다. 네 API 모두 `{ "available": true }`이면 사용할 수 있는 값입니다.
 
 ```http
 GET /api/auth/check/login-id?loginId=festival01

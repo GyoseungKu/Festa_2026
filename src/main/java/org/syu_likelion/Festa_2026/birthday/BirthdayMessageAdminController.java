@@ -1,6 +1,8 @@
 package org.syu_likelion.Festa_2026.birthday;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -35,7 +37,8 @@ public class BirthdayMessageAdminController {
     }
 
     @GetMapping
-    @Operation(summary = "작성자 신원을 포함한 생일축하 쪽지 목록")
+    @Operation(summary = "작성자 신원을 포함한 생일축하 쪽지 목록",
+            description = "STAFF 이상이 작성자 정보를 포함한 쪽지 목록을 조회합니다. sort로 정렬하며 page는 0부터, size는 기본 30입니다.")
     ResponseEntity<AdminBirthdayMessagePageResponse> list(
             @RequestParam(defaultValue = "LATEST") BirthdayMessageSort sort,
             @RequestParam(defaultValue = "0") int page,
@@ -47,7 +50,8 @@ public class BirthdayMessageAdminController {
     }
 
     @GetMapping("/{id}/hearts")
-    @Operation(summary = "쪽지에 하트를 누른 사용자 목록")
+    @Operation(summary = "쪽지에 하트를 누른 사용자 목록",
+            description = "STAFF 이상이 해당 쪽지에 하트를 누른 사용자 정보를 페이지 단위로 조회합니다. page는 0부터, size는 기본 30입니다.")
     ResponseEntity<AdminHeartPageResponse> hearts(
             @PathVariable Long id,
             @RequestParam(defaultValue = "0") int page,
@@ -59,7 +63,9 @@ public class BirthdayMessageAdminController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "생일축하 쪽지 관리자 삭제")
+    @ApiResponse(responseCode = "204", description = "처리 완료, 응답 본문 없음", content = @Content)
+    @Operation(summary = "생일축하 쪽지 관리자 삭제",
+            description = "STAFF 이상이 지정한 쪽지를 삭제합니다. 성공 시 응답 본문 없이 204를 반환합니다.")
     ResponseEntity<Void> delete(
             @PathVariable Long id,
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,

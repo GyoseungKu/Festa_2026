@@ -57,13 +57,12 @@ export async function apiFetch<T>(
   { auth = false, headers, ...init }: ApiFetchOptions = {},
 ): Promise<T> {
   const accessToken = auth ? getAccessToken() : null;
+  const requestHeaders = new Headers(headers);
+  if (accessToken) requestHeaders.set("Authorization", `Bearer ${accessToken}`);
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
     credentials: "include",
-    headers: {
-      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-      ...headers,
-    },
+    headers: requestHeaders,
   });
 
   const rotated = response.headers.get("X-Access-Token");
@@ -79,7 +78,8 @@ export async function apiFetch<T>(
   }
 
   if (response.status === 204) return undefined as T;
-  return (await response.json()) as T;
+  const text = await response.text();
+  return text.trim() ? (JSON.parse(text) as T) : (undefined as T);
 }
 ```
 
@@ -95,6 +95,8 @@ await apiFetch<ResponseType>("/api/example", {
 ```
 
 `FormData` 요청에는 브라우저가 boundary를 붙이도록 `Content-Type` 헤더를 생략합니다.
+
+학생 인증 승인·삭제처럼 성공 코드가 `200`이어도 본문이 없는 API가 있습니다. 위 래퍼는 빈 본문을 `undefined`로 처리합니다. 학교 SSO 시작·콜백의 `302` 리다이렉트는 이 JSON 래퍼가 아니라 브라우저 페이지 이동으로 처리합니다.
 
 ## 공통 오류 응답
 

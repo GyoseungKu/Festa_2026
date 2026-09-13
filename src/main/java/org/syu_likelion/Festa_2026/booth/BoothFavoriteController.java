@@ -26,7 +26,8 @@ public class BoothFavoriteController {
     private final TokenCookieManager cookies;
     public BoothFavoriteController(BoothService booths, TokenCookieManager cookies) { this.booths = booths; this.cookies = cookies; }
     @GetMapping
-    @Operation(summary = "내가 찜한 부스 목록 조회")
+    @Operation(summary = "내가 찜한 부스 목록 조회",
+            description = "Bearer 인증이 필요합니다. 현재 로그인한 사용자가 찜한 부스 목록을 반환합니다.")
     ResponseEntity<List<BoothSummaryResponse>> list(
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
             @Parameter(hidden = true) HttpServletRequest request) {

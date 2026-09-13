@@ -1,6 +1,7 @@
 package org.syu_likelion.Festa_2026.analytics;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -33,6 +34,7 @@ public class FrontendAnalyticsController {
     }
 
     @PostMapping("/events")
+    @ApiResponse(responseCode = "202", description = "이벤트 수집 요청 접수", useReturnTypeSchema = true)
     @Operation(summary = "프론트 이벤트 일괄 수집",
             description = "로그인 여부와 관계없이 React 페이지 방문 및 주요 행동 이벤트를 최대 20개까지 비동기로 수집합니다. Bearer Token은 선택이며, 제공하면 검증된 userUuid가 연결됩니다. 개인정보, 전체 URL 및 쿼리 문자열은 요청으로 받지 않습니다.")
     ResponseEntity<EventBatchResponse> events(

@@ -1,6 +1,8 @@
 package org.syu_likelion.Festa_2026.lostitem;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -48,7 +50,8 @@ public class LostItemController {
     }
 
     @GetMapping
-    @Operation(summary = "분실물 공지 목록 조회")
+    @Operation(summary = "분실물 공지 목록 조회",
+            description = "로그인 없이 분실물 공지를 페이지 단위로 조회합니다. status로 반환 상태를 필터링하고 sort로 정렬 기준을 선택합니다. page는 0부터 시작합니다.")
     ResponseEntity<LostItemPageResponse> list(
             @RequestParam(required = false) LostItemStatus status,
             @RequestParam(defaultValue = "NEWEST") LostItemSort sort,
@@ -64,6 +67,7 @@ public class LostItemController {
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ApiResponse(responseCode = "201", description = "생성 완료", useReturnTypeSchema = true)
     @Operation(summary = "분실물 공지 등록", description = "STAFF 이상이 공지와 사진을 등록합니다.")
     @SecurityRequirement(name = "bearerAuth")
     ResponseEntity<LostItemResponse> create(
@@ -91,7 +95,8 @@ public class LostItemController {
     }
 
     @PatchMapping("/{id}/status")
-    @Operation(summary = "분실물 반환 상태 변경")
+    @Operation(summary = "분실물 반환 상태 변경",
+            description = "STAFF 이상이 분실물의 반환 상태를 요청 본문의 status 값으로 변경하고 수정된 공지를 반환합니다.")
     @SecurityRequirement(name = "bearerAuth")
     ResponseEntity<LostItemResponse> changeStatus(
             @PathVariable Long id, @Valid @RequestBody LostItemStatusUpdateRequest body,
@@ -102,7 +107,8 @@ public class LostItemController {
     }
 
     @PatchMapping("/{id}/pin")
-    @Operation(summary = "분실물 공지 상단 고정 변경")
+    @Operation(summary = "분실물 공지 상단 고정 변경",
+            description = "STAFF 이상이 요청 본문의 pinned 값으로 공지의 상단 고정을 설정하거나 해제합니다.")
     @SecurityRequirement(name = "bearerAuth")
     ResponseEntity<LostItemResponse> changePin(
             @PathVariable Long id, @Valid @RequestBody LostItemPinUpdateRequest body,
@@ -113,6 +119,7 @@ public class LostItemController {
     }
 
     @DeleteMapping("/{id}")
+    @ApiResponse(responseCode = "204", description = "처리 완료, 응답 본문 없음", content = @Content)
     @Operation(summary = "분실물 공지 삭제", description = "공지와 업로드된 사진을 함께 삭제합니다.")
     @SecurityRequirement(name = "bearerAuth")
     ResponseEntity<Void> delete(

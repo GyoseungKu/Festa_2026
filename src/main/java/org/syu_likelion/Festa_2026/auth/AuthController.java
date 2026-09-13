@@ -1,6 +1,8 @@
 package org.syu_likelion.Festa_2026.auth;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -54,28 +56,32 @@ public class AuthController {
     }
 
     @GetMapping("/check/login-id")
-    @Operation(summary = "로그인 아이디 중복 확인")
+    @Operation(summary = "로그인 아이디 중복 확인",
+            description = "로그인 없이 loginId의 사용 가능 여부를 SSO에서 확인합니다. available=true이면 사용할 수 있습니다.")
     AvailabilityResponse checkLoginId(
             @RequestParam @NotBlank @Size(min = 4, max = 50, message = "아이디는 4~50자여야 합니다.") String loginId) {
         return authService.checkLoginId(loginId);
     }
 
     @GetMapping("/check/email")
-    @Operation(summary = "이메일 중복 확인")
+    @Operation(summary = "이메일 중복 확인",
+            description = "로그인 없이 email의 사용 가능 여부를 SSO에서 확인합니다. 이메일 인증 완료 여부를 확인하는 API는 아닙니다.")
     AvailabilityResponse checkEmail(
             @RequestParam @NotBlank @Email @Size(max = 254) String email) {
         return authService.checkEmail(email);
     }
 
     @GetMapping("/check/student-no")
-    @Operation(summary = "학번 중복 확인")
+    @Operation(summary = "학번 중복 확인",
+            description = "로그인 없이 studentNo의 중복 여부를 SSO에서 확인합니다. 학교 학생 인증과는 별개입니다.")
     AvailabilityResponse checkStudentNo(
             @RequestParam @NotBlank @Size(max = 50) String studentNo) {
         return authService.checkStudentNo(studentNo);
     }
 
     @GetMapping("/check/phone")
-    @Operation(summary = "전화번호 중복 확인")
+    @Operation(summary = "전화번호 중복 확인",
+            description = "로그인 없이 phone의 중복 여부를 SSO에서 확인합니다.")
     AvailabilityResponse checkPhone(
             @RequestParam @NotBlank
             @Pattern(regexp = "^[0-9]{10,11}$", message = "전화번호는 숫자 10~11자리여야 합니다.")
@@ -166,6 +172,7 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
+    @ApiResponse(responseCode = "204", description = "처리 완료, 응답 본문 없음", content = @Content)
     @Operation(summary = "로그아웃",
             description = "SSO 토큰을 폐기하고 축제 홈페이지의 Refresh Token 쿠키를 삭제합니다.",
             security = @SecurityRequirement(name = "bearerAuth"))

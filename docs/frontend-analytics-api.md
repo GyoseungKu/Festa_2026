@@ -49,7 +49,7 @@ Cookie: festivalRefreshToken=...     # 로그인 상태에서 브라우저가 �
 }
 ```
 
-`acceptedEvents`가 전송 개수보다 작다면 서버 로그 큐가 포화된 상태입니다. 잠시 후 동일한 `eventId`로 전체 배치를 재전송해도 됩니다. 서버는 `eventId`를 기준으로 중복 저장을 방지합니다.
+`acceptedEvents`가 전송 개수보다 작으면 일부 이벤트가 큐에 들어가지 못한 것입니다. 큐 포화뿐 아니라 서버에서 수집 기능을 비활성화한 경우에도 0을 반환합니다. 동일한 `eventId`로 제한적으로 재시도할 수 있지만, 0이 반복되면 전송을 중단하거나 간격을 늘립니다. 서버는 `eventId`를 기준으로 중복 저장을 방지합니다. `202`는 큐 접수 결과이며 DB 저장 완료를 보장하지 않습니다.
 
 비로그인 사용자는 Authorization 헤더 없이 호출하며 서버에는 `userUuid = null`로 저장됩니다. 로그인 사용자가 Access Token을 보내면 SSO에서 검증한 `userUuid`가 연결됩니다. 잘못되거나 만료 후 갱신할 수 없는 토큰을 보낸 요청은 익명으로 처리하지 않고 `401`을 반환합니다.
 
@@ -169,7 +169,12 @@ export async function flushAnalytics(keepalive = false) {
     const refreshedAccessToken = response.headers.get("X-Access-Token");
     if (refreshedAccessToken) setAccessToken(refreshedAccessToken);
 
-    if (!response.ok) throw new Error(`analytics request failed: ${response.status}`);
+    if (!response.ok) {
+      // 잘못된 입력이나 인증·권한 오류는 같은 배치로 재시도하지 않습니다.
+      if ([400, 401, 403].includes(response.status)) return;
+      if (![429, 502, 503].includes(response.status)) return;
+      throw new Error(`analytics request failed: ${response.status}`);
+    }
     const result: { acceptedEvents: number } = await response.json();
     if (result.acceptedEvents < events.length) {
       buffer.unshift(...events);
@@ -177,8 +182,8 @@ export async function flushAnalytics(keepalive = false) {
   } catch {
     // 분석 실패가 사용자 화면을 방해하면 안 됩니다.
     buffer.unshift(...events);
-    if (buffer.length > MAX_BUFFER_SIZE) buffer.length = MAX_BUFFER_SIZE;
   } finally {
+    if (buffer.length > MAX_BUFFER_SIZE) buffer.length = MAX_BUFFER_SIZE;
     flushing = false;
   }
 }
@@ -191,6 +196,8 @@ document.addEventListener("visibilitychange", () => {
 ```
 
 `navigator.sendBeacon()`은 Authorization 헤더를 설정할 수 없으므로 이 API에는 사용하지 않습니다. 페이지 종료 시에는 작은 요청 본문과 `fetch(..., { keepalive: true })`를 사용합니다.
+
+위 코드는 기본 버퍼 예시입니다. 운영 연동에서는 `429`·`502`·`503`에 대한 지수 백오프와 최대 재시도 횟수, `acceptedEvents=0` 반복 시 중단 처리를 추가합니다. 인증 만료 시의 전역 상태 정리는 공통 인증 처리에 연결하며 분석 오류 토스트는 표시하지 않습니다.
 
 ## React Router 페이지 조회
 

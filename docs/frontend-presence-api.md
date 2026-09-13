@@ -56,6 +56,8 @@ export function PresenceHeartbeat() {
           route: location.pathname,
         }),
         keepalive: true,
+      }).catch(() => {
+        // 네트워크 실패는 화면에 노출하지 않고 다음 주기에 다시 전송합니다.
       });
     };
 

@@ -1,6 +1,8 @@
 package org.syu_likelion.Festa_2026.performance;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -63,6 +65,7 @@ public class PerformanceController {
     }
 
     @PostMapping
+    @ApiResponse(responseCode = "201", description = "생성 완료", useReturnTypeSchema = true)
     @Operation(summary = "공연팀 등록",
             description = "ADMIN 또는 SUPER_ADMIN이 공연팀과 링크 첨부를 등록합니다. 파일은 등록 후 파일 업로드 API를 사용합니다.")
     ResponseEntity<PerformanceResponse> create(
@@ -122,6 +125,7 @@ public class PerformanceController {
     }
 
     @DeleteMapping("/{id}")
+    @ApiResponse(responseCode = "204", description = "처리 완료, 응답 본문 없음", content = @Content)
     @Operation(summary = "공연팀 삭제",
             description = "ADMIN 또는 SUPER_ADMIN이 공연팀과 연결된 업로드 파일을 삭제합니다.")
     ResponseEntity<Void> delete(

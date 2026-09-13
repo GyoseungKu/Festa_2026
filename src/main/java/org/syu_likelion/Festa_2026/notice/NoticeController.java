@@ -1,6 +1,8 @@
 package org.syu_likelion.Festa_2026.notice;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -63,6 +65,7 @@ public class NoticeController {
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ApiResponse(responseCode = "201", description = "생성 완료", useReturnTypeSchema = true)
     @Operation(summary = "일반 공지 등록", description = "STAFF 이상이 공지와 첨부파일을 등록합니다. data.banner=true이면 최상단 배너 공지로 등록합니다. pinned와 별개이며 여러 배너를 등록할 수 있습니다.")
     @SecurityRequirement(name = "bearerAuth")
     ResponseEntity<NoticeResponse> create(
@@ -92,7 +95,8 @@ public class NoticeController {
     }
 
     @PatchMapping("/{id}/pin")
-    @Operation(summary = "일반 공지 상단 고정 변경")
+    @Operation(summary = "일반 공지 상단 고정 변경",
+            description = "STAFF 이상이 요청 본문의 pinned 값으로 상단 고정을 설정하거나 해제합니다. 배너 설정은 변경하지 않습니다.")
     @SecurityRequirement(name = "bearerAuth")
     ResponseEntity<NoticeResponse> changePin(
             @PathVariable Long id, @Valid @RequestBody NoticePinUpdateRequest body,
@@ -103,6 +107,7 @@ public class NoticeController {
     }
 
     @DeleteMapping("/{id}")
+    @ApiResponse(responseCode = "204", description = "처리 완료, 응답 본문 없음", content = @Content)
     @Operation(summary = "일반 공지 삭제", description = "공지와 업로드된 첨부파일을 함께 삭제합니다.")
     @SecurityRequirement(name = "bearerAuth")
     ResponseEntity<Void> delete(

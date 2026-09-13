@@ -56,7 +56,7 @@ Thymeleaf 관리자 페이지
 - 갱신된 Access Token은 `X-Access-Token` 응답 헤더에 담깁니다.
 - 쿠키를 사용하는 React 요청은 `credentials: "include"`가 필요합니다.
 - 관리자 페이지는 `festivalAdminAccess`, `festivalAdminRefresh` HttpOnly 쿠키를 사용하며 서버 세션은 사용하지 않습니다.
-- 비밀번호, Access/Refresh Token과 SSO 개인정보 원본은 축제 DB에 저장하지 않습니다.
+- 비밀번호와 Access/Refresh Token은 축제 DB에 저장하지 않습니다. 사용자 프로필 원본은 SSO에서 조회하지만, 미승인 학교 인증 요청에는 비교용 이름·학번·학과를, 납부자 명부에는 학번을, 일부 게시글·운영 이력에는 표시용 정보를 저장합니다. 보관·삭제 범위는 각 기능 문서를 확인합니다.
 
 `/api/**`는 Bearer 인증을 사용하므로 CSRF 검사에서 제외됩니다. `/admin/**` 폼 요청은 CSRF 보호를 적용합니다.
 
@@ -89,13 +89,13 @@ SSO의 `ssoRole`과 축제 운영 권한은 별개입니다.
 
 ### 환경설정
 
-[env.properties.example](env.properties.example)을 복사하여 프로젝트 루트에 `env.properties`를 만듭니다.
+[env.properties.example](env.properties.example)을 복사하여 `src/main/resources/env.properties`를 만듭니다. 현재 `spring.config.import`는 이 classpath 파일을 읽으며 프로젝트 루트의 `env.properties`는 자동으로 읽지 않습니다.
 
 ```powershell
-Copy-Item env.properties.example env.properties
+Copy-Item env.properties.example src/main/resources/env.properties
 ```
 
-`env.properties`는 Git에서 제외되고 JAR에도 포함되지 않습니다. 운영 환경에서는 서버 환경변수나 Secret Manager 사용을 권장합니다.
+`src/main/resources/env.properties`는 Git에서 제외되지만, 현재 빌드에는 리소스 제외 설정이 없어 JAR에 포함됩니다. 운영 배포용 JAR은 이 로컬 설정 파일이 없는 작업 디렉터리에서 빌드하고 서버 환경변수로 값을 주입합니다.
 
 필수값은 DB 계정, SSO Client, R2 자격증명과 메일 계정입니다. `DB_URL`도 배포 환경에 맞게 명시적으로 설정하십시오.
 
@@ -151,6 +151,7 @@ Origin은 경로나 마지막 `/` 없이 `scheme://host[:port]` 형식으로 입
 | GET | `/api/auth/check/student-no` | 없음 | 학번 중복 확인 |
 | GET | `/api/auth/check/phone` | 없음 | 전화번호 중복 확인 |
 | GET | `/api/auth/school/authorize` | 없음 | 학교 SSO 학적정보 인증 시작(Redirect) |
+| GET | `/auth/sso/callback` | 학교 SSO 세션 | code·state 검증 후 프런트로 302 리다이렉트 |
 | GET | `/api/auth/school/profile` | 학교 SSO 세션 | 검증된 이름·학번·학과 조회 |
 | DELETE | `/api/auth/school/profile` | 학교 SSO 세션 | 임시 학적정보 폐기 |
 | POST | `/api/auth/login` | 없음 | 로그인 및 토큰 발급 |
@@ -282,6 +283,31 @@ Origin은 경로나 마지막 `/` 없이 `scheme://host[:port]` 형식으로 입
 
 질문 유형은 단일 선택, 복수 선택, 주관식 단답, 주관식 장문입니다. 질문마다 이미지·동영상을 통합 순서로 최대 3개 첨부할 수 있고, 응답이 시작되면 질문 미디어도 잠깁니다. 결과 공개 시각이 종료 전이면 사용자에게 진행 중 집계도 공개됩니다. 익명 투표 참여자 신원은 `ADMIN`에게 숨기고 `SUPER_ADMIN`에게만 제공합니다.
 
+### 일반 공지
+
+| Method | Path | 권한 | 설명 |
+|---|---|---|---|
+| GET | `/api/notices` | 공개 | 배너·고정 공지 우선 목록, `bannerOnly` 필터 |
+| GET | `/api/notices/{id}` | 공개 | 상세 조회, 조회수 1 증가 |
+| POST | `/api/notices` | `STAFF` 이상 | multipart 공지·미디어·파일 등록, 201 |
+| PATCH | `/api/notices/{id}` | `STAFF` 이상 | 내용·첨부·배너 수정 |
+| PATCH | `/api/notices/{id}/pin` | `STAFF` 이상 | 상단 고정 변경 |
+| DELETE | `/api/notices/{id}` | `STAFF` 이상 | 공지와 첨부 삭제, 204 |
+
+`banner`와 `pinned`는 독립적이며 배너를 여러 개 지정할 수 있습니다. 첨부는 글당 최대 10개이고 `media`와 `files`로 나누어 전송합니다. [일반 공지 API](docs/frontend-notices-api.md)를 참고합니다.
+
+### 협찬사
+
+| Method | Path | 권한 | 설명 |
+|---|---|---|---|
+| GET | `/api/sponsors` | 공개 | 전체 협찬사 목록 |
+| GET | `/api/sponsors/{id}` | 공개 | 협찬사 상세 |
+| POST | `/api/sponsors` | `ADMIN` 이상 | multipart 등록, 201 |
+| PUT | `/api/sponsors/{id}` | `ADMIN` 이상 | 이름·설명·이미지·부스 연결 수정 |
+| DELETE | `/api/sponsors/{id}` | `ADMIN` 이상 | 협찬사와 이미지 삭제, 204 |
+
+수정 시 `image` 생략은 기존 이미지 유지, `boothId` 생략은 연결 해제입니다. [협찬사 API](docs/frontend-sponsors-api.md)를 참고합니다.
+
 ### 분실물
 
 | Method | Path | 권한 | 설명 |
@@ -319,6 +345,7 @@ Origin은 경로나 마지막 `/` 없이 `scheme://host[:port]` 형식으로 입
 |---|---|---|---|
 | POST | `/api/qr/search` | `STAFF` 이상 | 원본 정보로 사용자 검색 후 권한별 마스킹 결과를 기본 20명씩 페이지 반환 |
 | PATCH | `/api/qr/users/{userUuid}/role` | `ADMIN` 이상 | 사용자 관리 권한 변경 |
+| PATCH | `/api/qr/users/{userUuid}/school-verification` | `ADMIN` 이상 | 사용자 학생 인증 부여·회수 |
 | POST | `/api/qr/tokens` | 로그인 | 내 동적 QR 토큰 발급 |
 | POST | `/api/qr/scan` | `BOOTH_MANAGER`, `STAFF`, `ADMIN`, `SUPER_ADMIN` | 권한별 사용자 정보 조회 |
 
@@ -379,6 +406,10 @@ QR에는 개인정보나 Access Token을 넣지 않습니다. 서버는 256비�
 | `/admin/performances` | `ADMIN` 이상 | 공연팀 관리 |
 | `/admin/polls` | `ADMIN` 이상 | 투표·응답 폼 생성과 실시간 현황 |
 | `/admin/lost-items` | `STAFF` 이상 | 분실물 관리 |
+| `/admin/notices` | `STAFF` 이상 | 일반 공지·배너·첨부 관리 |
+| `/admin/sponsors` | `ADMIN` 이상 | 협찬사 관리 |
+| `/admin/student-fees` | `ADMIN` 이상 | 학생회비 납부 명부 관리 |
+| `/admin/school-verifications` | `SUPER_ADMIN` | 학생 인증 불일치 요청 승인·삭제 |
 | `/admin/birthday-messages` | `STAFF` 이상 | 생일축하 쪽지·하트 사용자 관리 |
 | `/admin/bamboo` | `STAFF` 이상 | 실시간·신고 채팅 조회, ADMIN 이상 익명 참여자 차단·감사 이력 관리 |
 | `/admin/system` | `SUPER_ADMIN` | 실시간 시스템 모니터링 |
@@ -386,6 +417,15 @@ QR에는 개인정보나 Access Token을 넣지 않습니다. 서버는 256비�
 관리자 부스 담당자와 사용자 검색은 축제 서비스에 연결된 사용자만 대상으로 합니다. 일반 사용자 조회와 스탬프 임의 지급용 검색은 20명 단위 숫자 페이지를 사용합니다. 스탬프 페이지에서 `BOOTH_MANAGER`는 담당 부스만, `ADMIN` 이상은 모든 스탬프 지급 부스를 볼 수 있습니다.
 
 대나무숲 운영 화면은 `실시간 채팅`을 기본으로 열고 3초마다 변경 커서를 확인해 새 글이나 운영 조치가 있을 때만 목록을 갱신합니다. 신고된 채팅은 별도 탭에서 확인합니다. STAFF는 메시지 조회·숨김·삭제·복구와 닉네임 변경까지만 가능하고, 익명 참여자 검색과 작성 차단·해제는 `ADMIN` 이상만 가능합니다. 차단과 해제에는 사유가 필수이며 처리자·처리 시각·대상·기간과 함께 DB 감사 이력에 저장됩니다. 실제 사용자 신원은 노출되지 않으며 메시지 작성자 신원 조회는 기존처럼 `SUPER_ADMIN`에게만 허용됩니다. 대나무숲 열기·읽기 전용·자동 종료 설정은 `ADMIN` 이상만 변경할 수 있습니다.
+
+### 관리자 화면용 JSON 조회
+
+관리자 화면에서 사용하는 JSON 조회도 관리자 전용 로그인 쿠키로 인증합니다. Swagger의 Bearer Authorize와 별개로 같은 도메인의 `/admin/login`에서 로그인해야 합니다.
+
+| Method | Path | 권한 | 성공 응답 |
+|---|---|---|---|
+| GET | `/admin/bamboo/cursor` | `STAFF` 이상 | `200`, `{ "cursor": 105 }`; 인증·권한 확인 실패 시 401 |
+| GET | `/admin/system/snapshot` | `SUPER_ADMIN` | `200`, 시스템 모니터링 스냅샷 |
 
 ## 미디어와 트랜잭션
 
@@ -497,6 +537,14 @@ Actuator는 기본적으로 `127.0.0.1:9091`에서 `health`, `prometheus`만 노
 - OpenAPI YAML: `http://localhost:8888/v3/api-docs.yaml`
 
 Swagger UI의 **Authorize**에는 SSO Access Token 원문만 입력합니다. `Bearer ` 접두사는 Swagger UI가 추가합니다.
+
+전체 API의 문서 누락과 성공 응답 코드·스키마는 `OpenApiDocumentationIntegrationTests`로 검증합니다.
+
+```powershell
+.\gradlew.bat test --tests org.syu_likelion.Festa_2026.config.OpenApiDocumentationIntegrationTests
+```
+
+검증 시 생성된 OpenAPI JSON은 `build/reports/openapi.json`에 저장됩니다. 학교 SSO 시작·콜백은 `302` 브라우저 리다이렉트이며 관리자 화면용 JSON API는 관리자 로그인 쿠키를 사용합니다.
 
 ## 테스트
 

@@ -23,7 +23,7 @@
 |---|---|
 | `UNVERIFIED` | 학교 학생 인증을 완료하지 않음 |
 | `VERIFIED` | 학교 SSO, 불일치 요청 승인 또는 ADMIN 이상 관리자의 임의 인증으로 인증 완료 |
-| `REVOKED` | 인증 후 사용자가 학과를 수정하여 인증 취소 |
+| `REVOKED` | 인증 후 학과를 수정했거나 관리자가 인증을 회수함 |
 
 내 정보와 운영자 사용자 조회 응답에는 다음 필드가 포함됩니다.
 
@@ -35,7 +35,7 @@
 }
 ```
 
-- `schoolVerified`는 상태가 `VERIFIED`일 때만 `true`입니다.
+- `schoolVerified`는 상태가 `VERIFIED`이고 `schoolVerifiedAt`이 존재할 때만 `true`입니다.
 - `REVOKED`로 변경해도 `schoolVerifiedAt`은 감사 이력을 위해 유지합니다.
 - 프런트는 `REVOKED`일 때 `학생 인증이 취소되었습니다. 다시 인증을 진행하세요.` 안내와 재인증 버튼을 표시합니다.
 
@@ -107,7 +107,7 @@
 | `GET` | `/api/auth/school/profile` | 회원가입 전에 세션에 보관된 학교 학적정보 조회 |
 | `DELETE` | `/api/auth/school/profile` | 회원가입을 중단할 때 세션의 임시 학적정보 삭제 |
 
-두 API 모두 학교 SSO 인증 과정에서 생성된 동일한 HTTP 세션을 사용해야 합니다. 임시 학적정보가 없거나 만료되면 `SCHOOL_SSO_VERIFICATION_REQUIRED` 오류가 반환됩니다.
+학적정보 조회는 학교 SSO 인증 과정에서 생성된 동일한 HTTP 세션을 사용해야 하며, 없거나 만료되면 `400 SCHOOL_SSO_VERIFICATION_REQUIRED`를 반환합니다. 삭제는 해당 세션의 임시 프로필을 제거하며, 세션이나 프로필이 없어도 `204`를 반환합니다. 가입 후 학과 확인용 임시 프로필도 함께 제거됩니다.
 
 ## 5. 기존 회원 학생 인증
 
@@ -205,10 +205,12 @@ Authorization: Bearer ACCESS_TOKEN
 
 관리자가 동아리 SSO 정보를 직접 수정한 후 사용자가 인증을 다시 시도해 모든 정보가 일치하면 이전 미승인 요청은 자동 삭제되고 즉시 인증됩니다.
 
-현재 승인 로직은 요청 생성 이후의 동아리 SSO 계정 상태나 최신 학교 학적정보를 다시 조회하지 않습니다. 또한 회원 탈퇴 API도 미승인 요청을 삭제하지 않습니다. 이 때문에 오래된 요청이나 탈퇴 계정의 요청이 승인될 수 있으므로 운영 적용 전 다음 보완이 필요합니다.
+목록은 `200`과 요청 객체 배열, 승인·삭제는 본문 없는 `200`을 반환합니다.
+
+현재 승인 로직은 요청 생성 이후의 동아리 SSO 계정 상태나 최신 학교 학적정보를 다시 조회하지 않습니다. `DELETE /api/users/me/festival`은 미승인 요청을 함께 삭제하지만, SSO 계정 탈퇴인 `DELETE /api/users/me`에는 이 정리가 없습니다. 이 때문에 오래된 요청이나 SSO 탈퇴 계정의 요청이 승인될 수 있으므로 다음 보완이 필요합니다.
 
 - 승인 요청 TTL 검사와 만료 요청 자동 삭제
-- 회원 탈퇴 시 해당 사용자의 미승인 요청 삭제
+- SSO 계정 탈퇴 시 해당 사용자의 미승인 요청 삭제
 - 승인 직전 동아리 SSO 계정의 존재 여부와 `ACTIVE` 상태 확인
 - 필요하면 학교 SSO 재검증 또는 사용자 재인증 요구
 
@@ -276,7 +278,7 @@ Content-Type: application/json
 | `SCHOOL_SSO_BAD_GATEWAY` | 학교 SSO 응답 형식 또는 공개키가 올바르지 않음 | 잠시 후 제한적으로 재시도 |
 | `SCHOOL_SSO_UNAVAILABLE` | 학교 SSO 연결 실패 또는 타임아웃 | 잠시 후 제한적으로 재시도 |
 | `SCHOOL_SSO_RATE_LIMITED` | 학교 SSO 요청 제한 | 즉시 반복하지 말고 대기 후 재시도 |
-| `SCHOOL_SSO_STATE_INVALID` | state 불일치 또는 만료 | 인증을 처음부터 다시 시작 |
+| `invalid_state` (콜백 결과 쿼리) | state 불일치 또는 만료. JSON 오류 코드가 아니라 리다이렉트 쿼리로 반환 | 인증을 처음부터 다시 시작 |
 | `SCHOOL_SSO_VERIFICATION_REQUIRED` | 세션의 임시 학적정보가 없거나 만료됨 | 인증을 처음부터 다시 시작 |
 | `SCHOOL_IDENTITY_ALREADY_LINKED` | 동일 학교 학번이 다른 축제 계정에 연결됨 | 사용자 재시도 금지, 관리자 문의 안내 |
 | `SCHOOL_VERIFICATION_REQUEST_NOT_FOUND` | 승인 요청이 없거나 이미 처리됨 | 관리자 목록 새로고침 |
@@ -315,7 +317,7 @@ Content-Type: application/json
 
 다음 항목은 현재 동작을 설명하는 것이 아니라 운영 적용 전에 보완해야 하는 사항입니다.
 
-1. 미승인 요청 TTL, 자동 삭제 및 회원 탈퇴 연계
+1. 미승인 요청 TTL, 자동 삭제 및 SSO 계정 탈퇴 연계 (축제 이용 정보 삭제 시에는 이미 정리됨)
 2. 승인 직전 계정 상태와 요청 최신성 검증
 3. 동아리 SSO 성공 후 축제 DB 실패에 대한 재처리 작업
 4. `school_verified_at`과 별도의 관리자 승인 시각이 필요할지 결정

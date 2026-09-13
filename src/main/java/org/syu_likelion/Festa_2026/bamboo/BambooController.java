@@ -1,6 +1,8 @@
 package org.syu_likelion.Festa_2026.bamboo;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -64,6 +66,7 @@ public class BambooController {
     }
 
     @PostMapping("/nickname")
+    @ApiResponse(responseCode = "201", description = "생성 완료", useReturnTypeSchema = true)
     @Operation(summary = "닉네임 확정",
             description = "닉네임은 한 번만 정할 수 있고 이후 변경할 수 없습니다. 중복은 허용되지 않습니다.")
     @SecurityRequirement(name = "bearerAuth")
@@ -99,6 +102,7 @@ public class BambooController {
     }
 
     @PostMapping("/messages")
+    @ApiResponse(responseCode = "201", description = "생성 완료", useReturnTypeSchema = true)
     @Operation(summary = "메시지 작성", description = "닉네임을 먼저 정해야 작성할 수 있습니다.")
     @SecurityRequirement(name = "bearerAuth")
     ResponseEntity<BambooMessageResponse> create(
@@ -111,6 +115,7 @@ public class BambooController {
     }
 
     @PostMapping("/messages/{id}/report")
+    @ApiResponse(responseCode = "204", description = "처리 완료, 응답 본문 없음", content = @Content)
     @Operation(summary = "메시지 신고",
             description = "본인이 작성한 메시지는 신고할 수 없고, 같은 메시지를 두 번 신고할 수 없습니다.")
     @SecurityRequirement(name = "bearerAuth")

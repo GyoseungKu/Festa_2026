@@ -139,7 +139,7 @@ Authorization: Bearer ACCESS_TOKEN
 
 직접 입력으로 가입한 회원의 초기 상태는 `UNVERIFIED`입니다. 학교 SSO로 가입했거나 가입 후 학교 인증을 완료한 회원은 `VERIFIED`입니다.
 
-`schoolVerifiedAt`은 현재 구현상 학교 SSO 토큰을 축제 서버가 확인한 시각입니다. 관리자 승인 경로에서는 실제 승인 시각이 아니라 최초 승인 요청을 만든 콜백 시각이 유지됩니다.
+`schoolVerifiedAt`은 학교 SSO 경로에서는 토큰을 축제 서버가 확인한 시각입니다. 관리자 승인 경로에서는 승인 시각이 아니라 요청에 저장된 콜백 검증 시각이 유지되며, 관리자가 직접 인증을 부여하면 그 처리 시각을 기록합니다. `schoolVerified`는 상태가 `VERIFIED`이고 `schoolVerifiedAt`이 존재할 때만 true입니다.
 
 가입 후 인증을 시작하려면 로그인 상태에서 다음 API를 호출합니다.
 
@@ -197,6 +197,8 @@ Authorization: Bearer ACCESS_TOKEN
 | `GET` | `/api/admin/school-verifications` | 미승인 요청 목록 조회 |
 | `POST` | `/api/admin/school-verifications/{id}/approve` | 요청 승인 및 학생 인증 완료 |
 | `DELETE` | `/api/admin/school-verifications/{id}` | 미승인 요청 삭제 |
+
+목록은 `200`과 요청 객체 배열을 반환합니다. 승인·삭제는 모두 `200`이며 응답 본문이 없습니다. `response.json()`을 무조건 호출하지 않습니다.
 
 목록에는 현재 동아리 SSO의 이름·학번·학과와 학교 SSO의 이름·학번·학과가 함께 반환됩니다. `ADMIN`과 `STAFF`는 접근할 수 없습니다.
 

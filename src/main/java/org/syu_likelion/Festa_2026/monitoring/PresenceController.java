@@ -1,6 +1,8 @@
 package org.syu_likelion.Festa_2026.monitoring;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -25,6 +27,7 @@ public class PresenceController {
     }
 
     @PostMapping("/heartbeat")
+    @ApiResponse(responseCode = "204", description = "처리 완료, 응답 본문 없음", content = @Content)
     @Operation(summary = "프런트 접속 heartbeat",
             description = "로그인 여부와 무관하게 익명 세션과 현재 route를 메모리에 갱신합니다. 저장 데이터는 TTL 뒤 자동 삭제됩니다.")
     ResponseEntity<Void> heartbeat(@Valid @RequestBody HeartbeatRequest body) {

@@ -1,6 +1,8 @@
 package org.syu_likelion.Festa_2026.user;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -52,7 +54,7 @@ public class UserController {
 
     @PatchMapping("/profile")
     @Operation(summary = "기본 프로필 수정",
-            description = "SSO의 이름과 전화번호를 수정한 후 갱신된 내 정보를 반환합니다.")
+            description = "SSO의 전화번호·학과·학년·재학 상태 중 전달한 필드를 수정하고 갱신된 내 정보를 반환합니다. 이름·학번·생년월일은 변경할 수 없습니다. 학과를 전달하면 기존 학생 인증이 취소됩니다.")
     ResponseEntity<MeResponse> updateProfile(
                                              @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
                                              @Parameter(hidden = true) HttpServletRequest servletRequest,
@@ -98,6 +100,7 @@ public class UserController {
     }
 
     @PatchMapping("/password")
+    @ApiResponse(responseCode = "204", description = "처리 완료, 응답 본문 없음", content = @Content)
     @Operation(summary = "비밀번호 변경",
             description = "로그인 사용자의 Bearer Access Token과 현재 비밀번호를 확인한 뒤 SSO 비밀번호를 변경합니다. 성공하면 204를 반환하고 Festa Refresh Token 쿠키를 삭제합니다. 프런트는 메모리의 Access Token을 즉시 버리고 로그인 화면으로 이동해야 합니다.")
     ResponseEntity<Void> changePassword(
@@ -109,6 +112,7 @@ public class UserController {
     }
 
     @DeleteMapping("/festival")
+    @ApiResponse(responseCode = "204", description = "처리 완료, 응답 본문 없음", content = @Content)
     @Operation(summary = "축제 서비스 이용 정보 삭제",
             description = "SSO 계정은 유지하고 본인의 축제 사용자 정보와 개인 연결 데이터를 삭제합니다. 게시글과 투표 기록은 작성자를 알 수 없음으로 익명화하여 보존합니다. 성공 후 Access Token을 버리고 로그인 화면으로 이동하세요. 다시 로그인하면 신규 사용자로 연결됩니다.")
     ResponseEntity<Void> withdrawFestival(
@@ -121,6 +125,7 @@ public class UserController {
     }
 
     @DeleteMapping
+    @ApiResponse(responseCode = "204", description = "처리 완료, 응답 본문 없음", content = @Content)
     @Operation(summary = "SSO 계정 탈퇴",
             description = "SSO 계정 자체를 탈퇴 처리하고 Refresh Token 쿠키를 삭제합니다. 축제 사이트만 탈퇴하는 API가 아닙니다.")
     ResponseEntity<Void> withdraw(

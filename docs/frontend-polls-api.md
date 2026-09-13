@@ -210,7 +210,7 @@ type PollMutation = {
 | `DELETE` | `/api/admin/polls/{id}` | 응답 없는 투표 삭제 |
 | `DELETE` | `/api/admin/polls/{id}?force=true` | `SUPER_ADMIN`의 응답 포함 강제 삭제 |
 
-응답이 하나라도 생긴 뒤 `PUT` 또는 질문 미디어 변경 API를 호출하면 `409 POLL_STRUCTURE_LOCKED`입니다. 그 이후에는 settings API만 사용합니다.
+응답이 하나라도 생긴 뒤 `PUT` 또는 질문 미디어 변경 API를 호출하면 `409 POLL_STRUCTURE_LOCKED`입니다. 제목·설명·종료·결과 공개 시각은 settings API로 수정합니다. 선택지 이미지 변경과 즉시 종료는 별도 API로 계속 사용할 수 있습니다.
 
 익명 투표 관리자 상세의 제출자 필드:
 
@@ -237,6 +237,8 @@ DELETE /api/admin/polls/{pollId}/options/{optionId}/image
 ```
 
 선택지당 이미지 1개이며 JPG, PNG, WebP, 최대 10MB입니다. 새 이미지를 업로드하면 기존 파일을 교체합니다. FormData의 key는 `file`입니다.
+
+현재 선택지 이미지 업로드·삭제는 응답이 생긴 뒤에도 가능합니다. 질문·선택지 구조를 바꾸는 `PUT`과 질문 미디어 업로드·정렬·삭제에 적용되는 `POLL_STRUCTURE_LOCKED` 제한과 구분합니다.
 
 ## 질문 이미지·동영상
 

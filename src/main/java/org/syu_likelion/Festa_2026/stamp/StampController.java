@@ -34,7 +34,8 @@ public class StampController {
     public StampController(StampService stamps, TokenCookieManager cookies) { this.stamps = stamps; this.cookies = cookies; }
 
     @PostMapping("/qr/lookup")
-    @Operation(summary = "QR 사용자와 현재 스탬프 상태 조회")
+    @Operation(summary = "QR 사용자와 현재 스탬프 상태 조회",
+            description = "BOOTH_MANAGER, ADMIN 또는 SUPER_ADMIN이 QR 토큰에 해당하는 사용자와 부스의 현재 스탬프 상태를 조회합니다. BOOTH_MANAGER는 담당 부스에서만 사용할 수 있습니다.")
     ResponseEntity<StampTargetResponse> lookup(@PathVariable Long boothId, @Valid @RequestBody QrStampRequest body,
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
             @Parameter(hidden = true) HttpServletRequest request) {

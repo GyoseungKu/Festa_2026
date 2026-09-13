@@ -1,6 +1,8 @@
 package org.syu_likelion.Festa_2026.birthday;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -68,7 +70,8 @@ public class BirthdayMessageController {
     }
 
     @GetMapping("/me")
-    @Operation(summary = "내 생일축하 쪽지 조회")
+    @Operation(summary = "내 생일축하 쪽지 조회",
+            description = "Bearer 인증이 필요합니다. 현재 로그인한 사용자의 활성 쪽지와 작성 여부를 조회합니다.")
     @SecurityRequirement(name = "bearerAuth")
     ResponseEntity<MyBirthdayMessageResponse> mine(
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
@@ -77,6 +80,7 @@ public class BirthdayMessageController {
     }
 
     @PostMapping
+    @ApiResponse(responseCode = "201", description = "생성 완료", useReturnTypeSchema = true)
     @Operation(summary = "생일축하 쪽지 작성", description = "활성 쪽지는 한 사람당 하나만 작성할 수 있습니다.")
     @SecurityRequirement(name = "bearerAuth")
     ResponseEntity<BirthdayMessageResponse> create(
@@ -89,6 +93,7 @@ public class BirthdayMessageController {
     }
 
     @DeleteMapping("/{id}")
+    @ApiResponse(responseCode = "204", description = "처리 완료, 응답 본문 없음", content = @Content)
     @Operation(summary = "내 생일축하 쪽지 삭제", description = "삭제 후 새 쪽지를 다시 작성할 수 있습니다.")
     @SecurityRequirement(name = "bearerAuth")
     ResponseEntity<Void> delete(
@@ -101,7 +106,8 @@ public class BirthdayMessageController {
     }
 
     @PutMapping("/{id}/heart")
-    @Operation(summary = "생일축하 쪽지 하트 추가")
+    @Operation(summary = "생일축하 쪽지 하트 추가",
+            description = "로그인한 사용자의 하트를 추가하고 하트 수와 내 하트 여부를 반환합니다. 같은 사용자가 반복 요청해도 하트는 중복 추가되지 않습니다.")
     @SecurityRequirement(name = "bearerAuth")
     ResponseEntity<HeartResponse> addHeart(
             @PathVariable Long id,
@@ -111,7 +117,8 @@ public class BirthdayMessageController {
     }
 
     @DeleteMapping("/{id}/heart")
-    @Operation(summary = "생일축하 쪽지 하트 취소")
+    @Operation(summary = "생일축하 쪽지 하트 취소",
+            description = "로그인한 사용자의 하트를 취소하고 하트 수와 내 하트 여부를 반환합니다.")
     @SecurityRequirement(name = "bearerAuth")
     ResponseEntity<HeartResponse> removeHeart(
             @PathVariable Long id,

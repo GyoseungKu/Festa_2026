@@ -37,7 +37,7 @@ type MyStampBoard = {
 ```json
 {
   "participated": true,
-  "stampCount": 2,
+  "stampCount": 1,
   "stamps": [
     {
       "boothId": 1,

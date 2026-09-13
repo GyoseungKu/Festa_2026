@@ -1,5 +1,7 @@
 package org.syu_likelion.Festa_2026.admin;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.time.Instant;
@@ -88,6 +90,8 @@ public class AdminBambooPageController {
     /** 본문 전체를 다시 받기 전에 실제 메시지 변경이 있는지만 확인하는 폴링 응답이다. */
     @GetMapping("/cursor")
     @ResponseBody
+    @Tag(name = "Admin Console", description = "관리자 웹 로그인 쿠키로 인증하는 운영 화면용 JSON API")
+    @Operation(summary = "대나무숲 관리자 변경 커서 조회", description = "관리자 웹 로그인 쿠키와 STAFF 이상 권한이 필요합니다. 메시지 변경 여부를 확인할 수 있는 현재 cursor를 반환합니다. 인증 또는 권한 확인에 실패하면 401을 반환합니다.")
     ResponseEntity<Map<String, Long>> cursor(HttpServletRequest request, HttpServletResponse response) {
         AdminIdentity admin = staffOrNull(request, response);
         if (admin == null) return ResponseEntity.status(401).build();

@@ -135,13 +135,17 @@ await apiFetch<LostItem>(`/api/lost-items/${id}`, {
 
 ### 상태·고정 변경
 
-```json
+```http
 PATCH /api/lost-items/7/status
+Content-Type: application/json
+
 { "status": "RETURNED" }
 ```
 
-```json
+```http
 PATCH /api/lost-items/7/pin
+Content-Type: application/json
+
 { "pinned": true }
 ```
 
@@ -152,6 +156,8 @@ PATCH /api/lost-items/7/pin
 | `400` | `INVALID_LOST_ITEM` | 제목·내용·상태 확인 |
 | `400` | `INVALID_LOST_ITEM_IMAGE_ID` | 상세를 다시 조회해 사진 동기화 |
 | `400` | `LOST_ITEM_IMAGE_LIMIT_EXCEEDED` | 최대 5장 안내 |
+| `400` | `UNSUPPORTED_IMAGE_TYPE` | JPG·PNG·WebP 파일인지 확인 |
+| `400` | `IMAGE_FILE_TOO_LARGE` | 파일당 이미지 용량 제한 확인 (기본 10MB) |
 | `403` | `LOST_ITEM_MANAGE_FORBIDDEN` | 관리 UI 접근 차단 |
 | `404` | `LOST_ITEM_NOT_FOUND` | 목록으로 이동 |
 | `413` | `UPLOAD_TOO_LARGE` | 파일 크기 안내 |
