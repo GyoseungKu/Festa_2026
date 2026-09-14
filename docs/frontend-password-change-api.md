@@ -26,7 +26,7 @@ Content-Type: application/json
 
 ## 성공 처리
 
-성공 응답은 `204 No Content`이며 Festa Refresh Token 쿠키가 만료됩니다. SSO는 비밀번호 변경 성공 시 기존 사용자 토큰을 폐기합니다.
+성공 응답은 `204 No Content`이며 Festa Refresh Token 쿠키가 만료됩니다. 이 저장소에서 확인되는 동작은 SSO 변경 요청과 현재 브라우저의 쿠키 제거입니다. 다른 기기의 Access/Refresh Token 폐기 범위는 SSO 구현에 달려 있으므로 Festa 코드만으로 전체 세션 종료를 보장하지 않습니다.
 
 서버는 React 메모리에 저장된 Access Token을 직접 제거할 수 없으므로 프런트가 반드시 다음 순서로 처리합니다.
 

@@ -2,6 +2,8 @@
 
 React 프런트에서 Festa API를 연동할 때 사용하는 문서 모음입니다. 실제 필드 스키마는 서버 DTO, 세부 확인은 Swagger UI(`/swagger-ui.html`)가 기준입니다.
 
+전체 경로와 성공 응답은 [API 색인](api-endpoint-index.md), 문서와 실제 코드의 차이 및 남은 구현 제약은 [검토 기록](api-documentation-review.md)을 확인합니다. Swagger만으로 서비스 검증·권한별 필드 생략·외부 SSO 동작을 모두 판단하지 않습니다.
+
 ## 먼저 읽을 문서
 
 1. [공통 API 규약](frontend-api-common.md)
@@ -14,6 +16,10 @@ React 프런트에서 Festa API를 연동할 때 사용하는 문서 모음입�
 | 기능 | 문서 |
 |---|---|
 | 공통 헤더·오류·토큰 갱신 | [공통 API 규약](frontend-api-common.md) |
+| 전체 경로·메서드·성공 응답 | [API 전체 색인](api-endpoint-index.md) |
+| 파일 형식·파트·개수·용량 | [업로드 규약](api-upload-limits.md) |
+| 관리자 쿠키·CSRF·HTML 폼 경로 | [관리자 웹 경로](admin-web-api.md) |
+| 문서 검토 범위·발견 사항·구현 제약 | [API 문서 검토 기록](api-documentation-review.md) |
 | 회원가입·로그인·로그아웃 | [인증 API](frontend-auth-api.md) |
 | 회원가입 학적정보 자동입력·로그인 후 학생 인증 | [프런트엔드 학교 SSO](frontend-school-sso.md) |
 | 아이디 찾기·비밀번호 재설정 | [계정 복구](frontend-account-recovery-api.md) |
@@ -38,12 +44,12 @@ React 프런트에서 Festa API를 연동할 때 사용하는 문서 모음입�
 
 ## 구현 체크리스트
 
-- 모든 API 요청에 `credentials: "include"`를 공통 적용합니다.
+- 인증·학교 세션 API에는 `credentials: "include"`를 적용합니다. 인증이 필요 없는 heartbeat는 `omit`을 사용할 수 있습니다.
 - 로그인 상태에서만 `Authorization: Bearer <accessToken>`을 추가합니다.
 - 모든 응답에서 `X-Access-Token`을 확인해 메모리 토큰을 교체합니다.
 - `204 No Content`와 본문 없는 `200` 응답에 `response.json()`을 호출하지 않습니다.
 - 실패 응답은 HTTP 상태만 보지 말고 JSON의 `code`로 분기합니다.
 - `Instant`는 UTC ISO-8601로 받고 화면에서 `Asia/Seoul`로 변환합니다.
-- `LocalTime`은 축제 당일의 `HH:mm:ss` 값이며 날짜를 붙여 해석하지 않습니다.
+- `LocalTime`은 날짜·시간대가 없는 `HH:mm:ss`입니다. SSO 프로필의 `LocalDateTime`도 UTC Instant와 구분합니다.
 - multipart 요청에서 `FormData`를 사용할 때 `Content-Type`을 직접 지정하지 않습니다.
 - Access/Refresh Token, 비밀번호, 인증번호, 개인정보를 로그·analytics·URL에 넣지 않습니다.

@@ -41,7 +41,7 @@ public class BambooService {
     private static final int DEFAULT_HISTORY_SIZE = 50;
     private static final int MAX_HISTORY_SIZE = 100;
     private static final int MAX_STREAM_SIZE = 200;
-    private static final int NICKNAME_SUGGEST_ATTEMPTS = 5;
+    private static final int NICKNAME_SUGGEST_ATTEMPTS = 10;
 
     private final BambooMessageRepository messages;
     private final BambooNicknameRepository nicknames;
@@ -88,12 +88,10 @@ public class BambooService {
 
     @Transactional(readOnly = true)
     public BambooNicknameResponse suggestNickname() {
-        for (int digits = 2; digits <= 3; digits++) {
-            for (int attempt = 0; attempt < NICKNAME_SUGGEST_ATTEMPTS; attempt++) {
-                String candidate = BambooNicknamePolicy.randomCandidate(digits);
-                if (!nicknames.existsByNicknameKey(BambooNicknamePolicy.normalize(candidate))) {
-                    return new BambooNicknameResponse(candidate);
-                }
+        for (int attempt = 0; attempt < NICKNAME_SUGGEST_ATTEMPTS; attempt++) {
+            String candidate = BambooNicknamePolicy.randomCandidate();
+            if (!nicknames.existsByNicknameKey(BambooNicknamePolicy.normalize(candidate))) {
+                return new BambooNicknameResponse(candidate);
             }
         }
         throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "BAMBOO_NICKNAME_UNAVAILABLE",
@@ -148,7 +146,7 @@ public class BambooService {
         }
         if (!BambooNicknamePolicy.hasOnlyAllowedCharacters(nickname)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "BAMBOO_NICKNAME_INVALID",
-                    "닉네임에는 한글, 영문, 숫자와 _ - 만 사용할 수 있습니다.");
+                    "닉네임에는 한글, 영문, 숫자와 _ - 및 중간 공백 하나만 사용할 수 있습니다.");
         }
     }
 

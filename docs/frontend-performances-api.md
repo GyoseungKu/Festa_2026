@@ -87,6 +87,10 @@ Authorization: Bearer ACCESS_TOKEN
 
 기본 정보 수정 시 기존 업로드 파일은 유지됩니다. `imageUrls`, `videoUrls`는 링크 소스 구성을 새 요청 값으로 교체하므로 현재 유지할 링크도 다시 보내야 합니다.
 
+PATCH도 `category`, `teamName`, `memberNames`, `startsAt`, `endsAt`, `description`, `publishedAt`이 모두 필수입니다. 종료 시각은 시작보다 늦어야 합니다. `links`, `imageUrls`, `videoUrls`의 생략/null은 빈 목록으로 처리하므로 링크 유지 시 전체 목록을 다시 보냅니다. URL 하나의 최대 길이는 2048자입니다.
+
+업로드의 MIME·파일별 크기·전체 요청 제한은 [업로드 규약](api-upload-limits.md)을 참고합니다. 미공개 공연을 관리자가 조회하는 REST 전용 목록은 없으며, 사용자 GET은 관리자 토큰이어도 공개 시각 필터를 적용합니다. 미공개 목록·편집은 `/admin/performances` 웹 화면에서 제공합니다.
+
 ## 주요 오류
 
 | HTTP | code | 의미 |

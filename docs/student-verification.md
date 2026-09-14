@@ -207,6 +207,8 @@ Authorization: Bearer ACCESS_TOKEN
 
 목록은 `200`과 요청 객체 배열, 승인·삭제는 본문 없는 `200`을 반환합니다.
 
+목록의 `currentName`, `currentStudentNo`, `currentDepartment`는 요청 생성·갱신 당시 SSO 스냅샷이며 현재 프로필을 실시간 재조회한 값이 아닙니다. `requestedAt` 오름차순의 전체 배열이며 페이지네이션은 없습니다. [정확한 응답 필드](frontend-user-api.md)를 참고합니다.
+
 현재 승인 로직은 요청 생성 이후의 동아리 SSO 계정 상태나 최신 학교 학적정보를 다시 조회하지 않습니다. `DELETE /api/users/me/festival`은 미승인 요청을 함께 삭제하지만, SSO 계정 탈퇴인 `DELETE /api/users/me`에는 이 정리가 없습니다. 이 때문에 오래된 요청이나 SSO 탈퇴 계정의 요청이 승인될 수 있으므로 다음 보완이 필요합니다.
 
 - 승인 요청 TTL 검사와 만료 요청 자동 삭제

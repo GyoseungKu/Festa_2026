@@ -61,6 +61,7 @@ Authorization: Bearer ACCESS_TOKEN
 - `grade`: 선택, 1~6
 - `enrollment`: 선택, `ENROLLED` 또는 `LEAVE`
 - 필드를 생략하면 기존 값이 유지되며, 최소 하나의 필드를 보내야 합니다.
+- null도 변경값으로 취급하지 않으므로 기존 값을 지우는 용도로 사용할 수 없습니다. 모든 필드가 생략/null인 요청은 거부됩니다.
 - 이름, 학번, 생년월일은 본인이 변경할 수 없습니다.
 - 성공 시 갱신된 `MeResponse`를 반환하므로 사용자 캐시를 이 값으로 교체합니다.
 
@@ -105,10 +106,12 @@ Content-Type: application/json
 
 `DELETE /api/users/me/festival` — Bearer Access Token 필수, Refresh Cookie로 만료 토큰 갱신 가능. 요청 본문은 없습니다.
 
-성공은 `204 No Content`이며 Festa Refresh Cookie를 제거합니다. 프런트는 메모리 토큰과 사용자별 캐시를 모두 제거하고 로그인 화면으로 이동합니다. 삭제 전 확인 문구: **“축제 서비스 이용 정보를 삭제할까요? SSO 계정은 유지됩니다. 게시글과 투표 응답은 알 수 없음으로 남으며, 삭제한 이용 정보는 복구되지 않습니다.”**
+성공은 `204 No Content`이며 Festa Refresh Cookie를 제거합니다. 프런트는 메모리 토큰과 사용자별 캐시를 모두 제거하고 로그인 화면으로 이동합니다. 삭제 전 확인 문구: **“축제 서비스 이용 정보를 삭제할까요? SSO 계정은 유지됩니다. 대나무숲·생일 쪽지·분실물의 작성자 정보와 투표 응답의 계정 연결은 익명화되지만, 본문과 일부 운영 기록은 남습니다. 삭제한 이용 정보는 복구되지 않습니다.”**
 
 - 본인의 `festival_users` 행, 찜, 획득 스탬프, 부스 관리자 연결, 대나무숲 닉네임, 학교 인증 요청, 발급 QR 정보를 삭제합니다.
-- 게시글·투표 응답·좋아요·신고·운영 이력은 보존하되 원래 계정 UUID와의 연결을 끊습니다. 게시글의 저장된 이름·학과·마스킹 학번도 제거하고 이름은 `알 수 없음`으로 표시합니다. 본문·자유 응답에 직접 적은 개인정보는 자동으로 지우지 않습니다.
+- 대나무숲·생일 쪽지·분실물과 투표 응답·하트·신고 등 삭제 서비스가 열거한 이력은 보존하되 원래 계정 UUID와의 연결을 끊습니다. 해당 게시물의 저장된 이름·학과·마스킹 학번도 익명화하고 이름은 `알 수 없음`으로 표시합니다. 본문·자유 응답에 직접 적은 개인정보는 자동으로 지우지 않습니다.
+- **일반 공지(`notices`)는 현재 익명화 대상에 빠져 있습니다.** 작성 당시 `authorName`과 `authorUuid`, `lastModifiedByUuid`가 남습니다. 모든 게시글·운영 기록의 개인정보가 삭제된다고 안내하면 안 됩니다. 이는 문서상의 예외이며 코드 보완이 필요한 항목입니다.
+- 협찬사(`festival_sponsors`)의 `createdBy`, `updatedBy`도 현재 삭제 서비스가 변경하지 않습니다. 공개 협찬사 응답에 이 값은 없지만 DB 운영 기록에는 남습니다.
 - SSO 계정·프로필 및 공통 학생회비 납부 명부, 서버 요청/분석 로그는 이 API의 삭제 범위에 포함되지 않습니다.
 - 이후 SSO 인증으로 서비스에 다시 접근하면 신규 사용자로 연결되며 기존 권한·학교 인증·활동 내역을 복원하지 않습니다. 유효한 SSO 토큰 자체를 폐기하는 API는 아니므로 다른 탭에서도 토큰과 캐시를 정리하세요.
 - 마지막 `SUPER_ADMIN`은 `409 LAST_SUPER_ADMIN_REQUIRED`로 거부됩니다. 먼저 다른 사용자에게 최고 관리자 권한을 부여해야 합니다.
@@ -200,7 +203,25 @@ Authorization: Bearer ACCESS_TOKEN
 
 목록은 `200`과 요청 객체 배열을 반환합니다. 승인·삭제는 모두 `200`이며 응답 본문이 없습니다. `response.json()`을 무조건 호출하지 않습니다.
 
-목록에는 현재 동아리 SSO의 이름·학번·학과와 학교 SSO의 이름·학번·학과가 함께 반환됩니다. `ADMIN`과 `STAFF`는 접근할 수 없습니다.
+목록에는 요청 생성·갱신 당시 동아리 SSO의 이름·학번·학과와 학교 SSO의 이름·학번·학과가 함께 반환됩니다. 목록을 읽을 때 최신 SSO 프로필을 다시 가져오지는 않습니다. `ADMIN`과 `STAFF`는 접근할 수 없습니다.
+
+목록은 요청 시각 오름차순의 전체 배열이며 페이지네이션이 없습니다.
+
+```ts
+type SchoolVerificationRequest = {
+  id: number;
+  userUuid: string;
+  currentName: string | null;
+  currentStudentNo: string | null;
+  currentDepartment: string | null;
+  schoolName: string;
+  schoolStudentNo: string;
+  schoolDepartment: string;
+  requestedAt: string; // Instant
+};
+```
+
+이미 처리된 요청은 `404 SCHOOL_VERIFICATION_REQUEST_NOT_FOUND`이므로 목록을 다시 조회합니다.
 
 승인은 축제 서비스의 학생 인증 상태만 `VERIFIED`로 변경하며 동아리 SSO의 이름·학번·학과를 수정하지 않습니다. 필요한 회원정보 정정은 동아리 SSO에서 별도로 처리합니다. 현재 승인 API는 요청 생성 이후 사용자의 탈퇴·정지 여부와 학교 학적정보 변경 여부를 다시 확인하지 않으므로 운영자는 오래된 요청을 승인하지 않아야 합니다.
 

@@ -22,6 +22,7 @@ Content-Type: application/json
 - 성공 응답은 `204 No Content`입니다.
 - `sessionId`는 브라우저 탭의 `sessionStorage`에 만든 UUID를 사용합니다.
 - `route`에는 React Router의 pathname만 보내고 query string과 hash는 제거합니다.
+- `route`는 필수, 최대 200자이며 `/`로 시작해야 합니다. `//`로 시작하거나 `?`, `#`, 제어문자를 포함하면 400입니다.
 - heartbeat는 첫 화면 진입, route 변경, 탭이 다시 보이는 시점과 이후 60초마다 전송합니다.
 - 탭을 닫아 별도 종료 이벤트를 못 보내더라도 서버 TTL로 자동 제외됩니다.
 
@@ -50,6 +51,7 @@ export function PresenceHeartbeat() {
       if (document.visibilityState !== "visible") return;
       void fetch(`${API_BASE_URL}/api/presence/heartbeat`, {
         method: "POST",
+        credentials: "omit",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sessionId: presenceSessionId(),

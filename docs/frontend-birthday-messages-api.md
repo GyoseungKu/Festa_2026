@@ -125,6 +125,44 @@ DELETE /api/admin/birthday-messages/{id}
 - 권한상 숨기는 필드는 `null`이며 JSON에서 생략될 수 있습니다.
 - 개인정보 원본은 게시판 DB가 아니라 조회 시점 SSO 프로필에서 가져옵니다.
 
+## 관리자 응답 세부 구조
+
+관리자 원본 프로필은 조회 시 SSO에서 가져오지만 공개 `author`의 마스킹 이름·학번·학과는 작성 당시 스냅샷입니다. SSO 변경·탈퇴만으로 공개 값이 갱신되지는 않습니다. 축제 이용 정보 삭제 시에는 별도로 익명화됩니다.
+
+관리자 목록의 `items`에는 `id`, `content`, `heartCount`, `createdAt`, `author: AdminUserView`가 들어가고 `mine`, `heartedByMe`는 없습니다. 하트 목록은 다음 구조입니다.
+
+```ts
+type AdminUserView = {
+  viewerRole: "STAFF" | "ADMIN" | "SUPER_ADMIN";
+  userUuid?: string;
+  loginId?: string;
+  email?: string;
+  ssoRole?: string;
+  status?: string;
+  name?: string;
+  phone?: string;
+  studentNo?: string;
+  department?: string;
+  grade?: number;
+  enrollment?: string;
+  birthDate?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  festivalRoles?: string[];
+};
+type AdminHeartPage = {
+  messageId: number;
+  heartCount: number;
+  items: Array<{ user: AdminUserView; heartedAt: string }>;
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+};
+```
+
+`AdminUserView`의 선택 필드는 권한 또는 원본 값 누락에 따라 생략됩니다. `heartedAt`은 UTC Instant입니다.
+
 ## 주요 오류
 
 | HTTP | code | 처리 |

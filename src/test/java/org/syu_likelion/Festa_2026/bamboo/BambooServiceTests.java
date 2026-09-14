@@ -78,7 +78,7 @@ class BambooServiceTests {
 
     @Test
     void rejectsNicknameWithDisallowedCharacters() {
-        assertThatThrownBy(() -> service.claimNickname(AUTHOR, "사자 두마리"))
+        assertThatThrownBy(() -> service.claimNickname(AUTHOR, "사자  두마리"))
                 .isInstanceOf(ApiException.class)
                 .extracting(exception -> ((ApiException) exception).code())
                 .isEqualTo("BAMBOO_NICKNAME_INVALID");
@@ -90,6 +90,31 @@ class BambooServiceTests {
 
         assertThat(nicknames.existsByNicknameKey(BambooNicknamePolicy.normalize(suggested))).isFalse();
         assertThat(service.claimNickname(AUTHOR, suggested).nickname()).isEqualTo(suggested);
+    }
+
+    @Test
+    void spacedBirdNicknameKeepsItsDisplayButCollidesWithUnspacedName() {
+        assertThat(service.claimNickname(AUTHOR, "수줍은 고방오리").nickname()).isEqualTo("수줍은 고방오리");
+        assertThatThrownBy(() -> service.claimNickname(OTHER, "수줍은고방오리"))
+                .isInstanceOf(ApiException.class)
+                .extracting(exception -> ((ApiException) exception).code())
+                .isEqualTo("BAMBOO_NICKNAME_TAKEN");
+        assertThat(service.createAs(AUTHOR, "안녕하세요").anonName()).isEqualTo("수줍은 고방오리");
+    }
+
+    @Test
+    void longestBirdNicknameCanBeClaimed() {
+        assertThat(service.claimNickname(AUTHOR, "수줍은 아메리카메추라기도요").nickname())
+                .isEqualTo("수줍은 아메리카메추라기도요");
+    }
+
+    @Test
+    void acceptsFifteenCharactersAndRejectsSixteen() {
+        assertThat(service.claimNickname(AUTHOR, "가".repeat(15)).nickname()).hasSize(15);
+        assertThatThrownBy(() -> service.claimNickname(OTHER, "가".repeat(16)))
+                .isInstanceOf(ApiException.class)
+                .extracting(exception -> ((ApiException) exception).code())
+                .isEqualTo("BAMBOO_NICKNAME_INVALID");
     }
 
     // ------------------------------------------------------------------ 작성

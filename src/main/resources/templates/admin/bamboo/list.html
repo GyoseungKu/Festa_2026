@@ -82,7 +82,7 @@
             <label class="field-group">
                 <span>익명 닉네임</span>
                 <input type="search" name="participantQuery" th:value="${participantQuery}"
-                       maxlength="12" placeholder="닉네임 일부 입력">
+                       maxlength="15" placeholder="닉네임 일부 입력">
             </label>
             <button class="button button-primary" type="submit">검색</button>
             <a class="button button-ghost" th:if="${!#strings.isEmpty(participantQuery)}"
@@ -233,7 +233,7 @@
                         <input type="hidden" name="tab" th:value="${tab}">
                         <label class="field-group">
                             <span>닉네임 변경</span>
-                            <input type="text" name="nickname" maxlength="12" placeholder="새 닉네임" required>
+                            <input type="text" name="nickname" maxlength="15" placeholder="새 닉네임" required>
                         </label>
                         <button class="button button-secondary" type="submit">변경</button>
                     </form>

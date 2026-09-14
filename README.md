@@ -55,7 +55,7 @@ Thymeleaf 관리자 페이지
 - Access Token 만료 시 백엔드가 Refresh Token으로 한 번 갱신하여 요청을 재시도할 수 있습니다.
 - 갱신된 Access Token은 `X-Access-Token` 응답 헤더에 담깁니다.
 - 쿠키를 사용하는 React 요청은 `credentials: "include"`가 필요합니다.
-- 관리자 페이지는 `festivalAdminAccess`, `festivalAdminRefresh` HttpOnly 쿠키를 사용하며 서버 세션은 사용하지 않습니다.
+- 관리자 인증은 `festivalAdminAccess`, `festivalAdminRefresh` HttpOnly 쿠키를 사용합니다. 인증 상태를 서버 세션에 저장하지 않지만 폼 처리의 flash 메시지 등은 세션을 사용할 수 있습니다.
 - 비밀번호와 Access/Refresh Token은 축제 DB에 저장하지 않습니다. 사용자 프로필 원본은 SSO에서 조회하지만, 미승인 학교 인증 요청에는 비교용 이름·학번·학과를, 납부자 명부에는 학번을, 일부 게시글·운영 이력에는 표시용 정보를 저장합니다. 보관·삭제 범위는 각 기능 문서를 확인합니다.
 
 `/api/**`는 Bearer 인증을 사용하므로 CSRF 검사에서 제외됩니다. `/admin/**` 폼 요청은 CSRF 보호를 적용합니다.
@@ -235,7 +235,7 @@ Origin은 경로나 마지막 `/` 없이 `scheme://host[:port]` 형식으로 입
 | GET | `/api/booths/{boothId}/stamps/history` | 담당 `BOOTH_MANAGER`, `ADMIN` 이상 | 현재 보유자와 지급·회수 감사 이력 |
 
 - 한 사용자는 한 부스에서 현재 스탬프를 최대 하나만 보유할 수 있습니다.
-- 스탬프판은 축제 기간 중 한 번 참여하며 회차나 초기화 개념이 없습니다.
+- 스탬프판은 사용자당 하나이며 날짜·시즌 필터나 초기화 개념이 없습니다. 현재 보유분과 남아 있는 지급 이력을 기준으로 참여 여부를 계산합니다.
 - 회수 후 재지급할 수 있고 모든 지급·회수는 감사 이력에 남습니다.
 - `BOOTH_MANAGER`는 배정된 스탬프 지급 부스만 선택할 수 있고 QR 방식만 사용합니다. 사용자 UUID와 이름·학번 등은 제한 또는 마스킹됩니다.
 - `ADMIN`, `SUPER_ADMIN`은 모든 스탬프 지급 부스를 선택하고 QR 또는 사용자 검색으로 처리할 수 있습니다.
@@ -429,6 +429,8 @@ QR에는 개인정보나 Access Token을 넣지 않습니다. 서버는 256비�
 
 ## 미디어와 트랜잭션
 
+도메인별 파일 파트·MIME·개수와 크기 제한은 [업로드 규약](docs/api-upload-limits.md)을 참고합니다.
+
 - R2 기본 제한은 이미지 10MB, 동영상 200MB입니다.
 - 전체 multipart 요청 기본 제한은 650MB입니다.
 - 보호된 multipart API는 본문 파싱 전에 인증과 권한을 먼저 검사합니다.
@@ -476,6 +478,18 @@ API 오류는 다음 형태로 반환합니다.
 ```text
 festival_users
 school_verification_requests
+student_fee_payers
+student_fee_lock
+festival_sponsors
+notices
+notice_attachments
+festival_polls
+festival_poll_questions
+festival_poll_question_media
+festival_poll_options
+festival_poll_submissions
+festival_poll_answers
+festival_poll_answer_options
 festival_booths
 festival_booth_managers
 festival_booth_media
@@ -569,6 +583,10 @@ Swagger UI의 **Authorize**에는 SSO Access Token 원문만 입력합니다. `B
 ## 프런트 연동 문서
 
 - [프런트 API 문서 목차](docs/README.md)
+- [API 전체 색인](docs/api-endpoint-index.md)
+- [관리자 웹 경로·쿠키·CSRF](docs/admin-web-api.md)
+- [파일 업로드 제한](docs/api-upload-limits.md)
+- [문서 심층 검토 결과·현재 구현 제약](docs/api-documentation-review.md)
 - [공통 API 규약](docs/frontend-api-common.md)
 - [인증·회원가입](docs/frontend-auth-api.md)
 - [프런트엔드 학교 SSO 연동](docs/frontend-school-sso.md)
@@ -583,15 +601,9 @@ Swagger UI의 **Authorize**에는 SSO Access Token 원문만 입력합니다. `B
 - [동적 QR](docs/frontend-qr-api.md)
 - [분실물](docs/frontend-lost-items-api.md)
 - [생일축하 쪽지](docs/frontend-birthday-messages-api.md)
+- [대나무숲 익명 채팅](docs/frontend-bamboo-api.md)
+- [일반 공지·배너](docs/frontend-notices-api.md)
+- [협찬사](docs/frontend-sponsors-api.md)
+- [학생회비](docs/student-fees.md)
 - [프런트 이벤트](docs/frontend-analytics-api.md)
 - [접속 현황 heartbeat](docs/frontend-presence-api.md)
-
-### 일반 공지
-
-- 기존 작성·수정 API의 `banner` 옵션으로 최상단 배너 공지를 지정합니다. 관리자 작성 화면에도 체크박스를 제공합니다.
-- 배너 공지만 조회: `GET /api/notices?bannerOnly=true`. 사용자 프런트는 응답으로 최상단 배너를 렌더링합니다.
-
-- 공개 조회: `GET /api/notices`, `GET /api/notices/{id}`
-- STAFF 이상 작성·수정·삭제·상단 고정, 관리자 메뉴 `/admin/notices`
-- 제목·내용, 사진·영상·PDF 등 최대 10개 첨부. 댓글 없음.
-- [일반 공지 프론트엔드 API](docs/frontend-notices-api.md)

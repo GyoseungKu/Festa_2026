@@ -166,13 +166,15 @@ type PollResult = {
     text: string;
     type: PollQuestionType;
     answeredCount: number;
-    options: Array<PollOption & { count: number; percentage: number }>;
+    options: Array<{ optionId: number; text: string; imageUrl: string | null; count: number; percentage: number }>;
     textAnswers: Array<{ text: string; submittedAt: string }>;
   }>;
 };
 ```
 
 복수 선택 질문의 퍼센트는 `선택 횟수 / 해당 질문 응답 수`이므로 합계가 100%를 넘을 수 있습니다. 공개 주관식 결과에는 작성자 신원이 포함되지 않습니다.
+
+결과 선택지의 키는 상세의 `id`와 달리 **`optionId`**입니다. 질문별 `answeredCount`는 실제 답한 제출 수이며 건너뛴 질문은 제외됩니다. 전체 `submissionCount`는 응답 제출 수이므로 참여 인원과 다를 수 있습니다.
 
 ## ADMIN 이상 투표 생성·수정
 
@@ -220,6 +222,42 @@ type PollMutation = {
 | `SUPER_ADMIN` | 원본 사용자 정보 |
 
 기명 투표는 `ADMIN` 이상에게 사용자 정보를 표시합니다.
+
+### 필수값·수정 의미와 관리자 상세 구조
+
+- 질문은 1~50개, 질문 문구는 1~500자입니다. 객관식 선택지는 2~30개, 문구는 1~200자이며 같은 질문의 trim 후 동일 문구는 거부됩니다. 주관식에는 선택지를 넣지 않습니다.
+- `description`은 필수이지만 빈 문자열은 가능합니다. `endsAt`은 `startsAt`보다 늦어야 합니다. 공개 시각과 결과 공개 시각은 별도 정책이므로 화면에서 의도한 순서를 확인합니다.
+- `answers`는 필수 배열(최대 50개)입니다. 같은 `questionId`를 중복 제출하거나 다른 투표의 질문·선택지를 넣으면 400입니다. 모든 질문이 선택이면 빈 배열로도 제출할 수 있습니다.
+- settings PATCH는 `title`, `description`, `endsAt`을 모두 요구합니다. `resultPublishedAt`을 생략하거나 null로 보내면 결과를 관리자 전용으로 변경합니다. 기존 공개 시각을 유지하려면 다시 보내야 합니다.
+- 관리자 상세의 페이지 메타데이터는 `submissions`에 적용됩니다. `results`는 투표 전체 집계이며 현재 페이지 집계가 아닙니다.
+- 일반 사용자에게 제출 수정·삭제 API는 없습니다. 복수 참여 허용 시 POST는 항상 새 제출이므로 통신 실패 후 내 제출 내역을 확인하고 재전송합니다.
+
+```ts
+type PollAdminDetail = {
+  poll: PollDetail;
+  submissionCount: number;
+  results: PollResult;
+  submissions: Array<{
+    id: number;
+    userUuid: string | null;
+    userName: string | null;
+    studentNo: string | null;
+    department: string | null;
+    submittedAt: string;
+    answers: Array<{
+      questionId: number;
+      questionText: string;
+      optionIds: number[];
+      optionTexts: string[];
+      text: string | null;
+    }>;
+  }>;
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+};
+```
 
 ## 선택지 이미지
 

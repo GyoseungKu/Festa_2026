@@ -14,6 +14,16 @@
 
 납부자 명단은 사용자 계정 목록과 별개입니다. 아직 가입하지 않은 학생도 명단에 등록할 수 있으며, 명단 등록만으로 계정을 만들거나 학생인증을 부여하지 않습니다.
 
+### 웹 폼 계약
+
+| 메서드·경로 | 입력 | 응답 |
+|---|---|---|
+| `GET /admin/student-fees` | `query` 기본 빈 문자열, `page` 기본 0 | 검색 결과 HTML, 페이지당 20개 |
+| `POST /admin/student-fees` | 폼 필드 `studentNumbers` | 목록으로 리다이렉트, 추가·중복 건수 또는 오류 메시지 |
+| `POST /admin/student-fees/delete` | 폼 필드 `studentNo` | 삭제 후 목록으로 리다이렉트 |
+
+관리자 쿠키와 CSRF 토큰이 필요합니다. JSON 본문이나 Bearer만으로 호출하는 REST API가 아니며 엑셀 파일 파트도 받지 않습니다. [관리자 웹 경로](admin-web-api.md)를 참고합니다.
+
 ## 학생인증과 연동
 
 | 학생인증 | 명단 일치 | studentFeePaid |

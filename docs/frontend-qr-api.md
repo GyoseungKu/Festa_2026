@@ -29,17 +29,28 @@ const [qr, setQr] = useState<{ token: string; expiresAt: string } | null>(null);
 
 useEffect(() => {
   let timer: number | undefined;
+  let stopped = false;
   const refresh = async () => {
-    const next = await apiFetch<{ token: string; expiresAt: string }>("/api/qr/tokens", {
-      method: "POST",
-      auth: true,
-    });
-    setQr(next);
-    const delay = Math.max(5_000, new Date(next.expiresAt).getTime() - Date.now() - 5_000);
-    timer = window.setTimeout(refresh, delay);
+    try {
+      const next = await apiFetch<{ token: string; expiresAt: string }>("/api/qr/tokens", {
+        method: "POST",
+        auth: true,
+      });
+      if (stopped) return;
+      setQr(next);
+      const delay = Math.max(5_000, new Date(next.expiresAt).getTime() - Date.now() - 5_000);
+      timer = window.setTimeout(refresh, delay);
+    } catch (error) {
+      if (stopped) return;
+      setQr(null); // 갱신에 실패한 QR을 계속 보여주지 않음
+      // 오류 안내와 사용자 재시도 버튼을 표시하고, 401은 공통 로그인 처리로 전달
+    }
   };
   void refresh();
-  return () => window.clearTimeout(timer);
+  return () => {
+    stopped = true;
+    window.clearTimeout(timer);
+  };
 }, []);
 ```
 
@@ -102,7 +113,38 @@ type UserSearchResponse = {
 };
 ```
 
-`ADMIN` 이상 검색 결과에는 권한 변경에 필요한 `userUuid`, `festivalRoles`, 계산된 `managementRole`이 포함됩니다.
+`ADMIN` 이상 검색 결과에는 권한 변경에 필요한 `userUuid`, `festivalRoles`가 포함됩니다. `managementRole()`은 서버 내부 계산 메서드이며 현재 JSON 필드가 아닙니다. 프런트는 `festivalRoles`에서 `SUPER_ADMIN → ADMIN → STAFF → USER` 순으로 관리 역할을 계산합니다. `BOOTH_MANAGER`는 별도로 판단합니다.
+
+### QR·검색 사용자 응답 타입
+
+`POST /api/qr/scan`은 `QrUserView` 객체, 검색은 `items: QrUserView[]`를 반환합니다. 아래 선택 필드는 권한 또는 프로필 누락에 따라 JSON에서 생략됩니다. `viewerRole`은 대상 사용자가 아니라 조회자의 역할입니다.
+
+```ts
+type QrUserView = {
+  viewerRole: "BOOTH_MANAGER" | "STAFF" | "ADMIN" | "SUPER_ADMIN";
+  userUuid?: string;
+  loginId?: string;
+  email?: string;
+  ssoRole?: string;
+  status?: string;
+  name?: string;
+  phone?: string;
+  studentNo?: string;
+  department?: string;
+  grade?: number;
+  enrollment?: string;
+  birthDate?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  festivalRoles?: Array<"USER" | "STAFF" | "ADMIN" | "SUPER_ADMIN" | "BOOTH_MANAGER">;
+  schoolVerificationStatus: "UNVERIFIED" | "VERIFIED" | "REVOKED";
+  schoolVerified: boolean;
+  schoolVerifiedAt?: string;
+  studentFeePaid: boolean;
+};
+```
+
+`token` 요청값은 공백 불가, 최대 128자입니다. QR 조회는 토큰을 소비하지 않으며 만료 전 재조회할 수 있습니다. 학교 인증 상태와 납부 상태는 정보 표시값이며 QR 발급 조건 자체는 아닙니다.
 
 ## 사용자 관리 권한 변경
 

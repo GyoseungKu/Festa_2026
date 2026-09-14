@@ -56,6 +56,8 @@ const response = await fetch("/api/sponsors", {
 
 `Content-Type`은 직접 설정하지 마세요. 브라우저가 boundary를 설정합니다.
 
+파일 파트·MIME·요청 전체 크기의 공통 제한은 [업로드 규약](api-upload-limits.md)을 참고합니다. 수정도 `name`, `description`을 모두 전송해야 합니다.
+
 ## 오류·운영
 
 - 입력 오류: `SPONSOR_INVALID_INPUT`
@@ -67,3 +69,7 @@ const response = await fetch("/api/sponsors", {
 - DB 반영 후 기존 사진을 정리하며, 롤백 시 새 업로드 사진을 정리합니다.
 - 기존 R2 설정을 사용합니다. 저장 경로: `festa2026_sponsors/`.
 - 신규 DB 테이블: `festival_sponsors`. 배포 환경의 스키마 관리 정책에 따라 생성이 필요합니다.
+
+입력·이미지 검증 오류는 400, 대상 없음은 404, 관리 권한 없음은 403, 이미지 업로드 실패는 503입니다. multipart 사전 검사에서 `MULTIPART_MANAGE_FORBIDDEN`이 먼저 반환될 수도 있습니다.
+
+협찬사의 생성자·수정자 UUID는 내부 DB에 저장하며 공개 응답에는 포함하지 않습니다. 현재 축제 이용 정보 삭제 시 이 운영 메타데이터는 익명화하지 않습니다.

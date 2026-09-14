@@ -1,0 +1,104 @@
+# 관리자 웹 경로와 인증
+
+`/admin/**`는 Thymeleaf HTML 화면과 폼 처리 경로입니다. React의 `/api/**`와 같은 기능이라도 인증 방식·메서드·응답이 다릅니다. 기능별 권한은 [프로젝트 관리자 페이지 표](../README.md)와 각 도메인 문서를 따릅니다.
+
+## 로그인·CSRF·오류
+
+- `GET /admin/login`으로 로그인 폼을 연 뒤 `POST /admin/login`에 `loginId`, `password`와 폼의 CSRF 값을 전송합니다. 성공 시 `/admin`으로 리다이렉트하고 실패 시 오류가 포함된 HTML 폼을 반환할 수 있습니다.
+- 관리자 쿠키 기본 이름은 `festivalAdminAccess`, `festivalAdminRefresh`이며 HttpOnly, Path=`/admin`입니다. 일반 API의 `festivalRefreshToken`과 별개입니다. Swagger Bearer 인증만으로 관리자 웹 요청을 인증할 수 없습니다.
+- 변경 폼은 CSRF 보호 대상입니다. 기존 Thymeleaf 폼의 `_csrf` hidden 필드를 유지합니다. 일반 `/api/**`는 이 CSRF 검사에서 제외됩니다. Spring CSRF 필터에서 발생한 403은 도메인 JSON 오류 형태를 보장하지 않습니다.
+- 성공한 폼은 대체로 리다이렉트하며 오류도 HTML이나 flash 메시지로 처리합니다. JSON `apiFetch` 래퍼로 폼 응답을 파싱하지 않습니다.
+- 관리자 로그아웃은 `POST /admin/logout`입니다. GET 링크로 대체하지 않습니다. 쿠키·SSO 로그아웃 처리 후 로그인 페이지로 이동합니다.
+- 관리자 폼의 `datetime-local` 입력은 화면의 한국 시각으로 처리하며, REST의 UTC Instant 문자열과 구분합니다.
+
+## 웹 화면 전용 JSON
+
+| 메서드·경로 | 인증·권한 | 응답 |
+|---|---|---|
+| `GET /admin/bamboo/cursor` | 관리자 쿠키, STAFF 이상 | 200 `{ "cursor": 105 }`; 인증·권한 확인 실패는 본문 없는 401 |
+| `GET /admin/system/snapshot` | 관리자 쿠키, SUPER_ADMIN | 200 `SystemSnapshot`; 인증 후 권한 부족은 403 `SUPER_ADMIN_REQUIRED` |
+
+스냅샷의 전체 필드는 [SystemMonitoringService](../src/main/java/org/syu_likelion/Festa_2026/monitoring/SystemMonitoringService.java)의 `SystemSnapshot`과 Swagger 스키마를 기준으로 합니다. 접속 추정치는 사용자 수가 아닌 최근 heartbeat 세션 수이고 서버 지표는 현재 인스턴스 기준입니다. `/api/**`용 CORS 설정을 관리자 웹 경로에 적용한다고 가정하지 않습니다.
+
+학생회비 명단 관리, 대나무숲 닉네임 참여자 검색·직접 차단·감사 이력은 웹 전용 기능입니다. 해당 기능에 별도 REST API가 있다고 가정하지 않습니다. 변경 폼의 정확한 파라미터는 아래 연결된 컨트롤러와 템플릿을 기준으로 합니다.
+
+## 전체 관리자 경로
+
+2026-09-14 컨트롤러 선언 기준입니다. 아래에는 두 JSON 조회도 포함됩니다. 같은 경로의 GET과 POST는 서로 다른 작업입니다.
+
+| 메서드 | 경로 | 구현 |
+|---|---|---|
+| GET | `/admin` | [AdminPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminPageController.java) |
+| GET | `/admin/bamboo` | [AdminBambooPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminBambooPageController.java) |
+| GET | `/admin/bamboo/cursor` | [AdminBambooPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminBambooPageController.java) |
+| POST | `/admin/bamboo/messages/{id}/author` | [AdminBambooPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminBambooPageController.java) |
+| POST | `/admin/bamboo/messages/{id}/mute` | [AdminBambooPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminBambooPageController.java) |
+| POST | `/admin/bamboo/messages/{id}/nickname` | [AdminBambooPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminBambooPageController.java) |
+| POST | `/admin/bamboo/messages/{id}/status` | [AdminBambooPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminBambooPageController.java) |
+| POST | `/admin/bamboo/participants/mute` | [AdminBambooPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminBambooPageController.java) |
+| POST | `/admin/bamboo/settings` | [AdminBambooPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminBambooPageController.java) |
+| GET | `/admin/birthday-messages` | [AdminBirthdayMessagePageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminBirthdayMessagePageController.java) |
+| GET | `/admin/birthday-messages/{id}` | [AdminBirthdayMessagePageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminBirthdayMessagePageController.java) |
+| POST | `/admin/birthday-messages/{id}/delete` | [AdminBirthdayMessagePageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminBirthdayMessagePageController.java) |
+| GET | `/admin/birthday-messages/{id}/hearts` | [AdminBirthdayMessagePageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminBirthdayMessagePageController.java) |
+| GET | `/admin/booths` | [AdminBoothPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminBoothPageController.java) |
+| POST | `/admin/booths` | [AdminBoothPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminBoothPageController.java) |
+| GET | `/admin/booths/new` | [AdminBoothPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminBoothPageController.java) |
+| POST | `/admin/booths/{id}` | [AdminBoothPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminBoothPageController.java) |
+| POST | `/admin/booths/{id}/delete` | [AdminBoothPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminBoothPageController.java) |
+| GET | `/admin/booths/{id}/edit` | [AdminBoothPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminBoothPageController.java) |
+| GET | `/admin/login` | [AdminPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminPageController.java) |
+| POST | `/admin/login` | [AdminPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminPageController.java) |
+| POST | `/admin/logout` | [AdminPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminPageController.java) |
+| GET | `/admin/lost-items` | [AdminLostItemPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminLostItemPageController.java) |
+| POST | `/admin/lost-items` | [AdminLostItemPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminLostItemPageController.java) |
+| GET | `/admin/lost-items/new` | [AdminLostItemPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminLostItemPageController.java) |
+| POST | `/admin/lost-items/{id}` | [AdminLostItemPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminLostItemPageController.java) |
+| POST | `/admin/lost-items/{id}/delete` | [AdminLostItemPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminLostItemPageController.java) |
+| GET | `/admin/lost-items/{id}/edit` | [AdminLostItemPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminLostItemPageController.java) |
+| POST | `/admin/lost-items/{id}/pin` | [AdminLostItemPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminLostItemPageController.java) |
+| POST | `/admin/lost-items/{id}/status` | [AdminLostItemPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminLostItemPageController.java) |
+| GET | `/admin/notices` | [AdminNoticePageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminNoticePageController.java) |
+| POST | `/admin/notices` | [AdminNoticePageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminNoticePageController.java) |
+| GET | `/admin/notices/new` | [AdminNoticePageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminNoticePageController.java) |
+| POST | `/admin/notices/{id}` | [AdminNoticePageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminNoticePageController.java) |
+| POST | `/admin/notices/{id}/delete` | [AdminNoticePageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminNoticePageController.java) |
+| GET | `/admin/notices/{id}/edit` | [AdminNoticePageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminNoticePageController.java) |
+| POST | `/admin/notices/{id}/pin` | [AdminNoticePageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminNoticePageController.java) |
+| GET | `/admin/performances` | [AdminPerformancePageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminPerformancePageController.java) |
+| POST | `/admin/performances` | [AdminPerformancePageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminPerformancePageController.java) |
+| GET | `/admin/performances/new` | [AdminPerformancePageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminPerformancePageController.java) |
+| POST | `/admin/performances/{id}` | [AdminPerformancePageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminPerformancePageController.java) |
+| POST | `/admin/performances/{id}/delete` | [AdminPerformancePageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminPerformancePageController.java) |
+| GET | `/admin/performances/{id}/edit` | [AdminPerformancePageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminPerformancePageController.java) |
+| GET | `/admin/polls` | [AdminPollPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminPollPageController.java) |
+| POST | `/admin/polls` | [AdminPollPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminPollPageController.java) |
+| GET | `/admin/polls/new` | [AdminPollPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminPollPageController.java) |
+| GET | `/admin/polls/{id}` | [AdminPollPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminPollPageController.java) |
+| POST | `/admin/polls/{id}` | [AdminPollPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminPollPageController.java) |
+| POST | `/admin/polls/{id}/close` | [AdminPollPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminPollPageController.java) |
+| POST | `/admin/polls/{id}/delete` | [AdminPollPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminPollPageController.java) |
+| GET | `/admin/polls/{id}/edit` | [AdminPollPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminPollPageController.java) |
+| GET | `/admin/qr` | [AdminPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminPageController.java) |
+| POST | `/admin/qr/scan` | [AdminPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminPageController.java) |
+| POST | `/admin/qr/search` | [AdminPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminPageController.java) |
+| POST | `/admin/qr/users/{userUuid}/role` | [AdminPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminPageController.java) |
+| POST | `/admin/qr/users/{userUuid}/school-verification` | [AdminPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminPageController.java) |
+| GET | `/admin/school-verifications` | [AdminSchoolVerificationPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminSchoolVerificationPageController.java) |
+| POST | `/admin/school-verifications/{id}/approve` | [AdminSchoolVerificationPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminSchoolVerificationPageController.java) |
+| POST | `/admin/school-verifications/{id}/delete` | [AdminSchoolVerificationPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminSchoolVerificationPageController.java) |
+| GET | `/admin/sponsors` | [AdminSponsorPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminSponsorPageController.java) |
+| POST | `/admin/sponsors` | [AdminSponsorPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminSponsorPageController.java) |
+| GET | `/admin/sponsors/new` | [AdminSponsorPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminSponsorPageController.java) |
+| POST | `/admin/sponsors/{id}` | [AdminSponsorPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminSponsorPageController.java) |
+| POST | `/admin/sponsors/{id}/delete` | [AdminSponsorPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminSponsorPageController.java) |
+| GET | `/admin/sponsors/{id}/edit` | [AdminSponsorPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminSponsorPageController.java) |
+| GET | `/admin/stamps` | [AdminStampPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminStampPageController.java) |
+| POST | `/admin/stamps/qr/action` | [AdminStampPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminStampPageController.java) |
+| POST | `/admin/stamps/qr/lookup` | [AdminStampPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminStampPageController.java) |
+| POST | `/admin/stamps/user/action` | [AdminStampPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminStampPageController.java) |
+| GET | `/admin/student-fees` | [AdminStudentFeeController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminStudentFeeController.java) |
+| POST | `/admin/student-fees` | [AdminStudentFeeController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminStudentFeeController.java) |
+| POST | `/admin/student-fees/delete` | [AdminStudentFeeController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminStudentFeeController.java) |
+| GET | `/admin/system` | [AdminSystemPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminSystemPageController.java) |
+| GET | `/admin/system/snapshot` | [AdminSystemPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminSystemPageController.java) |

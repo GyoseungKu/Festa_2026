@@ -74,11 +74,13 @@ Access Token이 자동 갱신되면 응답의 `X-Access-Token`에 새 토큰이 
 
 - `sessionId`: 브라우저 탭 세션을 구분하는 UUID입니다. 개인정보가 아니며 `sessionStorage`에 보관할 수 있습니다.
 - `eventId`: 이벤트마다 새로 생성하는 UUID입니다. 네트워크 재시도 시에는 기존 값을 그대로 사용합니다.
-- `route`: 쿼리 문자열과 fragment가 없는 정규화된 라우트입니다.
+- `route`: 최대 200자, `/`로 시작하고 영문·숫자·`_`·`:`·`/`·`.`·`-`만 사용하는 정규화된 라우트입니다. 한글 경로나 URL 인코딩 문자열을 그대로 보내지 않습니다.
 - `targetId`: 영문, 숫자, `_`, `-`만 가능하며 최대 100자입니다.
 - `occurredAt`: UTC ISO-8601 시각입니다. 전송 시점 기준 과거 24시간부터 미래 5분까지만 허용됩니다.
-- `durationMs`: 0 이상 12시간 이하이며 주로 `PAGE_LEAVE`에 사용합니다.
+- `durationMs`: `PAGE_LEAVE`에서만 0 이상 12시간 이하로 사용할 수 있습니다. 다른 이벤트는 생략하거나 null을 보냅니다.
 - `appVersion`: 선택값이며 최대 50자입니다.
+
+`targetId`는 `PERFORMANCE_DETAIL_VIEW`, `BOOTH_DETAIL_VIEW`, `NOTICE_DETAIL_VIEW`, `EXTERNAL_LINK_CLICK`에서 필수입니다. 나머지 이벤트에서는 생략/null이어야 하며 빈 문자열도 허용되지 않습니다. 한 배치 안의 중복 `eventId`는 400입니다. 이벤트 하나라도 검증에 실패하면 배치 전체가 거절됩니다.
 
 라우트 파라미터를 실제 값으로 보내지 마세요.
 

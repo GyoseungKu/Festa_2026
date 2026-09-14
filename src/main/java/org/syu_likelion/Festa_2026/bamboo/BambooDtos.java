@@ -26,7 +26,8 @@ public final class BambooDtos {
 
     public record BambooMessageCreateRequest(@NotBlank @Size(max = 400) String content) { }
 
-    public record BambooNicknameRequest(@NotBlank @Size(min = 2, max = 12) String nickname) { }
+    public record BambooNicknameRequest(@NotBlank @Size(min = BambooNicknamePolicy.MIN_LENGTH,
+            max = BambooNicknamePolicy.MAX_LENGTH) String nickname) { }
 
     public record BambooNicknameResponse(String nickname) { }
 
@@ -66,7 +67,8 @@ public final class BambooDtos {
                                                      int page, int size, long totalElements,
                                                      int totalPages) { }
 
-    public record BambooRenameRequest(@NotBlank @Size(min = 2, max = 12) String nickname) { }
+    public record BambooRenameRequest(@NotBlank @Size(min = BambooNicknamePolicy.MIN_LENGTH,
+            max = BambooNicknamePolicy.MAX_LENGTH) String nickname) { }
 
     public record BambooSettingsRequest(Boolean enabled, Boolean readOnly, Instant closesAt,
                                         Boolean clearClosesAt) { }
