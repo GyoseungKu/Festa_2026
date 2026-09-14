@@ -64,7 +64,7 @@ public class BambooAdminController {
 
     @PatchMapping("/messages")
     @Operation(summary = "메시지 상태 일괄 변경",
-            description = "VISIBLE 로 되돌리거나 HIDDEN·DELETED 로 가립니다. 물리 삭제는 없습니다. STAFF 이상.")
+            description = "VISIBLE로 관리자 차단을 해제하거나 BLOCKED·DELETED로 원문을 가립니다. 신고 5회 이상은 차단 해제 후에도 HIDDEN입니다. 기존 HIDDEN 요청은 BLOCKED로 처리합니다. 물리 삭제는 없습니다. STAFF 이상.")
     @SecurityRequirement(name = "bearerAuth")
     ResponseEntity<Map<String, Integer>> changeStatus(
             @Valid @RequestBody BambooStatusChangeRequest body,

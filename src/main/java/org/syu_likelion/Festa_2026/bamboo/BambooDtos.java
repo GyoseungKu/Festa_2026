@@ -17,7 +17,7 @@ public final class BambooDtos {
     public record BambooRoomResponse(boolean enabled, boolean readOnly, Instant closesAt,
                                      String nickname, long cursor) { }
 
-    /** 삭제·숨김 메시지는 {@code content}가 null이다. 클라이언트는 {@code status}로 추가·제거를 판단한다. */
+    /** HIDDEN은 신고 가림과 원문, BLOCKED·DELETED는 null 본문을 전달한다. */
     public record BambooMessageResponse(Long id, long seq, String anonName, String content,
                                         BambooMessageStatus status, Instant createdAt, boolean mine) { }
 

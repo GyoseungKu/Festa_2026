@@ -29,7 +29,7 @@ CREATE TABLE bamboo_messages (
     user_uuid     BINARY(16)   NOT NULL,
     anon_name     VARCHAR(20)  NOT NULL,   -- 작성 시점 닉네임 스냅샷
     content       VARCHAR(400) NOT NULL,   -- 본문 제한은 200 코드포인트. UTF-16 기준 최대 400.
-    status        VARCHAR(20)  NOT NULL,   -- VISIBLE | HIDDEN | DELETED
+    status        VARCHAR(20)  NOT NULL,   -- VISIBLE | BLOCKED | DELETED; 기존 HIDDEN은 관리자 차단으로 해석
     report_count  INT          NOT NULL DEFAULT 0,
     created_at    DATETIME(6)  NOT NULL,
     hidden_at     DATETIME(6)  NULL,

@@ -55,6 +55,64 @@ class BambooModerationTests {
     // ------------------------------------------------------------------ 신고
 
     @Test
+    void fifthReportHidesWithOriginalContentAndAdminBlockRedactsIt() {
+        var message = service.createAs(AUTHOR, "신고된 원문");
+        for (int i = 0; i < 4; i++)
+            service.reportAs(UUID.randomUUID(), message.id(), BambooReportReason.SPAM);
+        var before = service.stream(READER, 0L, 50);
+        assertThat(before.messages().getFirst().status()).isEqualTo(BambooMessageStatus.VISIBLE);
+        service.reportAs(UUID.randomUUID(), message.id(), BambooReportReason.ABUSE);
+        var hidden = service.stream(READER, before.cursor(), 50).messages().getFirst();
+        assertThat(hidden.status()).isEqualTo(BambooMessageStatus.HIDDEN);
+        assertThat(hidden.content()).isEqualTo("신고된 원문");
+        assertThat(service.history(READER, null, 50).messages().getFirst()).isEqualTo(hidden);
+        assertThat(service.reportAs(UUID.randomUUID(), message.id(), BambooReportReason.SPAM)).isEqualTo(6);
+        service.changeStatus(List.of(message.id()), BambooMessageStatus.BLOCKED, STAFF);
+        var blocked = service.stream(READER, hidden.seq(), 50).messages().getFirst();
+        assertThat(blocked.status()).isEqualTo(BambooMessageStatus.BLOCKED);
+        assertThat(blocked.content()).isNull();
+        assertThat(service.history(READER, null, 50).messages().getFirst().content()).isNull();
+        assertThat(service.reportedMessages(0, 50).items().getFirst().content()).isEqualTo("신고된 원문");
+        assertThat(service.reportedMessages(0, 50).items().getFirst().reportCount()).isEqualTo(6);
+        assertCode(() -> service.reportAs(UUID.randomUUID(), message.id(), BambooReportReason.SPAM),
+                "BAMBOO_MESSAGE_NOT_FOUND");
+        service.changeStatus(List.of(message.id()), BambooMessageStatus.VISIBLE, STAFF);
+        assertThat(service.history(READER, null, 50).messages().getFirst().status())
+                .isEqualTo(BambooMessageStatus.HIDDEN);
+    }
+
+    @Test
+    void oldHiddenRecordsAndOldAdminRequestsNeverExposeTheirContent() {
+        var message = service.createAs(AUTHOR, "기존 숨김 원문");
+        var stored = messages.findById(message.id()).orElseThrow();
+        stored.changeStatus(BambooMessageStatus.HIDDEN, stored.getSeq(), STAFF, Instant.now());
+        messages.saveAndFlush(stored);
+        var legacy = service.history(READER, null, 50).messages().getFirst();
+        assertThat(legacy.status()).isEqualTo(BambooMessageStatus.BLOCKED);
+        assertThat(legacy.content()).isNull();
+        service.changeStatus(List.of(message.id()), BambooMessageStatus.VISIBLE, STAFF);
+        service.changeStatus(List.of(message.id()), BambooMessageStatus.HIDDEN, STAFF);
+        assertThat(service.stream(READER, 0L, 50).messages().getFirst().content()).isNull();
+        assertThat(messages.findById(message.id()).orElseThrow().getStatus()).isEqualTo(BambooMessageStatus.BLOCKED);
+    }
+
+    @Test
+    void concurrentReportsKeepTheirCountAndPublishTheHiddenTransition() throws Exception {
+        var message = service.createAs(AUTHOR, "동시 신고 원문");
+        try (var pool = java.util.concurrent.Executors.newFixedThreadPool(6)) {
+            var tasks = new java.util.ArrayList<java.util.concurrent.Future<Long>>();
+            for (int i = 0; i < 6; i++) tasks.add(pool.submit(() ->
+                    service.reportAs(UUID.randomUUID(), message.id(), BambooReportReason.SPAM)));
+            for (var task : tasks) task.get(10, java.util.concurrent.TimeUnit.SECONDS);
+        }
+        assertThat(service.reportCountOf(message.id())).isEqualTo(6);
+        assertThat(messages.findById(message.id()).orElseThrow().getReportCount()).isEqualTo(6);
+        var delivered = service.stream(READER, message.seq(), 50).messages().getFirst();
+        assertThat(delivered.status()).isEqualTo(BambooMessageStatus.HIDDEN);
+        assertThat(delivered.content()).isEqualTo("동시 신고 원문");
+    }
+
+    @Test
     void cannotReportYourOwnMessage() {
         var message = service.createAs(AUTHOR, "내 메시지");
 
@@ -157,24 +215,28 @@ class BambooModerationTests {
     // ------------------------------------------------------------------ 상태 변경
 
     @Test
-    void hidingRemovesTheMessageFromHistoryAndPushesTheChangeDownTheStream() {
+    void blockingRedactsHistoryAndPushesTheChangeDownTheStream() {
         var message = service.createAs(AUTHOR, "가려질 메시지");
         long cursor = service.stream(READER, 0L, 50).cursor();
 
-        int changed = service.changeStatus(List.of(message.id()), BambooMessageStatus.HIDDEN, STAFF);
+        int changed = service.changeStatus(List.of(message.id()), BambooMessageStatus.BLOCKED, STAFF);
 
         assertThat(changed).isEqualTo(1);
-        assertThat(service.history(READER, null, 50).messages()).isEmpty();
+        assertThat(service.history(READER, null, 50).messages()).singleElement()
+                .satisfies(item -> {
+                    assertThat(item.status()).isEqualTo(BambooMessageStatus.BLOCKED);
+                    assertThat(item.content()).isNull();
+                });
         var delivered = service.stream(READER, cursor, 50).messages();
         assertThat(delivered).hasSize(1);
-        assertThat(delivered.getFirst().status()).isEqualTo(BambooMessageStatus.HIDDEN);
+        assertThat(delivered.getFirst().status()).isEqualTo(BambooMessageStatus.BLOCKED);
         assertThat(delivered.getFirst().content()).isNull();
     }
 
     @Test
     void restoringAMessageBringsItBackToHistory() {
         var message = service.createAs(AUTHOR, "되살릴 메시지");
-        service.changeStatus(List.of(message.id()), BambooMessageStatus.HIDDEN, STAFF);
+        service.changeStatus(List.of(message.id()), BambooMessageStatus.BLOCKED, STAFF);
 
         service.changeStatus(List.of(message.id()), BambooMessageStatus.VISIBLE, STAFF);
 

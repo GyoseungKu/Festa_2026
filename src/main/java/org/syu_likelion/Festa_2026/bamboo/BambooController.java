@@ -82,7 +82,9 @@ public class BambooController {
     @GetMapping("/messages")
     @Operation(summary = "메시지 조회",
             description = "after 를 주면 해당 커서 이후의 신규·변경 메시지를, before 를 주면 그 id 이전의 과거 메시지를 "
-                    + "반환합니다. 두 값을 함께 보낼 수 없습니다. 응답의 cursor 는 다음 조회 시작점입니다.")
+                    + "반환합니다. 두 값을 함께 보낼 수 없습니다. 응답의 cursor 는 다음 조회 시작점입니다. "
+                    + "신고 5회 이상은 HIDDEN과 원문, 관리자 차단은 BLOCKED와 null 본문을 반환합니다. "
+                    + "과거 목록에도 HIDDEN·BLOCKED를 포함하고 DELETED는 제외합니다.")
     @SecurityRequirement(name = "bearerAuth")
     ResponseEntity<BambooStreamResponse> messages(
             @RequestParam(required = false) Long after,

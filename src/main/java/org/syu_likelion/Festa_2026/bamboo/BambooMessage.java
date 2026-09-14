@@ -92,7 +92,7 @@ public class BambooMessage {
     void changeStatus(BambooMessageStatus next, long newSeq, UUID actorUuid, Instant at) {
         this.status = next;
         this.seq = newSeq;
-        if (next == BambooMessageStatus.HIDDEN) this.hiddenAt = at;
+        if (next == BambooMessageStatus.HIDDEN || next == BambooMessageStatus.BLOCKED) this.hiddenAt = at;
         if (next == BambooMessageStatus.DELETED) {
             this.deletedAt = at;
             this.deletedBy = actorUuid;
@@ -115,6 +115,21 @@ public class BambooMessage {
     public String getAnonName() { return anonName; }
     public String getContent() { return content; }
     public BambooMessageStatus getStatus() { return status; }
+    /** 기존 DB HIDDEN은 관리자 숨김이므로 원문을 공개하지 않는다. */
+    public BambooMessageStatus getPublicStatus() {
+        if (status == BambooMessageStatus.HIDDEN) return BambooMessageStatus.BLOCKED;
+        if (status == BambooMessageStatus.VISIBLE && reportCount >= 5) return BambooMessageStatus.HIDDEN;
+        return status;
+    }
+
+    void recordReport(long newSeq) {
+        reportCount++;
+        seq = newSeq;
+    }
+
+    public boolean canExposeContent() {
+        return status == BambooMessageStatus.VISIBLE;
+    }
     public int getReportCount() { return reportCount; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getHiddenAt() { return hiddenAt; }

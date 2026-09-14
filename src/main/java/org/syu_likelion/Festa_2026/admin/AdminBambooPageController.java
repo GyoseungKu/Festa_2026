@@ -138,6 +138,7 @@ public class AdminBambooPageController {
         flash.addFlashAttribute("message", switch (status) {
             case VISIBLE -> "메시지를 다시 표시했습니다.";
             case HIDDEN -> "메시지를 가렸습니다.";
+            case BLOCKED -> "메시지를 차단했습니다.";
             case DELETED -> "메시지를 삭제했습니다. 원문은 기록으로 남습니다.";
         });
         return back(tab);

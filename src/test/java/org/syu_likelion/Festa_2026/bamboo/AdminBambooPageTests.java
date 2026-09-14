@@ -104,7 +104,7 @@ class AdminBambooPageTests {
         signedInAs(FestivalRole.STAFF);
 
         mvc.perform(post("/admin/bamboo/messages/" + messageId + "/status")
-                        .cookie(adminCookie()).param("status", "HIDDEN"))
+                        .cookie(adminCookie()).param("status", "BLOCKED"))
                 .andExpect(status().isForbidden());
     }
 
@@ -113,13 +113,13 @@ class AdminBambooPageTests {
         signedInAs(FestivalRole.STAFF);
 
         mvc.perform(post("/admin/bamboo/messages/" + messageId + "/status").with(csrf())
-                        .cookie(adminCookie()).param("status", "HIDDEN").param("tab", "REPORTED"))
+                        .cookie(adminCookie()).param("status", "BLOCKED").param("tab", "REPORTED"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrlPattern("/admin/bamboo*"));
 
         org.assertj.core.api.Assertions.assertThat(
                 messages.findById(messageId).orElseThrow().getStatus())
-                .isEqualTo(BambooMessageStatus.HIDDEN);
+                .isEqualTo(BambooMessageStatus.BLOCKED);
     }
 
     @Test

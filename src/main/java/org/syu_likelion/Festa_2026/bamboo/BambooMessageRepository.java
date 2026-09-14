@@ -19,6 +19,10 @@ public interface BambooMessageRepository extends JpaRepository<BambooMessage, Lo
     List<BambooMessage> findByIdLessThanAndStatusOrderByIdDesc(Long id, BambooMessageStatus status,
                                                                Pageable pageable);
 
+    /** 차단 안내도 과거 목록에 포함하고 DELETED만 제외한다. */
+    List<BambooMessage> findByIdLessThanAndStatusNotOrderByIdDesc(Long id, BambooMessageStatus status,
+                                                                 Pageable pageable);
+
     @Query("select coalesce(max(m.seq), 0) from BambooMessage m")
     long findMaxSeq();
 

@@ -182,7 +182,7 @@
             <div class="lost-item-card-body">
                 <div class="lost-item-card-flags">
                     <span class="category-chip" th:classappend="${item.status.name() != 'VISIBLE'} ? ' is-returned'"
-                          th:text="${item.status.name() == 'VISIBLE'} ? '표시 중' : (${item.status.name() == 'HIDDEN'} ? '가려짐' : '삭제됨')">표시 중</span>
+                          th:text="${item.status.name() == 'VISIBLE'} ? '표시 중' : (${item.status.name() == 'HIDDEN'} ? '신고 누적 가림' : (${item.status.name() == 'BLOCKED'} ? '관리자 차단' : '삭제됨'))">표시 중</span>
                     <span class="publish-chip is-public" th:if="${item.reportCount > 0}" th:text="|신고 ${item.reportCount}건|">신고 0건</span>
                     <span class="media-count" th:each="reason : ${item.reasons}"
                           th:text="|${reason.key} ${reason.value}|">ABUSE 1</span>
@@ -197,9 +197,9 @@
                 <div class="lost-item-quick-actions">
                     <form method="post" th:action="@{/admin/bamboo/messages/{id}/status(id=${item.id})}">
                         <input type="hidden" name="tab" th:value="${tab}">
-                        <input type="hidden" name="status" th:value="${item.status.name() == 'VISIBLE'} ? 'HIDDEN' : 'VISIBLE'">
+                        <input type="hidden" name="status" th:value="${item.status.name() == 'VISIBLE' or item.status.name() == 'HIDDEN'} ? 'BLOCKED' : 'VISIBLE'">
                         <button class="button button-secondary" type="submit"
-                                th:text="${item.status.name() == 'VISIBLE'} ? '가리기' : '다시 표시'">가리기</button>
+                                th:text="${item.status.name() == 'VISIBLE' or item.status.name() == 'HIDDEN'} ? '차단' : '차단 해제'">차단</button>
                     </form>
                     <form method="post" th:action="@{/admin/bamboo/messages/{id}/status(id=${item.id})}"
                           th:if="${item.status.name() != 'DELETED'}"

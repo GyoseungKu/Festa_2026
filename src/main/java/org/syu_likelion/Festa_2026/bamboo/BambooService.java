@@ -180,8 +180,8 @@ public class BambooService {
         long cursor = before == null ? Long.MAX_VALUE : before;
         int safeSize = size == null ? DEFAULT_HISTORY_SIZE : Math.max(1, Math.min(size, MAX_HISTORY_SIZE));
         return sequence.readSnapshot(() -> {
-            List<BambooMessage> found = messages.findByIdLessThanAndStatusOrderByIdDesc(cursor,
-                    BambooMessageStatus.VISIBLE, PageRequest.of(0, safeSize));
+            List<BambooMessage> found = messages.findByIdLessThanAndStatusNotOrderByIdDesc(cursor,
+                    BambooMessageStatus.DELETED, PageRequest.of(0, safeSize));
             List<BambooMessageResponse> items = new ArrayList<>(found.size());
             for (int index = found.size() - 1; index >= 0; index--) {
                 items.add(toResponse(found.get(index), viewerUuid));
@@ -267,30 +267,32 @@ public class BambooService {
     /**
      * 신고를 기록하고 누적 수를 반환한다. 알림 발송은 호출자가 트랜잭션이 끝난 뒤에 한다.
      */
-    @Transactional
     public long reportAs(UUID reporterUuid, Long messageId, BambooReportReason reason) {
-        requireEnabled();
-        BambooMessage message = messages.findById(messageId)
-                .filter(BambooMessage::isVisible)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "BAMBOO_MESSAGE_NOT_FOUND",
-                        "메시지를 찾을 수 없습니다."));
-        if (message.getUserUuid().equals(reporterUuid)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "BAMBOO_SELF_REPORT_NOT_ALLOWED",
-                    "본인이 작성한 메시지는 신고할 수 없습니다.");
-        }
-        if (reports.existsByMessageIdAndUserUuid(messageId, reporterUuid)) {
-            throw new ApiException(HttpStatus.CONFLICT, "BAMBOO_ALREADY_REPORTED",
-                    "이미 신고한 메시지입니다.");
-        }
-        rateLimiter.checkReport(reporterUuid);
-        try {
-            reports.saveAndFlush(new BambooReport(messageId, reporterUuid, reason, Instant.now(clock)));
-        } catch (DataIntegrityViolationException duplicate) {
-            throw new ApiException(HttpStatus.CONFLICT, "BAMBOO_ALREADY_REPORTED",
-                    "이미 신고한 메시지입니다.");
-        }
-        messages.incrementReportCount(messageId);
-        return reports.countByMessageId(messageId);
+        return sequence.writeInOrder(seq -> {
+            requireEnabled();
+            BambooMessage message = messages.findById(messageId)
+                    .filter(BambooMessage::isVisible)
+                    .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "BAMBOO_MESSAGE_NOT_FOUND",
+                            "메시지를 찾을 수 없습니다."));
+            if (message.getUserUuid().equals(reporterUuid)) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "BAMBOO_SELF_REPORT_NOT_ALLOWED",
+                        "본인이 작성한 메시지는 신고할 수 없습니다.");
+            }
+            if (reports.existsByMessageIdAndUserUuid(messageId, reporterUuid)) {
+                throw new ApiException(HttpStatus.CONFLICT, "BAMBOO_ALREADY_REPORTED",
+                        "이미 신고한 메시지입니다.");
+            }
+            rateLimiter.checkReport(reporterUuid);
+            try {
+                reports.saveAndFlush(new BambooReport(messageId, reporterUuid, reason, Instant.now(clock)));
+            } catch (DataIntegrityViolationException duplicate) {
+                throw new ApiException(HttpStatus.CONFLICT, "BAMBOO_ALREADY_REPORTED",
+                        "이미 신고한 메시지입니다.");
+            }
+            message.recordReport(seq);
+            messages.save(message);
+            return (long) message.getReportCount();
+        });
     }
 
     @Transactional(readOnly = true)
@@ -341,7 +343,7 @@ public class BambooService {
         Map<Long, Map<BambooReportReason, Long>> reasons = reasonsFor(found.getContent());
         List<BambooAdminMessageResponse> items = found.getContent().stream()
                 .map(message -> new BambooAdminMessageResponse(message.getId(), message.getSeq(),
-                        message.getAnonName(), message.getContent(), message.getStatus(),
+                        message.getAnonName(), message.getContent(), message.getPublicStatus(),
                         message.getReportCount(),
                         reasons.getOrDefault(message.getId(), Map.of()), message.getCreatedAt()))
                 .toList();
@@ -365,14 +367,16 @@ public class BambooService {
      * 메시지마다 개별 커서를 받으므로 화면에서도 순서대로 반영된다.
      */
     public int changeStatus(List<Long> messageIds, BambooMessageStatus status, UUID actorUuid) {
+        // 예전 관리자 클라이언트의 HIDDEN 요청도 원문을 가리는 관리자 차단으로 유지한다.
+        BambooMessageStatus target = status == BambooMessageStatus.HIDDEN ? BambooMessageStatus.BLOCKED : status;
         if (messageIds == null || messageIds.isEmpty()) return 0;
         Instant now = Instant.now(clock);
         int changed = 0;
         for (Long messageId : messageIds.stream().distinct().toList()) {
             Boolean applied = sequence.writeInOrder(seq -> {
                 BambooMessage message = messages.findById(messageId).orElse(null);
-                if (message == null || message.getStatus() == status) return Boolean.FALSE;
-                message.changeStatus(status, seq, actorUuid, now);
+                if (message == null || message.getStatus() == target) return Boolean.FALSE;
+                message.changeStatus(target, seq, actorUuid, now);
                 messages.save(message);
                 return Boolean.TRUE;
             });
@@ -564,7 +568,7 @@ public class BambooService {
 
     private BambooMessageResponse toResponse(BambooMessage message, UUID viewerUuid) {
         return new BambooMessageResponse(message.getId(), message.getSeq(), message.getAnonName(),
-                message.isVisible() ? message.getContent() : null, message.getStatus(),
+                message.canExposeContent() ? message.getContent() : null, message.getPublicStatus(),
                 message.getCreatedAt(), viewerUuid != null && viewerUuid.equals(message.getUserUuid()));
     }
 
