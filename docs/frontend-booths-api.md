@@ -169,7 +169,7 @@ POST와 PATCH는 같은 전체 입력 DTO를 사용합니다. PATCH에 변경할
 
 | 필드 | 규칙 |
 |---|---|
-| `latitude`, `longitude` | 필수 숫자, 각각 -90~90 / -180~180 |
+| `latitude`, `longitude` | 필수 숫자, 각각 -90–90 / -180–180 |
 | `name`, `operator` | 필수, 각각 최대 150자, 공백만 입력 불가 |
 | `description` | 필수, 최대 5000자, 공백만 입력 불가 |
 | `opensAt`, `closesAt` | 필수 `LocalTime`, 종료가 시작보다 늦어야 함; 자정을 넘는 범위 불가 |

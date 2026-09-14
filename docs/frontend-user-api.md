@@ -68,9 +68,9 @@ Authorization: Bearer ACCESS_TOKEN
 }
 ```
 
-- `phone`: 선택, 숫자 9~15자리; 다른 회원과 중복 불가
+- `phone`: 선택, 숫자 9–15자리; 다른 회원과 중복 불가
 - `department`: 선택, 공백 불가, 최대 100자
-- `grade`: 선택, 1~6
+- `grade`: 선택, 1–6
 - `enrollment`: 선택, `ENROLLED` 또는 `LEAVE`
 - 필드를 생략하면 기존 값이 유지되며, 최소 하나의 필드를 보내야 합니다.
 - null도 변경값으로 취급하지 않으므로 기존 값을 지우는 용도로 사용할 수 없습니다. 모든 필드가 생략/null인 요청은 거부됩니다.

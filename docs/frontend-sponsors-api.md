@@ -35,8 +35,8 @@ JSON 대신 `multipart/form-data`를 보냅니다.
 
 | 필드 | 규칙 |
 |---|---|
-| name | 필수, 공백 제거 후 1~100자 |
-| description | 필수, 공백 제거 후 1~2000자 |
+| name | 필수, 공백 제거 후 1–100자 |
+| description | 필수, 공백 제거 후 1–2000자 |
 | image | 등록 필수/수정 선택, 사진 1개, JPG·PNG·WebP, 기본 최대 10MB(서버 이미지 제한 설정 적용) |
 | boothId | 선택, 기존 부스 ID |
 

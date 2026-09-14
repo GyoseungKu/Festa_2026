@@ -45,7 +45,7 @@
 
 | 조건 | status | content |
 |---|---|---|
-| 신고 0~4회, 관리자 조치 없음 | `VISIBLE` | 원문 |
+| 신고 0–4회, 관리자 조치 없음 | `VISIBLE` | 원문 |
 | 신고 5회 이상, 관리자 조치 없음 | `HIDDEN` | 원문 |
 | 관리자 차단 | `BLOCKED` | null |
 | 관리자 삭제 | `DELETED` | null; 변경 조회에만 포함 |
@@ -131,7 +131,7 @@ type BambooPage<T> = {
 7. 응답을 id 기준으로 추가·교체·제거
 ```
 
-실시간 전송은 WebSocket이나 SSE가 아니라 커서 기반 폴링입니다. 화면이 보이는 동안 2~5초 간격으로
+실시간 전송은 WebSocket이나 SSE가 아니라 커서 기반 폴링입니다. 화면이 보이는 동안 2–5초 간격으로
 조회하고, 브라우저 탭이 숨겨졌을 때는 간격을 늘리거나 중단하는 방식을 권장합니다.
 
 작성 간격 5초는 사용자별 도배 제한이며 조회 주기를 뜻하지 않습니다. 실제 제한은 `BAMBOO_WRITE_INTERVAL` 설정과 분당·시간당 상한을 함께 적용합니다. 5초만 기다렸어도 다른 상한에 걸릴 수 있습니다.
@@ -204,7 +204,7 @@ Content-Type: application/json
 
 닉네임 규칙:
 
-- Unicode 코드포인트 기준 공백 포함 2~15자
+- Unicode 코드포인트 기준 공백 포함 2–15자
 - 한글·영문·숫자·`_`·`-`만 허용
 - 중간 구분 공백 하나 허용. 연속 공백·여러 구분 공백·탭·줄바꿈·이모지는 사용 불가
 - 공백 유무는 중복 판정에서 무시하므로 `수줍은 고방오리`와 `수줍은고방오리`는 같은 닉네임
@@ -383,7 +383,7 @@ Content-Type: application/json
 { "changed": 2 }
 ```
 
-- `ids`: 1~100개, 양수만 허용
+- `ids`: 1–100개, 양수만 허용
 - `VISIBLE`: 관리자 차단 해제. 신고가 이미 5회 이상이면 사용자 응답은 다시 `HIDDEN`입니다. 신고 횟수는 초기화하지 않습니다.
 - `BLOCKED`: 관리자 차단, 사용자에게 원문 미전달
 - 기존 관리자 클라이언트의 `HIDDEN` 요청도 `BLOCKED`로 처리합니다. 자동 신고 가림을 지정하는 관리 명령이 아닙니다.
@@ -406,8 +406,8 @@ Content-Type: application/json
 { "mutedUntil": "2026-10-06T10:30:00Z" }
 ```
 
-- `minutes`: 0~525600
-- `reason`: 필수, 1~200자. 차단과 해제 모두 입력
+- `minutes`: 0–525600
+- `reason`: 필수, 1–200자. 차단과 해제 모두 입력
 - `0`: 차단 해제이며 `mutedUntil=null`
 - `ADMIN`, `SUPER_ADMIN`만 처리 가능
 - 처리자 UUID·이름·역할, 처리 시각, 대상 익명 닉네임, 기간, 사유와 근거 메시지 번호를 감사 이력에 저장
@@ -538,7 +538,7 @@ Content-Type: application/json
 | `400` | `BAMBOO_DUPLICATE_MESSAGE` | 직전 메시지와 같은 내용 안내 |
 | `400` | `BAMBOO_SELF_REPORT_NOT_ALLOWED` | 본인 메시지 신고 UI 비활성화 |
 | `400` | `BAMBOO_INVALID_MUTE_DURATION` | 관리자 입력값 확인 |
-| `400` | `BAMBOO_MUTE_REASON_INVALID` | 차단·해제 사유를 1~200자로 입력 |
+| `400` | `BAMBOO_MUTE_REASON_INVALID` | 차단·해제 사유를 1–200자로 입력 |
 | `401` | `UNAUTHORIZED` | 토큰 갱신 또는 로그인 화면 이동 |
 | `403` | `BAMBOO_CLOSED` | 운영 종료 화면 표시 및 폴링 중단 |
 | `403` | `BAMBOO_READ_ONLY` | 작성 UI 비활성화 |

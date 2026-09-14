@@ -79,7 +79,7 @@ Authorization: Bearer ACCESS_TOKEN
 | `DELETE` | `/api/performances/{id}/media/{mediaId}` | `200`, 수정된 `Performance` |
 | `DELETE` | `/api/performances/{id}` | `204` |
 
-- `memberNames`: 1~100개, 항목 최대 100자
+- `memberNames`: 1–100개, 항목 최대 100자
 - `teamName`: 최대 150자
 - `description`: 최대 5000자
 - 일반 `links`: 최대 3개

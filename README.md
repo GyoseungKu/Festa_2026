@@ -182,7 +182,7 @@ Origin은 경로나 마지막 `/` 없이 `scheme://host[:port]` 형식으로 입
 | POST | `/api/auth/token/refresh` | Refresh 쿠키 | Access Token 갱신 |
 | POST | `/api/auth/logout` | 선택 | SSO 로그아웃 및 Refresh 쿠키 삭제 |
 
-회원가입 비밀번호는 8~20자이며 영문 대문자·소문자·숫자·특수문자를 각각 1개 이상 포함해야 합니다. 공백을 제외한 ASCII 출력 문자(U+0021~U+007E)만 허용하며 trim하지 않습니다. 로그인·비밀번호 변경·재설정은 기존 정책을 유지합니다.
+회원가입 비밀번호는 8–20자이며 영문 대문자·소문자·숫자·특수문자를 각각 1개 이상 포함해야 합니다. 공백을 제외한 ASCII 출력 문자(U+0021–U+007E)만 허용하며 trim하지 않습니다. 로그인·비밀번호 변경·재설정은 기존 정책을 유지합니다.
 
 회원가입의 `loginId`, `password`, `email`, `name`, `studentNo`, `department`는 필수이고 `phone`, `grade`, `enrollment`, `birthDate`는 nullable입니다. `academicInfoSource`는 직접입력 `MANUAL`(기본값) 또는 학교 SSO 자동입력 `SCHOOL_SSO`이며, 학교 방식에서는 서버가 RS256 검증을 마친 이름·학번·학과로 요청값을 강제 교체합니다.
 
@@ -393,7 +393,7 @@ QR에는 개인정보나 Access Token을 넣지 않습니다. 서버는 256비�
 
 상세 폴링 방식, 요청·응답과 오류 코드는 [대나무숲 프런트 API 문서](docs/frontend-bamboo-api.md)를 확인합니다. 운영 DB에는 [bamboo-schema.sql](docs/bamboo-schema.sql)을 먼저 적용해 `utf8mb4` 문자셋을 보장하는 것을 권장합니다.
 
-`POST /api/admin/bamboo/messages/{id}/mute-author`는 `ADMIN` 이상만 호출할 수 있으며 `minutes`와 함께 1~200자의 `reason`이 필요합니다. 관리자 HTML 화면에서는 메시지 기반 차단 외에 익명 닉네임 검색을 통한 직접 차단·해제를 제공합니다. 두 경로 모두 처리 관리자, 대상, 처리 시각, 기간, 사유와 근거 메시지를 `bamboo_moderation_audits`에 저장합니다. 차단 감사 이력과 닉네임 직접 차단은 현재 관리자 HTML 화면에서만 제공하며 별도 REST 조회·처리 API는 없습니다.
+`POST /api/admin/bamboo/messages/{id}/mute-author`는 `ADMIN` 이상만 호출할 수 있으며 `minutes`와 함께 1–200자의 `reason`이 필요합니다. 관리자 HTML 화면에서는 메시지 기반 차단 외에 익명 닉네임 검색을 통한 직접 차단·해제를 제공합니다. 두 경로 모두 처리 관리자, 대상, 처리 시각, 기간, 사유와 근거 메시지를 `bamboo_moderation_audits`에 저장합니다. 차단 감사 이력과 닉네임 직접 차단은 현재 관리자 HTML 화면에서만 제공하며 별도 REST 조회·처리 API는 없습니다.
 
 운영 전에는 다음 조건을 반드시 확인합니다.
 

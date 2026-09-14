@@ -26,7 +26,7 @@ Authorization: Bearer {accessToken}  # 선택: 로그인 상태일 때만 전송
 Cookie: festivalRefreshToken=...     # 로그인 상태에서 브라우저가 자동 전송
 ```
 
-한 요청에는 이벤트를 1~20개까지 넣을 수 있습니다.
+한 요청에는 이벤트를 1–20개까지 넣을 수 있습니다.
 
 ```json
 {

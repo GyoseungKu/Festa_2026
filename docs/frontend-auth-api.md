@@ -210,11 +210,11 @@ Content-Type: application/json
 
 | 필드 | 규칙 |
 |---|---|
-| `loginId` | 필수, 4~50자. 아이디 중복 확인 API에도 동일하게 적용 |
-| `password` | 필수, 8~20자, 영문 대문자·소문자·숫자·특수문자 각각 1개 이상 |
+| `loginId` | 필수, 4–50자. 아이디 중복 확인 API에도 동일하게 적용 |
+| `password` | 필수, 8–20자, 영문 대문자·소문자·숫자·특수문자 각각 1개 이상 |
 | `email` | 필수, 이메일 형식 |
 | `name` | 필수, 최대 100자 |
-| `phone` | 선택, `null`/빈 문자열 또는 숫자 10~11자리 |
+| `phone` | 선택, `null`/빈 문자열 또는 숫자 10–11자리 |
 | `studentNo` | 필수, 최대 50자 |
 | `department` | 필수, 최대 100자 |
 | `grade` | 선택 정수 |
@@ -222,7 +222,7 @@ Content-Type: application/json
 | `birthDate` | 선택, `YYYY-MM-DD` |
 | `academicInfoSource` | `MANUAL` 또는 `SCHOOL_SSO`, 생략 시 `MANUAL` |
 
-회원가입 비밀번호는 공백을 제외한 ASCII 출력 문자(U+0021~U+007E)만 허용합니다. 특수문자는 해당 범위의 영문·숫자 외 기호(`!`, `@`, `#`, `_` 등)입니다. 공백·탭·줄바꿈·한글·이모지는 허용하지 않으며 입력값을 trim하지 않습니다. `Abcdef1!`는 허용되고 `abcdef1!`는 거부됩니다.
+회원가입 비밀번호는 공백을 제외한 ASCII 출력 문자(U+0021–U+007E)만 허용합니다. 특수문자는 해당 범위의 영문·숫자 외 기호(`!`, `@`, `#`, `_` 등)입니다. 공백·탭·줄바꿈·한글·이모지는 허용하지 않으며 입력값을 trim하지 않습니다. `Abcdef1!`는 허용되고 `abcdef1!`는 거부됩니다.
 
 누락 또는 공백뿐인 값의 검증 메시지는 `password is required`, 나머지 정책 위반은 `password must be 8-20 characters and include uppercase, lowercase, digit, and special character (ASCII only, no spaces)`입니다. API 오류 메시지에는 필드명 접두사 `password: `가 붙습니다. 이 정책은 회원가입에만 적용하며 로그인·비밀번호 변경·재설정에는 기존 정책을 사용합니다.
 

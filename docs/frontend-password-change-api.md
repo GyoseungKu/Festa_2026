@@ -22,7 +22,7 @@ Content-Type: application/json
 ```
 
 - `currentPassword`: 필수, 최대 128자
-- `newPassword`: 필수, 8~128자
+- `newPassword`: 필수, 8–128자
 - Refresh Token 쿠키 전달을 위해 `credentials: "include"`를 사용합니다.
 - 비밀번호를 URL, analytics, 로그 또는 브라우저 저장소에 기록하지 않습니다.
 
