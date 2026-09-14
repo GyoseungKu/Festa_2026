@@ -1,5 +1,7 @@
 # 관리자 웹 경로와 인증
 
+[문서 목차](README.md) · [프런트 연동 시작하기](frontend-getting-started.md)
+
 `/admin/**`는 Thymeleaf HTML 화면과 폼 처리 경로입니다. React의 `/api/**`와 같은 기능이라도 인증 방식·메서드·응답이 다릅니다. 기능별 권한은 [프로젝트 관리자 페이지 표](../README.md)와 각 도메인 문서를 따릅니다.
 
 ## 로그인·CSRF·오류

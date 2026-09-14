@@ -1,5 +1,7 @@
 # 협찬사 API
 
+[문서 목차](README.md) · [프런트 연동 시작하기](frontend-getting-started.md)
+
 관리자 페이지는 `/admin/sponsors`입니다. ADMIN/SUPER_ADMIN만 등록·수정·삭제할 수 있습니다. 조회는 로그인 없이 가능합니다.
 
 | 메서드 | 경로 | 응답 |

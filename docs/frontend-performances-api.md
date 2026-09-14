@@ -1,5 +1,7 @@
 # 공연 API
 
+[문서 목차](README.md) · [프런트 연동 시작하기](frontend-getting-started.md)
+
 공연 조회와 관리는 모두 Bearer 인증이 필요합니다. 공개 시각(`publishedAt`)이 지난 공연만 사용자 조회 API에 나타납니다.
 
 ## 타입

@@ -1,12 +1,30 @@
 # Festa_2026 Backend
 
-학생회비 납부자 관리(`/admin/student-fees`): ADMIN 이상 학번 붙여넣기·검색·삭제 및 학생인증 연동 자동 확인. [상세 문서](docs/student-fees.md)
-
-협찬사 관리: `/admin/sponsors`에서 ADMIN/SUPER_ADMIN이 이름·설명·사진 1개·선택적 부스 연결을 관리합니다. [협찬사 API 문서](docs/frontend-sponsors-api.md)를 참고하세요.
-
 삼육대학교 2026 천보축전 서비스의 Spring Boot 백엔드입니다.
 
 사용자 인증과 개인정보 원본은 기존 SSO에 위임합니다. 이 애플리케이션은 SSO의 `userUuid`를 기준으로 축제 전용 권한, 부스·스탬프·공연·분실물·생일축하 쪽지와 운영 로그를 관리합니다.
+
+## 문서 안내
+
+| 목적 | 시작할 문서 |
+|---|---|
+| 프로젝트 파악·서버 실행 | 이 README의 주요 기능 → 기술 구성 → 로컬 실행 |
+| 사용자 프런트 개발 | [프런트 연동 시작하기](docs/frontend-getting-started.md) → [공통 규약](docs/frontend-api-common.md) → [기능별 문서 목차](docs/README.md) |
+| 특정 API 경로·응답 찾기 | [API 전체 색인](docs/api-endpoint-index.md), Swagger UI(`/swagger-ui.html`) |
+| 관리자 화면 연동 | [관리자 웹 경로·쿠키·CSRF](docs/admin-web-api.md) |
+| 운영·설계·검토 기록 찾기 | [문서 목차](docs/README.md)의 운영 및 참고 문서 |
+
+아래 REST API 목록은 서버 기능 개요입니다. 프런트 구현에 필요한 요청·응답 예시, 오류 분기와 UI 처리 규칙은 기능별 문서를 확인합니다.
+
+**이 README의 순서**
+
+- [주요 기능](#주요-기능) · [기술 구성](#기술-구성)
+- [인증 구조](#인증-구조) · [축제 권한](#축제-권한)
+- [로컬 실행](#로컬-실행) · [CORS](#cors)
+- [REST API 개요](#rest-api) · [관리자 페이지](#관리자-페이지)
+- [미디어와 트랜잭션](#미디어와-트랜잭션) · [공통 오류 응답](#공통-오류-응답)
+- [DB 관리](#db-관리) · [로깅과 모니터링](#로깅과-모니터링)
+- [Swagger / OpenAPI](#swagger--openapi) · [테스트](#테스트)
 
 ## 주요 기능
 
@@ -19,6 +37,9 @@
 - 분실물 공지, 사진, 반환 상태, 상단 고정과 조회수
 - 생일축하 쪽지, 하트와 권한별 작성자 조회
 - 로그인 사용자용 대나무숲 익명 채팅, 신고·작성 제한과 차단 감사 이력
+- 일반 공지·배너·첨부파일과 협찬사 관리
+- 학생회비 납부자 명부 관리와 학생 인증 연동 확인
+- 투표·응답 폼과 결과 조회
 - Thymeleaf 관리자 페이지와 실시간 운영 모니터링
 - API 요청 로그, 프런트 이벤트 로그와 익명 접속 heartbeat
 
@@ -579,31 +600,3 @@ Swagger UI의 **Authorize**에는 SSO Access Token 원문만 입력합니다. `B
 - 인증 전 multipart 차단과 미디어 커밋·롤백 정리
 - CORS 허용/차단 Origin 및 공통 예외 응답
 - API 요청 로그, 프런트 이벤트와 heartbeat
-
-## 프런트 연동 문서
-
-- [프런트 API 문서 목차](docs/README.md)
-- [API 전체 색인](docs/api-endpoint-index.md)
-- [관리자 웹 경로·쿠키·CSRF](docs/admin-web-api.md)
-- [파일 업로드 제한](docs/api-upload-limits.md)
-- [문서 심층 검토 결과·현재 구현 제약](docs/api-documentation-review.md)
-- [공통 API 규약](docs/frontend-api-common.md)
-- [인증·회원가입](docs/frontend-auth-api.md)
-- [프런트엔드 학교 SSO 연동](docs/frontend-school-sso.md)
-- [계정 복구](docs/frontend-account-recovery-api.md)
-- [내 정보·계정](docs/frontend-user-api.md)
-- [학생 인증 기능](docs/student-verification.md)
-- [비밀번호 변경](docs/frontend-password-change-api.md)
-- [부스 지도](docs/frontend-booths-api.md)
-- [스탬프](docs/frontend-stamps-api.md)
-- [공연](docs/frontend-performances-api.md)
-- [투표·응답 폼](docs/frontend-polls-api.md)
-- [동적 QR](docs/frontend-qr-api.md)
-- [분실물](docs/frontend-lost-items-api.md)
-- [생일축하 쪽지](docs/frontend-birthday-messages-api.md)
-- [대나무숲 익명 채팅](docs/frontend-bamboo-api.md)
-- [일반 공지·배너](docs/frontend-notices-api.md)
-- [협찬사](docs/frontend-sponsors-api.md)
-- [학생회비](docs/student-fees.md)
-- [프런트 이벤트](docs/frontend-analytics-api.md)
-- [접속 현황 heartbeat](docs/frontend-presence-api.md)

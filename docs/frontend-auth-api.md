@@ -1,5 +1,18 @@
 # 인증·회원가입 API
 
+[문서 목차](README.md) · [프런트 연동 시작하기](frontend-getting-started.md)
+
+**이 문서의 순서**
+
+- [전체 흐름](#전체-흐름)
+- [로그인](#로그인)
+- [명시적 토큰 갱신](#명시적-토큰-갱신)
+- [로그아웃](#로그아웃)
+- [학적정보 입력 방식](#학적정보-입력-방식)
+- [회원가입 이메일 인증](#회원가입-이메일-인증)
+- [회원가입](#회원가입)
+- [주요 오류](#주요-오류)
+
 공통 헤더와 오류 처리는 [공통 API 규약](frontend-api-common.md)을 먼저 확인합니다.
 
 > 학교 SSO를 이용한 회원가입 학적정보 자동입력과 callback 라우트 구현은 [프런트엔드 학교 SSO 연동 가이드](frontend-school-sso.md)를 기준으로 합니다. 이 문서의 학교 SSO 부분은 API 요약입니다.
@@ -12,6 +25,52 @@
 일반 요청: Bearer Access Token + credentials include
 로그아웃: 서버 호출 -> 메모리 토큰/캐시 제거
 ```
+
+## 로그인
+
+```http
+POST /api/auth/login
+Content-Type: application/json
+```
+
+```json
+{ "loginId": "festival01", "password": "Password123!" }
+```
+
+성공 `200`:
+
+```json
+{ "accessToken": "eyJ..." }
+```
+
+응답의 Refresh Token은 HttpOnly `Set-Cookie`로 저장됩니다. Access Token만 메모리 인증 store에 보관한 다음 `/api/users/me`를 조회해 사용자와 축제 권한을 초기화합니다.
+
+기존 SSO 사용자가 Festa에 최초 로그인한 경우에도 같은 HTML 환영 메일이 한 번 발송됩니다. 이미 발송된 사용자에게는 이후 로그인 시 다시 발송하지 않으며 프런트에서 별도의 메일 API를 호출할 필요가 없습니다.
+
+## 명시적 토큰 갱신
+
+일반 보호 API는 서버가 자동 갱신을 시도하므로 보통 직접 호출할 필요가 없습니다. 앱 시작 시 메모리 Access Token이 없고 Refresh 쿠키만 남아 있을 때 사용할 수 있습니다.
+
+```http
+POST /api/auth/token/refresh
+```
+
+성공 `200`:
+
+```json
+{ "accessToken": "new-access-token" }
+```
+
+## 로그아웃
+
+```http
+POST /api/auth/logout
+Authorization: Bearer ACCESS_TOKEN
+```
+
+성공은 `204 No Content`입니다. Access Token이 없더라도 로컬 Refresh 쿠키 삭제는 가능합니다.
+
+프런트는 응답 성공 여부와 관계없이 사용자가 로그아웃을 선택하면 메모리 토큰과 사용자 캐시를 제거하고 로그인 화면으로 이동하는 편이 안전합니다.
 
 ## 학적정보 입력 방식
 
@@ -174,52 +233,6 @@ Content-Type: application/json
 ```
 
 가입 성공 후 Festa가 별도의 HTML 가입 환영 메일을 비동기로 발송합니다. 메일 발송 장애는 회원가입 API의 성공 응답에 영향을 주지 않습니다.
-
-## 로그인
-
-```http
-POST /api/auth/login
-Content-Type: application/json
-```
-
-```json
-{ "loginId": "festival01", "password": "Password123!" }
-```
-
-성공 `200`:
-
-```json
-{ "accessToken": "eyJ..." }
-```
-
-응답의 Refresh Token은 HttpOnly `Set-Cookie`로 저장됩니다. Access Token만 메모리 인증 store에 보관한 다음 `/api/users/me`를 조회해 사용자와 축제 권한을 초기화합니다.
-
-기존 SSO 사용자가 Festa에 최초 로그인한 경우에도 같은 HTML 환영 메일이 한 번 발송됩니다. 이미 발송된 사용자에게는 이후 로그인 시 다시 발송하지 않으며 프런트에서 별도의 메일 API를 호출할 필요가 없습니다.
-
-## 명시적 토큰 갱신
-
-일반 보호 API는 서버가 자동 갱신을 시도하므로 보통 직접 호출할 필요가 없습니다. 앱 시작 시 메모리 Access Token이 없고 Refresh 쿠키만 남아 있을 때 사용할 수 있습니다.
-
-```http
-POST /api/auth/token/refresh
-```
-
-성공 `200`:
-
-```json
-{ "accessToken": "new-access-token" }
-```
-
-## 로그아웃
-
-```http
-POST /api/auth/logout
-Authorization: Bearer ACCESS_TOKEN
-```
-
-성공은 `204 No Content`입니다. Access Token이 없더라도 로컬 Refresh 쿠키 삭제는 가능합니다.
-
-프런트는 응답 성공 여부와 관계없이 사용자가 로그아웃을 선택하면 메모리 토큰과 사용자 캐시를 제거하고 로그인 화면으로 이동하는 편이 안전합니다.
 
 ## 주요 오류
 

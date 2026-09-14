@@ -1,5 +1,32 @@
 # API 전체 색인
 
+[문서 목차](README.md) · [프런트 연동 시작하기](frontend-getting-started.md)
+
+**이 문서의 순서**
+
+- [Admin Console](#admin-console)
+- [Account Recovery](#account-recovery)
+- [Auth](#auth)
+- [Bamboo](#bamboo)
+- [Bamboo Admin](#bamboo-admin)
+- [Birthday Message](#birthday-message)
+- [Birthday Message Admin](#birthday-message-admin)
+- [Booth](#booth)
+- [Frontend Analytics](#frontend-analytics)
+- [Frontend Presence](#frontend-presence)
+- [Lost Item](#lost-item)
+- [Notice](#notice)
+- [Performance](#performance)
+- [Poll](#poll)
+- [Poll Admin](#poll-admin)
+- [QR](#qr)
+- [School SSO](#school-sso)
+- [School Verification Admin](#school-verification-admin)
+- [Sponsor](#sponsor)
+- [Stamp](#stamp)
+- [Password Change](#password-change)
+- [User](#user)
+
 2026-09-14 테스트 애플리케이션의 OpenAPI와 컨트롤러를 대조한 목록입니다. 총 98개 경로, HTTP 메서드 기준 125개입니다. 이 중 `/api/**`는 122개이며 학교 콜백 1개와 관리자 웹 JSON 조회 2개를 포함합니다.
 
 성공 코드는 컨트롤러의 선언 기준입니다. 오류·권한·생략/null 처리·서비스 검증은 연결된 도메인 문서를 함께 읽습니다. OpenAPI에 오류 응답이나 nullable이 생략되었다고 해서 실제로 발생하지 않는 것은 아닙니다. HTML 폼 경로는 [관리자 웹 경로](admin-web-api.md), 업로드 제한은 [업로드 규약](api-upload-limits.md)을 참고합니다.

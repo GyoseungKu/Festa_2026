@@ -1,5 +1,7 @@
 # 생일축하 쪽지·하트 API
 
+[문서 목차](README.md) · [프런트 연동 시작하기](frontend-getting-started.md)
+
 공통 인증과 오류 처리는 [공통 API 규약](frontend-api-common.md)을 따릅니다.
 
 ## 정책

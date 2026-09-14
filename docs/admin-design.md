@@ -1,5 +1,7 @@
 # 관리자 공통 디자인
 
+[문서 목차](README.md) · [프런트 연동 시작하기](frontend-getting-started.md)
+
 - 공통 테마: `src/main/resources/static/css/admin-console.css`
 - 사이드바: `templates/admin/fragments/sidebar.html`
 - 기존 `admin.css`는 기능별 배치와 컴포넌트 규칙을 유지하며, 새 테마 파일을 뒤에서 로드합니다.

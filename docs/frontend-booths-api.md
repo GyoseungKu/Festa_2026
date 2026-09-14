@@ -1,23 +1,18 @@
 # 부스 지도·찜 API
 
+[문서 목차](README.md) · [프런트 연동 시작하기](frontend-getting-started.md)
+
+**이 문서의 순서**
+
+- [핵심 정책](#핵심-정책)
+- [프런트 타입](#프런트-타입)
+- [전체 부스 핀 조회](#전체-부스-핀-조회)
+- [부스 상세 조회](#부스-상세-조회)
+- [찜](#찜)
+- [ADMIN 이상 관리 API](#admin-이상-관리-api)
+- [주요 오류](#주요-오류)
+
 공통 인증, `X-Access-Token`, 오류 처리는 [공통 API 규약](frontend-api-common.md)을 따릅니다.
-
-## 등록·수정 입력 제한
-
-POST와 PATCH는 같은 전체 입력 DTO를 사용합니다. PATCH에 변경할 필드만 보내면 필수값 검증에 실패합니다.
-
-| 필드 | 규칙 |
-|---|---|
-| `latitude`, `longitude` | 필수 숫자, 각각 -90~90 / -180~180 |
-| `name`, `operator` | 필수, 각각 최대 150자, 공백만 입력 불가 |
-| `description` | 필수, 최대 5000자, 공백만 입력 불가 |
-| `opensAt`, `closesAt` | 필수 `LocalTime`, 종료가 시작보다 늦어야 함; 자정을 넘는 범위 불가 |
-| `stampEnabled` | boolean, 생략하면 false; 유지하려면 현재 값 전송 |
-| `managerUuids` | 최대 100개 UUID, null 항목 불가; 생략/null/빈 배열이면 담당자 전체 해제 |
-
-담당자는 축제 서비스에 연결된 사용자만 지정할 수 있고 중복 UUID는 하나로 처리합니다. 존재하지 않는 UUID가 섞이면 `400 BOOTH_MANAGER_NOT_FOUND`입니다. 저장 시 담당자 관계와 `BOOTH_MANAGER` 역할을 조정하며, 다른 부스를 담당하는 사용자는 역할이 유지됩니다.
-
-미디어 개수는 새 파일만이 아니라 기존 파일과 합산합니다(이미지 5개, 동영상 3개). 파일 크기·MIME은 [업로드 규약](api-upload-limits.md)을 참고합니다. 대표 미디어가 없을 때 첫 미디어를 자동 지정하며 대표를 삭제하면 남은 첫 미디어를 지정합니다. 미디어가 없으면 대표값은 null입니다.
 
 ## 핵심 정책
 
@@ -167,6 +162,23 @@ async function setFavorite(boothId: number, favorite: boolean) {
 ```
 
 ## ADMIN 이상 관리 API
+
+### 등록·수정 입력 제한
+
+POST와 PATCH는 같은 전체 입력 DTO를 사용합니다. PATCH에 변경할 필드만 보내면 필수값 검증에 실패합니다.
+
+| 필드 | 규칙 |
+|---|---|
+| `latitude`, `longitude` | 필수 숫자, 각각 -90~90 / -180~180 |
+| `name`, `operator` | 필수, 각각 최대 150자, 공백만 입력 불가 |
+| `description` | 필수, 최대 5000자, 공백만 입력 불가 |
+| `opensAt`, `closesAt` | 필수 `LocalTime`, 종료가 시작보다 늦어야 함; 자정을 넘는 범위 불가 |
+| `stampEnabled` | boolean, 생략하면 false; 유지하려면 현재 값 전송 |
+| `managerUuids` | 최대 100개 UUID, null 항목 불가; 생략/null/빈 배열이면 담당자 전체 해제 |
+
+담당자는 축제 서비스에 연결된 사용자만 지정할 수 있고 중복 UUID는 하나로 처리합니다. 존재하지 않는 UUID가 섞이면 `400 BOOTH_MANAGER_NOT_FOUND`입니다. 저장 시 담당자 관계와 `BOOTH_MANAGER` 역할을 조정하며, 다른 부스를 담당하는 사용자는 역할이 유지됩니다.
+
+미디어 개수는 새 파일만이 아니라 기존 파일과 합산합니다(이미지 5개, 동영상 3개). 파일 크기·MIME은 [업로드 규약](api-upload-limits.md)을 참고합니다. 대표 미디어가 없을 때 첫 미디어를 자동 지정하며 대표를 삭제하면 남은 첫 미디어를 지정합니다. 미디어가 없으면 대표값은 null입니다.
 
 ### 부스 등록·수정 본문
 

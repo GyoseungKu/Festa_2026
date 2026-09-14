@@ -1,5 +1,7 @@
 # 로그인 전 계정 복구 API 연동 가이드
 
+[문서 목차](README.md) · [프런트 연동 시작하기](frontend-getting-started.md)
+
 아이디 찾기와 비밀번호 재설정은 로그인 전 공개 API입니다. React가 SSO를 직접 호출하지 않고 반드시 Festa 백엔드만 호출해야 하며, `SSO_CLIENT_SECRET`은 프런트에 두지 않습니다.
 
 공통 오류 응답과 fetch 처리는 [공통 API 규약](frontend-api-common.md)을 따릅니다.

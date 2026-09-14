@@ -1,45 +1,69 @@
-# 프런트엔드 API 문서
+# 개발 문서 목차
 
-React 프런트에서 Festa API를 연동할 때 사용하는 문서 모음입니다. 실제 필드 스키마는 서버 DTO, 세부 확인은 Swagger UI(`/swagger-ui.html`)가 기준입니다.
+[프로젝트 소개·서버 실행](../README.md) · [프런트 연동 시작하기](frontend-getting-started.md)
 
-전체 경로와 성공 응답은 [API 색인](api-endpoint-index.md), 문서와 실제 코드의 차이 및 남은 구현 제약은 [검토 기록](api-documentation-review.md)을 확인합니다. Swagger만으로 서비스 검증·권한별 필드 생략·외부 SSO 동작을 모두 판단하지 않습니다.
+사용자 프런트 연동, 관리자 웹, 서버 운영 문서를 용도별로 나눴습니다. 요청·응답 계약은 기능별 문서에서 확인하고 실제 필드 스키마는 서버 DTO 및 Swagger UI(`/swagger-ui.html`)와 대조합니다. Swagger만으로 서비스 검증·권한별 필드 생략·외부 SSO 동작을 모두 판단하지 않습니다.
 
-## 먼저 읽을 문서
+## 처음 연동하는 순서
 
-1. [공통 API 규약](frontend-api-common.md)
-2. [인증·회원가입](frontend-auth-api.md)
-3. 학교 SSO를 사용하면 [프런트엔드 학교 SSO 연동](frontend-school-sso.md)
-4. 구현할 기능에 해당하는 도메인 문서
+1. [프런트 연동 시작하기](frontend-getting-started.md): 연결 설정 → 로그인 복구 → 화면별 API → 연동 확인 순서로 진행합니다.
+2. [공통 API 규약](frontend-api-common.md): fetch 래퍼, 쿠키·헤더, 오류와 날짜 처리를 공통으로 구현합니다.
+3. [인증 API](frontend-auth-api.md)와 [내 정보 API](frontend-user-api.md): 로그인·권한·사용자 상태를 연결합니다. 공개 조회 화면은 해당 기능 문서부터 시작해도 됩니다.
+4. 아래에서 구현할 화면의 문서를 고릅니다. 학교 인증·파일 업로드를 사용할 때는 각각의 별도 가이드를 함께 읽습니다.
 
-## 문서 목록
+기능별 문서는 정책·타입·조회·변경·관리·오류 순서로 찾아 읽습니다. 긴 문서의 상단 목차에서 필요한 절로 바로 이동할 수 있습니다. 사용자 화면만 구현한다면 관리자·DB·배포 절은 필요할 때 참고합니다.
+
+## 공통 계약과 API 찾기
 
 | 기능 | 문서 |
 |---|---|
 | 공통 헤더·오류·토큰 갱신 | [공통 API 규약](frontend-api-common.md) |
 | 전체 경로·메서드·성공 응답 | [API 전체 색인](api-endpoint-index.md) |
 | 파일 형식·파트·개수·용량 | [업로드 규약](api-upload-limits.md) |
-| 관리자 쿠키·CSRF·HTML 폼 경로 | [관리자 웹 경로](admin-web-api.md) |
-| 문서 검토 범위·발견 사항·구현 제약 | [API 문서 검토 기록](api-documentation-review.md) |
+
+## 로그인·가입·마이페이지
+
+| 기능 | 문서 |
+|---|---|
 | 회원가입·로그인·로그아웃 | [인증 API](frontend-auth-api.md) |
 | 회원가입 학적정보 자동입력·로그인 후 학생 인증 | [프런트엔드 학교 SSO](frontend-school-sso.md) |
 | 아이디 찾기·비밀번호 재설정 | [계정 복구](frontend-account-recovery-api.md) |
 | 내 정보·이메일·탈퇴 | [내 정보 API](frontend-user-api.md) |
-| 학생 인증·관리자 승인 | [학생 인증 기능](student-verification.md) |
-| 학생회비 납부자 관리·자동 확인 | [학생회비 확인 정책](student-fees.md) |
 | 로그인 사용자 비밀번호 변경 | [비밀번호 변경](frontend-password-change-api.md) |
-| 부스 지도·찜·미디어 | [부스 API](frontend-booths-api.md) |
-| 스탬프판·지급·회수·이력 | [스탬프 API](frontend-stamps-api.md) |
-| 공연 일정·미디어 | [공연 API](frontend-performances-api.md) |
-| 투표·응답 폼·실시간 결과 | [투표 API](frontend-polls-api.md) |
-| 동적 사용자 QR | [QR API](frontend-qr-api.md) |
-| 분실물 공지 | [분실물 API](frontend-lost-items-api.md) |
+
+## 사용자 기능별 API
+
+| 기능 | 문서 |
+|---|---|
 | 일반 공지·배너·첨부파일 | [일반 공지 API](frontend-notices-api.md) |
+| 부스 지도·찜·미디어 | [부스 API](frontend-booths-api.md) |
+| 공연 일정·미디어 | [공연 API](frontend-performances-api.md) |
 | 협찬사 공개 조회·이미지·부스 연결 | [협찬사 API](frontend-sponsors-api.md) |
+| 동적 사용자 QR | [QR API](frontend-qr-api.md) |
+| 스탬프판·지급·회수·이력 | [스탬프 API](frontend-stamps-api.md) |
+| 투표·응답 폼·실시간 결과 | [투표 API](frontend-polls-api.md) |
+| 분실물 공지 | [분실물 API](frontend-lost-items-api.md) |
 | 생일축하 쪽지·하트 | [생일축하 API](frontend-birthday-messages-api.md) |
 | 대나무숲 익명 채팅·신고·관리자 차단 감사 이력 | [대나무숲 API](frontend-bamboo-api.md) |
 | 화면·행동 분석 이벤트 | [분석 이벤트](frontend-analytics-api.md) |
 | 현재 접속 추정 heartbeat | [Presence](frontend-presence-api.md) |
+
+## 관리자·서버 운영
+
+| 기능 | 문서 |
+|---|---|
+| 관리자 쿠키·CSRF·HTML 폼 경로 | [관리자 웹 경로](admin-web-api.md) |
+| 학생 인증·관리자 승인 | [학생 인증 기능](student-verification.md) |
+| 학생회비 납부자 관리·자동 확인 | [학생회비 확인 정책](student-fees.md) |
 | 관리자 공통 디자인·레이아웃 | [관리자 디자인](admin-design.md) |
+
+## 검토 기록
+
+특정 시점의 점검 결과입니다. 현재 연동 계약은 위 기능별 문서를 우선 확인합니다.
+
+| 기능 | 문서 |
+|---|---|
+| 문서 검토 범위·발견 사항·구현 제약 | [API 문서 검토 기록](api-documentation-review.md) |
 | 관리자 UI 점검 기록 | [관리자 UI 점검](admin-ui-review.md) |
 
 ## 구현 체크리스트
