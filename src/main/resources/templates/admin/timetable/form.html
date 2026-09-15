@@ -25,9 +25,13 @@
             <label class="field-group field-full"><span>일정명</span><input type="text" th:field="*{title}" maxlength="150" placeholder="개회식, ○○○의 무대, 폐회식" required></label>
             <label class="field-group field-full"><span>공연팀 연결 (선택)</span>
                 <select th:field="*{performanceId}"><option value="">연결 없음</option>
-                    <option th:each="team : ${performances}" th:value="${team.id}" th:text="${team.teamName}"></option>
+                    <option th:each="team : ${performances}" th:value="${team.id}" th:text="${team.teamName}"
+                            th:attr="data-title=${team.teamName + '의 무대'},
+                                     data-starts-at=${#temporals.format(team.startsAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm').replace(' ', 'T')},
+                                     data-ends-at=${#temporals.format(team.endsAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm').replace(' ', 'T')},
+                                     data-published-at=${#temporals.format(team.publishedAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm').replace(' ', 'T')}"></option>
                 </select>
-                <small>공연팀의 시간과 공개 시각은 별도로 관리됩니다. 일정명은 위에 입력한 내용으로 공개됩니다.</small>
+                <small>팀을 선택하면 일정명·시작·종료·공개 일시가 자동으로 채워집니다. 모든 값은 수정할 수 있으며, 다른 팀을 선택하면 해당 팀 정보로 다시 채워집니다.</small>
             </label>
             <label class="field-group"><span>시작 일시</span><input type="datetime-local" th:field="*{startsAt}" required></label>
             <label class="field-group"><span>종료 일시</span><input type="datetime-local" th:field="*{endsAt}" required></label>
@@ -38,5 +42,6 @@
 </main>
 <div th:replace="~{admin/fragments/footer :: footer(true)}"></div>
 </div></div>
+<script th:src="@{/js/admin-timetable.js}" defer></script>
 </body>
 </html>
