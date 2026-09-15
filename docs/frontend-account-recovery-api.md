@@ -95,7 +95,7 @@ Content-Type: application/json
 }
 ```
 
-`newPassword`는 Festa 백엔드에서 8–128자로 검증합니다. 성공 응답은 현재 브라우저의 Festa Refresh Token 쿠키를 제거하므로 `credentials: "include"`로 호출합니다.
+`newPassword`는 회원가입과 동일하게 8–20자이며 영문 대문자·소문자·숫자·특수문자를 각각 1개 이상 포함해야 합니다. 공백을 제외한 ASCII 출력 문자(`U+0021`부터 `U+007E`)만 허용하므로 공백·탭·줄바꿈·한글·이모지는 거부합니다. 입력값을 trim하지 않습니다. 검증 실패는 `400 INVALID_REQUEST`이며 오류 메시지의 필드명은 `newPassword`입니다. 성공 응답은 현재 브라우저의 Festa Refresh Token 쿠키를 제거하므로 `credentials: "include"`로 호출합니다.
 
 ## 프런트 화면 흐름
 
@@ -112,6 +112,10 @@ Content-Type: application/json
 | `400` | `INVALID_REQUEST`, `LOGIN_ID_REQUIRED` | 입력 정보를 확인해 주세요. |
 | `400` | `ACCOUNT_RECOVERY_FAILED`, `SSO_INVALID_REQUEST` | 입력 정보 또는 인증번호를 확인해 주세요. |
 | `429` | `RECOVERY_ATTEMPTS_EXCEEDED`, `TOO_MANY_REQUESTS` | 잠시 후 다시 시도해 주세요. |
+| `429` | `EMAIL_SEND_COOLDOWN` | 인증코드 발송 대기, `retryAfterSeconds`만큼 대기 |
+| `429` | `RATE_LIMIT_EXCEEDED` | 이메일 또는 IP의 시간당 발송 한도 초과 |
+
+아이디 찾기·비밀번호 재설정의 발송 제한과 재전송 버튼 처리는 [이메일 재전송 제한](frontend-email-cooldown.md)을 확인합니다.
 | `503` | `SSO_UNAVAILABLE` | 인증 서버에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요. |
 | `502` | `SSO_BAD_GATEWAY` | 일시적인 오류가 발생했습니다. |
 

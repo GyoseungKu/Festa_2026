@@ -34,6 +34,14 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(SsoException.class)
     ResponseEntity<ApiError> handleSso(SsoException exception) {
+        if (exception instanceof org.syu_likelion.Festa_2026.sso.SsoEmailRateLimitException rateLimit) {
+            var response = ResponseEntity.status(429);
+            if (rateLimit.retryAfterSeconds() != null) {
+                response.header("Retry-After", rateLimit.retryAfterSeconds().toString());
+            }
+            return response.body(new ApiError(rateLimit.code(), rateLimit.getMessage(),
+                    java.time.Instant.now(), rateLimit.retryAfterSeconds()));
+        }
         int upstream = exception.statusCode();
         if (upstream == 400) return ResponseEntity.badRequest().body(ApiError.of("SSO_INVALID_REQUEST", "요청 정보 또는 인증번호를 확인해 주세요."));
         if (upstream == 401) return ResponseEntity.status(401).header(TokenCookieManager.SET_COOKIE, cookies.clear())

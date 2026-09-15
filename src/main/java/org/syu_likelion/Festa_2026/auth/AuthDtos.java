@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.NotNull;
+import org.hibernate.validator.constraints.CodePointLength;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -19,7 +20,7 @@ public final class AuthDtos {
             @NotBlank @Size(min = 4, max = 12) String code) { }
 
     public record SignupRequest(
-            @NotBlank @Size(min = 4, max = 50, message = "아이디는 4~50자여야 합니다.") String loginId,
+            @NotBlank @CodePointLength(min = 4, max = 50, message = "아이디는 4–50자여야 합니다.") String loginId,
             @SignupPassword String password,
             @NotBlank @Email String email,
             @NotBlank @Size(max = 100) String name,
@@ -75,7 +76,7 @@ public final class AuthDtos {
             @NotBlank @Email String email,
             @NotBlank @Pattern(regexp = "^[0-9]{6}$", message = "인증번호는 숫자 6자리여야 합니다.")
             String code,
-            @NotBlank @Size(min = 8, max = 128) String newPassword) { }
+            @SignupPassword String newPassword) { }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record TokenResponse(String accessToken) { }

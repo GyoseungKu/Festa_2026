@@ -32,6 +32,7 @@ export type ApiError = {
   code: string;
   message: string;
   timestamp: string;
+  retryAfterSeconds?: number;
 };
 
 export class ApiRequestError extends Error {
@@ -41,6 +42,7 @@ export class ApiRequestError extends Error {
     message: string,
     public readonly retryAfter: string | null = null,
     public readonly requestId: string | null = null,
+    public readonly retryAfterSeconds: number | null = null,
   ) {
     super(message);
   }
@@ -80,6 +82,7 @@ export async function apiFetch<T>(
       body?.message ?? "요청을 처리하지 못했습니다.",
       response.headers.get("Retry-After"),
       response.headers.get("X-Request-ID"),
+      body?.retryAfterSeconds ?? null,
     );
   }
 

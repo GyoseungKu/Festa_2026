@@ -79,6 +79,8 @@ Authorization: Bearer ACCESS_TOKEN
 
 ## 이메일 변경
 
+인증코드 발송은 [이메일 재전송 제한](frontend-email-cooldown.md)을 따릅니다. `EMAIL_SEND_COOLDOWN`의 `retryAfterSeconds`만큼 재전송을 비활성화하며, 시간당 한도는 `RATE_LIMIT_EXCEEDED`로 구분합니다.
+
 이메일 변경은 세 단계입니다. 세 요청에서 같은 이메일을 사용하십시오.
 
 ### 1. 인증번호 발송

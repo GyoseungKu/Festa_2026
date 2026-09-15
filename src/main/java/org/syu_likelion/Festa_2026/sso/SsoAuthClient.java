@@ -189,6 +189,11 @@ public class SsoAuthClient {
             HttpResponse<String> response = httpClient.send(builder.build(), HttpResponse.BodyHandlers.ofString());
             logResult(path, response.statusCode(), started, correlationId);
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                if (response.statusCode() == 429 && (path.equals("/api/auth/email/send")
+                        || path.equals("/api/users/me/email/verification"))) {
+                    SsoEmailRateLimitException rateLimit = emailRateLimit(response);
+                    if (rateLimit != null) throw rateLimit;
+                }
                 throw new SsoException(response.statusCode(), "SSO request failed");
             }
             T parsed = responseType == Void.class ? null : fromJson(response.body(), responseType);
@@ -203,6 +208,28 @@ public class SsoAuthClient {
             logResult(path, 503, started, correlationId);
             throw new SsoException(503, "SSO is unavailable", transport);
         }
+    }
+
+    private SsoEmailRateLimitException emailRateLimit(HttpResponse<String> response) {
+        // Only expose known rate-limit fields, never arbitrary upstream error text.
+        try {
+            JsonNode error = mapper.readTree(response.body());
+            if (error == null) return null;
+            String code = error.path("code").asText();
+            if (!"EMAIL_SEND_COOLDOWN".equals(code) && !"RATE_LIMIT_EXCEEDED".equals(code)) return null;
+            Long seconds = nonNegativeSeconds(error.path("retryAfterSeconds").asText());
+            if (seconds == null) seconds = nonNegativeSeconds(response.headers().firstValue("Retry-After").orElse(null));
+            if ("EMAIL_SEND_COOLDOWN".equals(code) && seconds == null) return null;
+            return new SsoEmailRateLimitException(code, seconds);
+        } catch (JacksonException invalidJson) {
+            return null;
+        }
+    }
+
+    private static Long nonNegativeSeconds(String value) {
+        if (value == null || !value.matches("[0-9]+")) return null;
+        try { return Long.valueOf(value); }
+        catch (NumberFormatException invalidNumber) { return null; }
     }
 
     private String toJson(Object value) {

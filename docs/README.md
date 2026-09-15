@@ -20,6 +20,7 @@
 | 공통 헤더·오류·토큰 갱신 | [공통 API 규약](frontend-api-common.md) |
 | 전체 경로·메서드·성공 응답 | [API 전체 색인](api-endpoint-index.md) |
 | 파일 형식·파트·개수·용량 | [업로드 규약](api-upload-limits.md) |
+| 이메일 인증코드 재전송·429·남은 대기 시간 | [이메일 재전송 제한](frontend-email-cooldown.md) |
 
 ## 로그인·가입·마이페이지
 

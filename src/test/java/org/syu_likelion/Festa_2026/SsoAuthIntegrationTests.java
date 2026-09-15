@@ -149,8 +149,8 @@ class SsoAuthIntegrationTests {
 
     @Test
     void signupAndAvailabilityRejectOutOfRangeIdsBeforeCallingSso() throws Exception {
-        for (int length : new int[]{3, 51}) {
-            String id = "a".repeat(length);
+        for (String id : new String[]{"", "    ", "　".repeat(4), "a".repeat(3), "a".repeat(51),
+                "😀".repeat(3), "😀".repeat(51)}) {
             mvc.perform(post("/api/auth/signup").contentType(MediaType.APPLICATION_JSON)
                             .content(signupWithId(id)))
                     .andExpect(status().isBadRequest())
@@ -164,8 +164,8 @@ class SsoAuthIntegrationTests {
 
     @Test
     void signupAndAvailabilityAcceptBothIdLengthBoundaries() throws Exception {
-        for (int length : new int[]{4, 50}) {
-            String id = "a".repeat(length);
+        for (String id : new String[]{"a".repeat(4), "a".repeat(50), "😀".repeat(4), "😀".repeat(50),
+                "user123", "홍길동계정", "A@한는", " user ", "User"}) {
             enqueue(201, "{\"userUuid\":\"" + UUID + "\"}");
             mvc.perform(post("/api/auth/signup").contentType(MediaType.APPLICATION_JSON)
                             .content(signupWithId(id)))
@@ -173,8 +173,69 @@ class SsoAuthIntegrationTests {
             enqueue(200, "{\"available\":true}");
             mvc.perform(get("/api/auth/check/login-id").param("loginId", id))
                     .andExpect(status().isOk()).andExpect(jsonPath("$.available").value(true));
+            org.assertj.core.api.Assertions.assertThat(REQUESTS.get(REQUESTS.size() - 2).body())
+                    .contains("\"loginId\":\"" + id + "\"");
+            org.assertj.core.api.Assertions.assertThat(java.net.URLDecoder.decode(
+                    REQUESTS.getLast().query(), StandardCharsets.UTF_8)).isEqualTo("value=" + id);
         }
-        org.assertj.core.api.Assertions.assertThat(REQUESTS).hasSize(4);
+        org.assertj.core.api.Assertions.assertThat(REQUESTS).hasSize(18);
+    }
+
+    @Test
+    void passwordResetRejectsSignupPolicyViolationsBeforeCallingSso() throws Exception {
+        for (String password : new String[]{"lowercase123!", "Abcdef1! ", "Abcdef1!한", "Abcdef1!😀",
+                "Abcdefghijklmnopqr1!Z"}) {
+            mvc.perform(post("/api/auth/email/reset-password/verify").contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"loginId\":\"festival01\",\"email\":\"student@example.com\","
+                                    + "\"code\":\"123456\",\"newPassword\":\"" + password + "\"}"))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+        }
+        org.assertj.core.api.Assertions.assertThat(REQUESTS).isEmpty();
+    }
+
+    @Test
+    void emailCooldownPreservesRemainingSecondsAcrossSignupAndRecovery() throws Exception {
+        for (String purpose : new String[]{"SIGNUP", "FIND_ID", "RESET_PASSWORD"}) {
+            enqueue(429, "{\"code\":\"EMAIL_SEND_COOLDOWN\",\"retryAfterSeconds\":42}");
+            String path = purpose.equals("SIGNUP") ? "/api/auth/signup/email/send" : "/api/auth/email/send";
+            mvc.perform(post(path).contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"email\":\"student@example.com\",\"loginId\":\"festival01\",\"purpose\":\"" + purpose + "\"}"))
+                    .andExpect(status().isTooManyRequests())
+                    .andExpect(header().string("Retry-After", "42"))
+                    .andExpect(jsonPath("$.code").value("EMAIL_SEND_COOLDOWN"))
+                    .andExpect(jsonPath("$.retryAfterSeconds").value(42))
+                    .andExpect(jsonPath("$.message").value("인증코드 재전송까지 42초 기다려 주세요."));
+        }
+    }
+
+    @Test
+    void emailHourlyLimitAndMalformedRateLimitRemainDistinct() throws Exception {
+        enqueue(429, "{\"code\":\"RATE_LIMIT_EXCEEDED\"}");
+        mvc.perform(post("/api/auth/signup/email/send").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"student@example.com\"}"))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.code").value("RATE_LIMIT_EXCEEDED"))
+                .andExpect(jsonPath("$.retryAfterSeconds").doesNotExist());
+        for (String body : new String[]{"not json", "{\"code\":\"EMAIL_SEND_COOLDOWN\",\"retryAfterSeconds\":-1}"}) {
+            enqueue(429, body);
+            mvc.perform(post("/api/auth/signup/email/send").contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"email\":\"student@example.com\"}"))
+                    .andExpect(status().isTooManyRequests())
+                    .andExpect(jsonPath("$.code").value("TOO_MANY_REQUESTS"))
+                    .andExpect(header().doesNotExist("Retry-After"));
+        }
+    }
+
+    @Test
+    void emailChangeCooldownUsesRetryAfterHeaderWhenBodyOmitsSeconds() throws Exception {
+        RESPONSES.add(new StubResponse(429, "{\"code\":\"EMAIL_SEND_COOLDOWN\"}", null, 0, "42"));
+        mvc.perform(post("/api/users/me/email/verification").header("Authorization", "Bearer access-one")
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"email\":\"new@example.com\"}"))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(header().string("Retry-After", "42"))
+                .andExpect(jsonPath("$.code").value("EMAIL_SEND_COOLDOWN"))
+                .andExpect(jsonPath("$.retryAfterSeconds").value(42));
     }
 
     private static String signupWithId(String id) {
@@ -538,12 +599,17 @@ class SsoAuthIntegrationTests {
                 exchange.getRequestHeaders().getFirst("Authorization"), exchange.getRequestHeaders().getFirst("Cookie")));
         if (response.delayMs() > 0) try { Thread.sleep(response.delayMs()); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
         if (response.setCookie() != null) exchange.getResponseHeaders().add("Set-Cookie", response.setCookie());
+        if (response.retryAfter() != null) exchange.getResponseHeaders().add("Retry-After", response.retryAfter());
         byte[] bytes = response.body().getBytes(StandardCharsets.UTF_8);
         exchange.sendResponseHeaders(response.status(), bytes.length == 0 ? -1 : bytes.length);
         if (bytes.length > 0) exchange.getResponseBody().write(bytes);
         exchange.close();
     }
 
-    record StubResponse(int status, String body, String setCookie, long delayMs) { }
+    record StubResponse(int status, String body, String setCookie, long delayMs, String retryAfter) {
+        StubResponse(int status, String body, String setCookie, long delayMs) {
+            this(status, body, setCookie, delayMs, null);
+        }
+    }
     record RecordedRequest(String path, String query, String body, String authorization, String cookie) { }
 }

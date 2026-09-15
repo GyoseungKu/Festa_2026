@@ -134,6 +134,8 @@ DTO 검증은 교체보다 먼저 실행되므로 이 세 필드를 생략하거
 
 ## 회원가입 이메일 인증
 
+발송 제한과 남은 시간에 따른 버튼 처리는 [이메일 재전송 제한](frontend-email-cooldown.md)을 따릅니다.
+
 ### 인증번호 발송
 
 ```http
@@ -210,7 +212,7 @@ Content-Type: application/json
 
 | 필드 | 규칙 |
 |---|---|
-| `loginId` | 필수, 4–50자. 아이디 중복 확인 API에도 동일하게 적용 |
+| `loginId` | 필수, 유니코드 코드 포인트 기준 4–50자. 아이디 중복 확인 API에도 동일하게 적용 |
 | `password` | 필수, 8–20자, 영문 대문자·소문자·숫자·특수문자 각각 1개 이상 |
 | `email` | 필수, 이메일 형식 |
 | `name` | 필수, 최대 100자 |
@@ -222,9 +224,13 @@ Content-Type: application/json
 | `birthDate` | 선택, `YYYY-MM-DD` |
 | `academicInfoSource` | `MANUAL` 또는 `SCHOOL_SSO`, 생략 시 `MANUAL` |
 
+아이디는 null·빈 문자열·공백만 있는 문자열을 거부하며, 영문·숫자 외 한글·특수문자·이모지도 허용합니다. 앞뒤 공백 제거, 소문자 변환, 유니코드 정규화 없이 입력값을 그대로 SSO에 전달합니다. `user123`, `홍길동계정`, `A@한는`, `" user "`는 형식 검사를 통과합니다. 기존 사용자와 탈퇴 후 보존 중인 아이디의 중복 판정 및 최종 저장은 SSO에서 수행합니다. 중복 확인 성공은 아이디 예약이 아니므로 최종 가입의 중복 오류도 처리합니다.
+
+프런트 길이 검사는 JavaScript의 `value.length` 대신 `Array.from(value).length`로 코드 포인트를 셉니다. HTML `maxlength="50"`만 적용하면 이모지 입력이 너무 일찍 제한될 수 있습니다. 여러 코드 포인트로 구성된 결합 문자·이모지는 화면에서 한 글자로 보여도 여러 자로 계산됩니다. 이 규칙은 회원가입과 아이디 중복 확인에 적용하며 로그인·계정 복구의 기존 검증은 유지합니다.
+
 회원가입 비밀번호는 공백을 제외한 ASCII 출력 문자(U+0021–U+007E)만 허용합니다. 특수문자는 해당 범위의 영문·숫자 외 기호(`!`, `@`, `#`, `_` 등)입니다. 공백·탭·줄바꿈·한글·이모지는 허용하지 않으며 입력값을 trim하지 않습니다. `Abcdef1!`는 허용되고 `abcdef1!`는 거부됩니다.
 
-누락 또는 공백뿐인 값의 검증 메시지는 `password is required`, 나머지 정책 위반은 `password must be 8-20 characters and include uppercase, lowercase, digit, and special character (ASCII only, no spaces)`입니다. API 오류 메시지에는 필드명 접두사 `password: `가 붙습니다. 이 정책은 회원가입에만 적용하며 로그인·비밀번호 변경·재설정에는 기존 정책을 사용합니다.
+누락 또는 공백뿐인 값의 검증 메시지는 `password is required`, 나머지 정책 위반은 `password must be 8-20 characters and include uppercase, lowercase, digit, and special character (ASCII only, no spaces)`입니다. API 오류 메시지에는 필드명 접두사 `password: `가 붙습니다. 이 정책은 회원가입과 [비밀번호 재설정](frontend-account-recovery-api.md)에 적용하며, 재설정의 필드명 접두사는 `newPassword: `입니다. 로그인·로그인 후 비밀번호 변경은 기존 정책을 사용합니다.
 
 성공 `200`:
 
@@ -243,5 +249,7 @@ Content-Type: application/json
 | `403` | `ACCOUNT_FORBIDDEN` | 사용할 수 없는 계정 |
 | `409` | `ACCOUNT_CONFLICT` | 아이디 또는 이메일 중복 |
 | `429` | `TOO_MANY_REQUESTS` | 요청 횟수 초과 |
+| `429` | `EMAIL_SEND_COOLDOWN` | `retryAfterSeconds` 동안 재전송 비활성화 |
+| `429` | `RATE_LIMIT_EXCEEDED` | 이메일 또는 IP의 시간당 발송 한도 초과 |
 | `502` | `SSO_BAD_GATEWAY` | SSO 응답 처리 실패 |
 | `503` | `SSO_UNAVAILABLE` | SSO 연결 장애 |

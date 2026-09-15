@@ -21,6 +21,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Email;
+import org.hibernate.validator.constraints.CodePointLength;
 import org.syu_likelion.Festa_2026.auth.AuthDtos.AvailabilityResponse;
 import org.syu_likelion.Festa_2026.auth.AuthDtos.EmailCodeRequest;
 import org.syu_likelion.Festa_2026.auth.AuthDtos.EmailRequest;
@@ -59,7 +60,7 @@ public class AuthController {
     @Operation(summary = "로그인 아이디 중복 확인",
             description = "로그인 없이 loginId의 사용 가능 여부를 SSO에서 확인합니다. available=true이면 사용할 수 있습니다.")
     AvailabilityResponse checkLoginId(
-            @RequestParam @NotBlank @Size(min = 4, max = 50, message = "아이디는 4~50자여야 합니다.") String loginId) {
+            @RequestParam @NotBlank @CodePointLength(min = 4, max = 50, message = "아이디는 4–50자여야 합니다.") String loginId) {
         return authService.checkLoginId(loginId);
     }
 
@@ -122,7 +123,7 @@ public class AuthController {
 
     @PostMapping("/email/reset-password/verify")
     @Operation(summary = "로그인 전 비밀번호 재설정",
-            description = "로그인 아이디, 이메일, 인증번호와 새 비밀번호를 검증하고 SSO 비밀번호를 즉시 변경합니다. 별도의 resetToken은 사용하지 않습니다.")
+            description = "로그인 아이디, 이메일, 인증번호와 새 비밀번호를 검증하고 SSO 비밀번호를 즉시 변경합니다. 새 비밀번호는 회원가입과 동일한 8–20자 ASCII 출력 문자이며 대문자·소문자·숫자·특수문자를 각각 포함해야 합니다. 공백은 허용하지 않으며 trim하지 않습니다. 별도의 resetToken은 사용하지 않습니다.")
     ResponseEntity<MessageResponse> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         authService.resetPassword(request);
         return ResponseEntity.ok()
