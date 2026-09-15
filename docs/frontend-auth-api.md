@@ -45,6 +45,39 @@ Content-Type: application/json
 
 응답의 Refresh Token은 HttpOnly `Set-Cookie`로 저장됩니다. Access Token만 메모리 인증 store에 보관한 다음 `/api/users/me`를 조회해 사용자와 축제 권한을 초기화합니다.
 
+### 탈퇴 계정 복구와 재가입
+
+로그인 요청에 선택적 boolean `reactivate`를 전달할 수 있습니다. 생략하면 false이며, 처음부터 true로 전송하거나 오류 후 자동으로 true를 재요청하지 않습니다.
+
+1. 평소처럼 로그인합니다(`reactivate` 생략 또는 false).
+2. `409 ACCOUNT_REACTIVATION_REQUIRED`일 때만 “계정을 복구하시겠습니까? 보관 중인 계정과 프로필 정보가 복원됩니다.” 동의창을 표시합니다.
+3. 취소하면 추가 요청 없이 종료합니다. 사용자가 명시적으로 동의한 경우에만 같은 로그인 정보와 `reactivate: true`로 재요청합니다.
+4. 성공하면 기존 Access Token·Refresh 쿠키 처리와 내 정보 조회를 실행합니다. 비밀번호는 로그·URL·영구 저장소에 저장하지 않고 흐름 종료 시 화면 메모리에서도 제거합니다.
+
+```json
+{ "loginId": "festival01", "password": "Password123!", "reactivate": true }
+```
+
+| HTTP / code | 프런트 처리 |
+|---|---|
+| `200` | 기존 로그인 완료 처리 |
+| `409 ACCOUNT_REACTIVATION_REQUIRED` | 복구 동의창 표시 |
+| `409 ACCOUNT_REACTIVATION_CONFLICT` | 정보 충돌 안내·관리자 문의 |
+| `401 LOGIN_FAILED` | 로그인 실패 안내, 복구 자동 재시도 금지 |
+| `409 RECENTLY_WITHDRAWN_ACCOUNT` | 가입 화면에서 기존 계정 로그인·복구 또는 탈퇴 후 30일 경과 안내 |
+
+Festa는 위 코드를 보존하고 공통 오류의 `timestamp`를 추가합니다. 문구 대신 `code`로 분기합니다. 기존 SSO의 일반 401·409는 기존 `UNAUTHORIZED`·`ACCOUNT_CONFLICT` 매핑을 유지하므로 함께 처리합니다.
+
+SSO 정책상 탈퇴 후 30일 미만은 기존 로그인 API로 복구하며 UUID를 유지합니다. 30일 이상은 일반 가입으로 새 UUID를 발급합니다. 관리자에 의해 탈퇴된 계정은 자가 복구할 수 없으며, 복구 가능 여부와 기간 경계는 SSO가 판단합니다.
+
+**사용자 프런트는 기존 Festa `POST /api/auth/signup`을 그대로 호출합니다.** Festa가 SSO의 `/api/auth/register`로 중계합니다. `/rejoin` API를 만들거나 프런트에서 SSO Basic 인증 정보를 전달하지 않습니다. `clientSecret`은 서버에서 관리합니다.
+
+탈퇴 후 30일 미만에는 아이디·이메일·전화번호·학번 중 하나라도 예약 정보와 겹치면 SSO가 신규 가입을 거부하며, 각 중복 확인은 `available: false`를 반환합니다. 30일 이상이면 다른 계정이 사용하지 않는 정보로 일반 가입할 수 있습니다.
+
+Festa는 SSO의 UUID로만 사용자를 연결합니다. 같은 UUID로 복구하고 축제 사용자 행이 남아 있으면 기존 축제 정보·권한을 사용합니다. 새 UUID는 기존 이메일·학번과 같더라도 과거 사용자 데이터나 권한을 승계하지 않습니다. 축제 서비스 이용 정보 삭제로 이미 삭제·익명화한 데이터는 SSO 복구로 복원되지 않습니다.
+
+사용자 React 화면의 동의창은 프런트에서 구현해야 합니다. 현재 서버 렌더링 관리자 로그인 폼은 복구 동의를 받지 않으며 `reactivate=false`로 요청합니다. 관리자 페이지의 계정 복구 UI를 추가한 변경은 아닙니다.
+
 기존 SSO 사용자가 Festa에 최초 로그인한 경우에도 같은 HTML 환영 메일이 한 번 발송됩니다. 이미 발송된 사용자에게는 이후 로그인 시 다시 발송하지 않으며 프런트에서 별도의 메일 API를 호출할 필요가 없습니다.
 
 ## 명시적 토큰 갱신

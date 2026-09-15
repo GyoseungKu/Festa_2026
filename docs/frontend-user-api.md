@@ -132,6 +132,8 @@ Content-Type: application/json
 
 ## 계정 탈퇴
 
+SSO 탈퇴 후 복구·재가입은 [인증 API의 탈퇴 계정 복구 안내](frontend-auth-api.md)를 확인합니다. 30일 미만은 명시적 동의 후 로그인으로 복구하고 UUID를 유지하며, 30일 이상은 일반 가입으로 새 UUID를 발급합니다. 이미 삭제·익명화한 축제 데이터가 복원되는 것은 아닙니다.
+
 ```http
 DELETE /api/users/me
 Authorization: Bearer ACCESS_TOKEN

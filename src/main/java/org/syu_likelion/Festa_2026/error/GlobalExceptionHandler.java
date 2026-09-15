@@ -34,6 +34,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(SsoException.class)
     ResponseEntity<ApiError> handleSso(SsoException exception) {
+        if (exception instanceof org.syu_likelion.Festa_2026.sso.SsoAccountStateException accountState) {
+            var response = ResponseEntity.status(accountState.statusCode());
+            if (accountState.statusCode() == 401) response.header(TokenCookieManager.SET_COOKIE, cookies.clear());
+            return response.body(ApiError.of(accountState.code(), accountState.getMessage()));
+        }
         if (exception instanceof org.syu_likelion.Festa_2026.sso.SsoEmailRateLimitException rateLimit) {
             var response = ResponseEntity.status(429);
             if (rateLimit.retryAfterSeconds() != null) {

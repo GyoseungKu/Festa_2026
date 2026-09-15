@@ -126,6 +126,10 @@ await apiFetch<ResponseType>("/api/example", {
 | `403` | `ACCOUNT_FORBIDDEN` | SSO 계정 사용 불가, 로그인 상태 정리 |
 | `404` | 도메인별 `*_NOT_FOUND` | 목록으로 이동하거나 삭제된 항목 안내 |
 | `409` | 도메인별 충돌 code | 현재 상태를 다시 조회해 UI 동기화 |
+| `409` | `ACCOUNT_REACTIVATION_REQUIRED` | 로그인에서만 복구 동의창 표시, 명시적 동의 후 재요청 |
+| `409` | `ACCOUNT_REACTIVATION_CONFLICT` | 복구 정보 충돌 안내·관리자 문의 |
+| `409` | `RECENTLY_WITHDRAWN_ACCOUNT` | 기존 계정 로그인·복구 또는 30일 이후 가입 안내 |
+| `401` | `LOGIN_FAILED` | 일반 로그인 실패 안내, 복구 자동 재시도 금지 |
 | `405` | `METHOD_NOT_ALLOWED` | 경로에 맞는 HTTP 메서드 확인 |
 | `413` | `UPLOAD_TOO_LARGE` | 파일 크기 안내 |
 | `415` | `UNSUPPORTED_MEDIA_TYPE` | 파일 또는 요청 Content-Type 확인 |

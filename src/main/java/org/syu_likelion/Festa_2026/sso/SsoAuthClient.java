@@ -189,6 +189,8 @@ public class SsoAuthClient {
             HttpResponse<String> response = httpClient.send(builder.build(), HttpResponse.BodyHandlers.ofString());
             logResult(path, response.statusCode(), started, correlationId);
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                SsoAccountStateException accountState = accountState(path, response);
+                if (accountState != null) throw accountState;
                 if (response.statusCode() == 429 && (path.equals("/api/auth/email/send")
                         || path.equals("/api/users/me/email/verification"))) {
                     SsoEmailRateLimitException rateLimit = emailRateLimit(response);
@@ -207,6 +209,33 @@ public class SsoAuthClient {
         } catch (java.io.IOException transport) {
             logResult(path, 503, started, correlationId);
             throw new SsoException(503, "SSO is unavailable", transport);
+        }
+    }
+
+    private SsoAccountStateException accountState(String path, HttpResponse<String> response) {
+        boolean login = path.equals("/api/auth/login");
+        boolean signup = path.equals("/api/auth/register");
+        int status = response.statusCode();
+        if ((!login && !signup) || (status != 409 && status != 401)) return null;
+        try {
+            JsonNode error = mapper.readTree(response.body());
+            if (error == null) return null;
+            String code = error.path("code").asText();
+            String message = null;
+            if (login && status == 409) {
+                message = switch (code) {
+                    case "ACCOUNT_REACTIVATION_REQUIRED" -> "탈퇴한 계정입니다. 계정 재활성화에 동의하면 다시 로그인해 주세요.";
+                    case "ACCOUNT_REACTIVATION_CONFLICT" -> "계정 복구 중 정보 충돌이 발생했습니다. 관리자에게 문의해 주세요.";
+                    default -> null;
+                };
+            } else if (login && status == 401 && code.equals("LOGIN_FAILED")) {
+                message = "로그인 정보를 확인해 주세요.";
+            } else if (signup && status == 409 && code.equals("RECENTLY_WITHDRAWN_ACCOUNT")) {
+                message = "최근 탈퇴한 계정 정보입니다. 기존 계정으로 로그인해 복구하거나 탈퇴 후 30일이 지난 뒤 가입해 주세요.";
+            }
+            return message == null ? null : new SsoAccountStateException(status, code, message);
+        } catch (JacksonException invalidJson) {
+            return null;
         }
     }
 

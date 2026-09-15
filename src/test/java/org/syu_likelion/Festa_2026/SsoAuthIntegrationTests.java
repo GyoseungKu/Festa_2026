@@ -238,6 +238,47 @@ class SsoAuthIntegrationTests {
                 .andExpect(jsonPath("$.retryAfterSeconds").value(42));
     }
 
+    @Test
+    void loginRequiresExplicitReactivationAndThenReusesCookiesAndUuid() throws Exception {
+        enqueue(409, "{\"code\":\"ACCOUNT_REACTIVATION_REQUIRED\"}");
+        mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"loginId\":\"festival01\",\"password\":\"Password123!\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ACCOUNT_REACTIVATION_REQUIRED"))
+                .andExpect(header().doesNotExist("Set-Cookie"));
+        org.assertj.core.api.Assertions.assertThat(REQUESTS).hasSize(1);
+        org.assertj.core.api.Assertions.assertThat(REQUESTS.getFirst().body()).contains("\"reactivate\":false");
+        org.assertj.core.api.Assertions.assertThat(users.findAll()).isEmpty();
+
+        enqueue(200, "{\"accessToken\":\"access-restored\"}", "refreshToken=refresh-restored; Path=/; HttpOnly");
+        enqueue(200, meJson("USER"));
+        mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"loginId\":\"festival01\",\"password\":\"Password123!\",\"reactivate\":true}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").value("access-restored"))
+                .andExpect(header().string("Set-Cookie", containsString("refresh-restored")));
+        org.assertj.core.api.Assertions.assertThat(REQUESTS.get(1).body()).contains("\"reactivate\":true");
+        org.assertj.core.api.Assertions.assertThat(users.findAll()).singleElement()
+                .satisfies(user -> org.assertj.core.api.Assertions.assertThat(user.getUserUuid().toString()).isEqualTo(UUID));
+    }
+
+    @Test
+    void preservesReactivationConflictLoginFailureAndReservedSignupCodes() throws Exception {
+        for (String code : new String[]{"ACCOUNT_REACTIVATION_CONFLICT", "LOGIN_FAILED"}) {
+            int status = code.equals("LOGIN_FAILED") ? 401 : 409;
+            enqueue(status, "{\"code\":\"" + code + "\"}");
+            mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"loginId\":\"festival01\",\"password\":\"Password123!\",\"reactivate\":true}"))
+                    .andExpect(status().is(status)).andExpect(jsonPath("$.code").value(code));
+        }
+        enqueue(409, "{\"code\":\"RECENTLY_WITHDRAWN_ACCOUNT\"}");
+        mvc.perform(post("/api/auth/signup").contentType(MediaType.APPLICATION_JSON).content(signupWithId("festival01")))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("RECENTLY_WITHDRAWN_ACCOUNT"));
+        org.assertj.core.api.Assertions.assertThat(REQUESTS).hasSize(3);
+        org.assertj.core.api.Assertions.assertThat(users.findAll()).isEmpty();
+    }
+
     private static String signupWithId(String id) {
         return "{\"loginId\":\"" + id + "\",\"password\":\"Password123!\","
                 + "\"email\":\"student@example.com\",\"name\":\"홍길동\","

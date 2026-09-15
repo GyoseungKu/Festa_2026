@@ -54,7 +54,15 @@ public final class AuthDtos {
 
     public record LoginRequest(
             @NotBlank @Size(max = 100) String loginId,
-            @NotBlank @Size(max = 128) String password) { }
+            @NotBlank @Size(max = 128) String password,
+            Boolean reactivate) {
+        public LoginRequest {
+            reactivate = Boolean.TRUE.equals(reactivate);
+        }
+        public LoginRequest(String loginId, String password) {
+            this(loginId, password, false);
+        }
+    }
 
     public enum RecoveryPurpose { FIND_ID, RESET_PASSWORD }
 
