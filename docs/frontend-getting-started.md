@@ -45,6 +45,7 @@
 |---|---|---|
 | 홈·배너·공지 상세 | [공지](frontend-notices-api.md) | 배너 필터·페이지네이션, 상세 조회수 증가, 미디어와 파일 배열 |
 | 지도·부스 상세·찜 | [부스](frontend-booths-api.md) | 좌표, 대표 미디어 null, 로그인 여부에 따른 찜 |
+| 타임테이블 | [타임테이블](frontend-timetable-api.md) | 일정 시간·TBA·공연팀 연결 |
 | 공연 일정 | [공연](frontend-performances-api.md) | 시간·미디어 응답 |
 | 협찬사 | [협찬사](frontend-sponsors-api.md) | 사진·부스 연결 |
 | 내 QR·스탬프판·지급 화면 | [QR](frontend-qr-api.md), [스탬프](frontend-stamps-api.md) | 토큰 갱신, 스캔 목적별 API, 담당 부스·권한 |

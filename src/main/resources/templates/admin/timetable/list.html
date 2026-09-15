@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>타임테이블 관리 | 천보축전 관리자페이지</title>
+    <link rel="icon" type="image/svg+xml" th:href="@{/images/favicon.svg}" href="/images/favicon.svg">
+    <link rel="stylesheet" th:href="@{/css/admin.css}">
+<link rel="stylesheet" th:href="@{/css/admin-console.css}">
+</head>
+<body class="admin-page">
+<a class="skip-link" href="#admin-content">본문으로 건너뛰기</a>
+<div class="admin-layout">
+<aside th:replace="~{admin/fragments/sidebar :: sidebar}"></aside>
+<div class="admin-workspace">
+
+<main id="admin-content" tabindex="-1" class="admin-main">
+    <nav class="breadcrumb" aria-label="현재 위치">
+        <a th:href="@{/admin}">관리자 홈</a><span>/</span><strong>타임테이블 관리</strong>
+    </nav>
+
+    <section class="management-toolbar">
+        <div>
+            <p class="eyebrow">TIMETABLE</p>
+            <h1>타임테이블 관리</h1>
+            <p>일정 시간과 공개 시각을 관리합니다. 공개 전에는 시간과 TBA가 표시됩니다.</p>
+        </div>
+        <a class="button button-primary" th:href="@{/admin/timetable/new}">일정 추가</a>
+    </section>
+
+    <div class="alert alert-success" role="status" th:if="${message}" th:text="${message}"></div>
+
+    <section class="empty-panel" th:if="${#lists.isEmpty(schedules)}">
+        <strong>등록된 일정이 없습니다.</strong>
+        <p>개회식, 공연, 폐회식 일정을 등록해 주세요.</p>
+        <a class="button button-primary" th:href="@{/admin/timetable/new}">첫 일정 등록</a>
+    </section>
+
+    <section class="performance-list" th:unless="${#lists.isEmpty(schedules)}">
+        <article class="performance-admin-card" th:each="schedule : ${schedules}">
+            <div class="performance-card-top">
+                <div>
+                    <span class="publish-chip" th:classappend="${schedule.published} ? ' is-public' : ' is-scheduled'"
+                          th:text="${schedule.published} ? '공개 중' : '공개 예정'">공개 예정</span>
+                </div>
+            </div>
+            <h2 th:text="${schedule.title}">일정명</h2>
+            <p class="member-summary" th:text="${schedule.performance != null ? schedule.performance.teamName : '공연팀 연결 없음'}">공연팀</p>
+            <dl class="performance-meta">
+                <div><dt>일정 시작</dt><dd th:text="${#temporals.format(schedule.startsAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm')} + ' KST'">2026-08-10 19:00 KST</dd></div>
+                <div><dt>일정 종료</dt><dd th:text="${#temporals.format(schedule.endsAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm')} + ' KST'">2026-08-10 20:00 KST</dd></div>
+                <div><dt>공개 일시</dt><dd th:text="${#temporals.format(schedule.publishedAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm')} + ' KST'">2026-08-01 09:00 KST</dd></div>
+            </dl>
+            <div class="performance-card-actions">
+                <a class="button button-secondary" th:href="@{/admin/timetable/{id}/edit(id=${schedule.id})}">수정</a>
+                <form method="post" th:action="@{/admin/timetable/{id}/delete(id=${schedule.id})}"
+                      onsubmit="return confirm('이 일정을 삭제할까요?');">
+                    <button class="button button-danger" type="submit">삭제</button>
+                </form>
+            </div>
+        </article>
+    </section>
+</main>
+<div th:replace="~{admin/fragments/footer :: footer(true)}"></div>
+</div></div>
+</body>
+</html>

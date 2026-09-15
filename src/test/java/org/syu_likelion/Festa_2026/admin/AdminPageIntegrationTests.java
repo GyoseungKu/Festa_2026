@@ -112,7 +112,7 @@ class AdminPageIntegrationTests {
             Set<String> expected = new java.util.HashSet<>(Set.of("/admin/qr"));
             boolean manager = assigned.contains(FestivalRole.ADMIN) || assigned.contains(FestivalRole.SUPER_ADMIN);
             if (manager) expected.addAll(Set.of("/admin/booths", "/admin/performances", "/admin/polls",
-                    "/admin/student-fees", "/admin/sponsors"));
+                    "/admin/student-fees", "/admin/sponsors", "/admin/timetable"));
             if (manager || assigned.contains(FestivalRole.STAFF)) expected.addAll(Set.of("/admin/notices",
                     "/admin/lost-items", "/admin/bamboo", "/admin/birthday-messages"));
             if (manager || assigned.contains(FestivalRole.BOOTH_MANAGER)) expected.add("/admin/stamps");

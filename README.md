@@ -263,6 +263,19 @@ Origin은 경로나 마지막 `/` 없이 `scheme://host[:port]` 형식으로 입
 - `STAFF`는 스탬프 관리 권한이 없습니다.
 - 이력 API는 `page=0`, `size=30`이 기본이며 최대 크기는 100입니다. 현재 보유자 목록은 전체, 감사 이력은 최신순 페이지 단위로 반환합니다.
 
+### 타임테이블
+
+| 메서드 | 경로 | 권한 | 설명 |
+|---|---|---|---|
+| GET | `/api/timetable` | 로그인 | 시작순 전체 일정, 공개 전 제목은 TBA |
+| GET | `/api/timetable/{id}` | 로그인 | 일정 상세, 동일한 공개 규칙 |
+| GET | `/api/timetable/admin` | `ADMIN` 이상 | 미공개 제목·공연팀 연결 포함 |
+| POST | `/api/timetable` | `ADMIN` 이상 | 시작·종료·일정명·공개 시각·선택적 공연팀 등록 |
+| PATCH | `/api/timetable/{id}` | `ADMIN` 이상 | 일정 수정 |
+| DELETE | `/api/timetable/{id}` | `ADMIN` 이상 | 일정 삭제 |
+
+공개 전에도 시간 정보는 반환하며 일정명은 `TBA`, 공연팀 정보는 `null`입니다. 공연팀의 공개 시각도 지난 경우에만 팀 연결을 공개합니다. [요청·응답과 공개 규칙](docs/frontend-timetable-api.md)을 참고하세요.
+
 ### 공연팀
 
 | Method | Path | 권한 | 설명 |
@@ -424,6 +437,7 @@ QR에는 개인정보나 Access Token을 넣지 않습니다. 서버는 256비�
 | `/admin/qr` | `BOOTH_MANAGER`, `STAFF`, `ADMIN`, `SUPER_ADMIN` | 일반 QR 사용자 조회 |
 | `/admin/stamps` | 담당 `BOOTH_MANAGER`, `ADMIN` 이상 | 스탬프 지급·회수 및 페이지 이력 |
 | `/admin/booths` | `ADMIN` 이상 | 부스 지도와 미디어·담당자 관리 |
+| `/admin/timetable` | `ADMIN` 이상 | 타임테이블과 일정별 공개 시각 관리 |
 | `/admin/performances` | `ADMIN` 이상 | 공연팀 관리 |
 | `/admin/polls` | `ADMIN` 이상 | 투표·응답 폼 생성과 실시간 현황 |
 | `/admin/lost-items` | `STAFF` 이상 | 분실물 관리 |
@@ -518,6 +532,7 @@ festival_booth_favorites
 festival_booth_stamps
 festival_stamp_events
 festival_qr_tokens
+festival_schedules
 festival_performances
 festival_performance_members
 festival_performance_links
