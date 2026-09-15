@@ -74,6 +74,7 @@
             <span>참여자 관리</span>
             <div>
                 <h2>익명 참여자 검색·차단</h2>
+                <a class="button button-secondary" th:if="${canSeeAuthor}" th:href="@{/admin/bamboo/users}">실제 사용자 검색·차단</a>
                 <p>ADMIN 이상은 실제 신원을 보지 않고 익명 닉네임으로 차단하거나 해제할 수 있습니다.</p>
             </div>
         </div>
@@ -209,8 +210,7 @@
                         <button class="button button-danger" type="submit">삭제</button>
                     </form>
 
-                    <form method="post" th:action="@{/admin/bamboo/messages/{id}/mute(id=${item.id})}"
-                          th:if="${canManageBlocks}">
+                    <form method="post" th:action="@{/admin/bamboo/messages/{id}/mute(id=${item.id})}">
                         <input type="hidden" name="tab" th:value="${tab}">
                         <label class="field-group">
                             <span>작성 차단</span>
@@ -219,7 +219,7 @@
                                 <option value="30" selected>30분</option>
                                 <option value="180">3시간</option>
                                 <option value="1440">하루</option>
-                                <option value="0">해제</option>
+                                <option value="0" th:if="${canManageBlocks}">해제</option>
                             </select>
                         </label>
                         <label class="field-group">

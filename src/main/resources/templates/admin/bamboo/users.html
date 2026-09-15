@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>오픈채팅 실제 사용자 검색 | 천보축전 관리자페이지</title>
+    <link rel="icon" type="image/svg+xml" th:href="@{/images/favicon.svg}" href="/images/favicon.svg">
+    <link rel="stylesheet" th:href="@{/css/admin.css}">
+<link rel="stylesheet" th:href="@{/css/admin-console.css}">
+</head>
+<body class="admin-page">
+<a class="skip-link" href="#admin-content">본문으로 건너뛰기</a>
+<div class="admin-layout">
+<aside th:replace="~{admin/fragments/sidebar :: sidebar}"></aside>
+<div class="admin-workspace">
+
+<main id="admin-content" tabindex="-1" class="admin-main">
+    <nav class="breadcrumb"><a th:href="@{/admin/bamboo}">오픈채팅 관리</a><span>/</span><strong>실제 사용자 검색</strong></nav>
+    <section class="page-heading"><h1>실제 사용자 검색·차단</h1></section>
+    <p>이름·학번·연락처·이메일·로그인 ID로 축제 사용자를 검색합니다. 오픈채팅 참여자는 차단하거나 해제할 수 있습니다.</p>
+    <div class="alert alert-success" role="status" th:if="${message}" th:text="${message}"></div>
+    <div class="alert alert-error" role="alert" th:if="${error}" th:text="${error}"></div>
+    <form class="bamboo-participant-search" method="post" th:action="@{/admin/bamboo/users/search}">
+        <label class="field-group"><span>사용자 검색</span><input type="search" name="query" th:value="${query}" minlength="2" maxlength="100" required placeholder="이름, 학번, 연락처 등"></label>
+        <button class="button button-primary" type="submit">검색</button>
+    </form>
+    <section class="bamboo-participant-panel" th:if="${result != null}">
+        <p th:text="|검색 결과 ${result.totalElements}명|">검색 결과</p>
+        <div class="bamboo-participant-list">
+            <article th:each="item : ${result.items}">
+                <div>
+                    <strong th:text="${item.name}">이름</strong>
+                    <dl class="performance-meta">
+                        <div><dt>학번 / 학과</dt><dd><span th:text="${item.studentNo}"></span> / <span th:text="${item.department}"></span></dd></div>
+                        <div><dt>연락처</dt><dd th:text="${item.phone}"></dd></div>
+                        <div><dt>이메일</dt><dd th:text="${item.email}"></dd></div>
+                        <div><dt>로그인 ID</dt><dd th:text="${item.loginId}"></dd></div>
+                        <div><dt>오픈채팅 닉네임</dt><dd th:text="${item.nickname != null ? item.nickname : '미참여 (닉네임 미등록)'}"></dd></div>
+                        <div th:if="${item.nickname != null}"><dt>작성 상태</dt><dd th:text="${item.muted ? '차단 중' : '작성 가능'}"></dd></div>
+                        <div th:if="${item.muted}"><dt>차단 종료</dt><dd th:text="${#temporals.format(item.mutedUntil.atZone(seoulZone), 'yyyy-MM-dd HH:mm')} + ' KST'"></dd></div>
+                    </dl>
+                </div>
+                <form th:if="${item.nickname != null}" method="post" th:action="@{/admin/bamboo/users/{id}/mute(id=${item.userUuid})}">
+                    <input type="hidden" name="query" th:value="${query}">
+                    <input type="hidden" name="page" th:value="${result.page}">
+                    <label class="field-group"><span>처리 사유</span><input type="text" name="reason" maxlength="200" required></label>
+                    <label class="field-group"><span>차단 시간</span><select name="minutes">
+                        <option value="10">10분</option><option value="30" selected>30분</option>
+                        <option value="180">3시간</option><option value="1440">하루</option>
+                        <option value="0" th:if="${item.muted}">차단 해제</option>
+                    </select></label>
+                    <button class="button button-danger" type="submit">적용</button>
+                </form>
+            </article>
+        </div>
+        <nav class="number-pagination" th:if="${result.totalPages > 1}" aria-label="사용자 검색 페이지">
+            <form method="post" th:action="@{/admin/bamboo/users/search}">
+                <input type="hidden" name="query" th:value="${query}">
+                <button th:if="${result.page > 0}" name="page" th:value="${result.page - 1}" type="submit">이전</button>
+                <button th:each="number : ${pageNumbers}" name="page" th:value="${number}" th:text="${number + 1}"
+                        th:attr="aria-current=${number == result.page ? 'page' : null}" type="submit"></button>
+                <button th:if="${result.page + 1 < result.totalPages}" name="page" th:value="${result.page + 1}" type="submit">다음</button>
+            </form>
+        </nav>
+    </section>
+</main>
+<div th:replace="~{admin/fragments/footer :: footer(true)}"></div>
+</div></div>
+</body>
+</html>

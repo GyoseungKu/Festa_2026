@@ -78,7 +78,7 @@ public class BambooAdminController {
     @PostMapping("/messages/{id}/mute-author")
     @Operation(summary = "작성자 작성 차단",
             description = "메시지를 지목해 그 작성자의 작성을 차단합니다. minutes 가 0 이면 해제합니다. "
-                    + "사유는 필수이며 감사 이력에 남습니다. 작성자 신원을 몰라도 조치할 수 있습니다. ADMIN 이상.")
+                    + "사유는 필수이며 감사 이력에 남습니다. 작성자 신원을 몰라도 조치할 수 있습니다. STAFF부터 신고 여부와 관계없이 작성자 차단 가능. 해제는 ADMIN 이상.")
     @SecurityRequirement(name = "bearerAuth")
     ResponseEntity<BambooMuteResponse> muteAuthor(
             @PathVariable Long id,

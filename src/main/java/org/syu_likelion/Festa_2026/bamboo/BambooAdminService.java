@@ -57,7 +57,7 @@ public class BambooAdminService {
 
     public AuthorizedResult<BambooMuteResponse> muteAuthor(String access, String refresh,
                                                             Long messageId, int minutes, String reason) {
-        AuthorizedResult<MeResponse> authenticated = authenticate(access, refresh, FestivalRole.ADMIN);
+        AuthorizedResult<MeResponse> authenticated = authenticate(access, refresh, FestivalRole.STAFF);
         MeResponse actor = authenticated.body();
         return rotated(authenticated, bamboo.muteAuthorOf(messageId, minutes, actor.userUuid(),
                 actor.name(), managementRole(actor.festivalRoles()), reason));
@@ -142,7 +142,8 @@ public class BambooAdminService {
     }
 
     private FestivalRole managementRole(Set<FestivalRole> roles) {
-        return roles.contains(FestivalRole.SUPER_ADMIN) ? FestivalRole.SUPER_ADMIN : FestivalRole.ADMIN;
+        return roles.contains(FestivalRole.SUPER_ADMIN) ? FestivalRole.SUPER_ADMIN
+                : roles.contains(FestivalRole.ADMIN) ? FestivalRole.ADMIN : FestivalRole.STAFF;
     }
 
     static void requireRole(Set<FestivalRole> roles, FestivalRole required) {

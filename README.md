@@ -403,12 +403,12 @@ QR에는 개인정보나 Access Token을 넣지 않습니다. 서버는 256비�
 | GET | `/api/bamboo/messages` | 로그인 | 과거 메시지 또는 커서 이후 변경 조회 |
 | POST | `/api/bamboo/messages` | 로그인 | 메시지 작성 |
 | POST | `/api/bamboo/messages/{id}/report` | 로그인 | 메시지 신고 |
-| GET/PATCH/POST | `/api/admin/bamboo/**` | 기능별 상이 | STAFF 이상 신고 처리·닉네임 변경, ADMIN 이상 차단·운영 설정 |
+| GET/PATCH/POST | `/api/admin/bamboo/**` | 기능별 상이 | STAFF 이상 신고 처리·작성자 차단·닉네임 변경, ADMIN 이상 해제·운영 설정 |
 | GET | `/api/admin/bamboo/messages/{id}/author` | `SUPER_ADMIN` | 작성자 신원 확인 및 감사 로그 |
 
 상세 폴링 방식, 요청·응답과 오류 코드는 [대나무숲 프런트 API 문서](docs/frontend-bamboo-api.md)를 확인합니다. 운영 DB에는 [bamboo-schema.sql](docs/bamboo-schema.sql)을 먼저 적용해 `utf8mb4` 문자셋을 보장하는 것을 권장합니다.
 
-`POST /api/admin/bamboo/messages/{id}/mute-author`는 `ADMIN` 이상만 호출할 수 있으며 `minutes`와 함께 1–200자의 `reason`이 필요합니다. 관리자 HTML 화면에서는 메시지 기반 차단 외에 익명 닉네임 검색을 통한 직접 차단·해제를 제공합니다. 두 경로 모두 처리 관리자, 대상, 처리 시각, 기간, 사유와 근거 메시지를 `bamboo_moderation_audits`에 저장합니다. 차단 감사 이력과 닉네임 직접 차단은 현재 관리자 HTML 화면에서만 제공하며 별도 REST 조회·처리 API는 없습니다.
+`POST /api/admin/bamboo/messages/{id}/mute-author`는 STAFF도 신고 여부와 관계없이 글의 작성자 차단에 사용할 수 있습니다. 차단 해제(`minutes=0`)는 `ADMIN` 이상만 가능하며 `minutes`와 함께 1–200자의 `reason`이 필요합니다. 관리자 HTML 화면에서는 메시지 기반 차단 외에 익명 닉네임 검색을 통한 직접 차단·해제를 제공합니다. 두 경로 모두 처리 관리자, 대상, 처리 시각, 기간, 사유와 근거 메시지를 `bamboo_moderation_audits`에 저장합니다. 차단 감사 이력과 닉네임 직접 차단은 현재 관리자 HTML 화면에서만 제공하며 별도 REST 조회·처리 API는 없습니다.
 
 운영 전에는 다음 조건을 반드시 확인합니다.
 
@@ -448,12 +448,13 @@ QR에는 개인정보나 Access Token을 넣지 않습니다. 서버는 256비�
 | `/admin/student-fees` | `ADMIN` 이상 | 학생회비 납부 명부 관리 |
 | `/admin/school-verifications` | `SUPER_ADMIN` | 학생 인증 불일치 요청 승인·삭제 |
 | `/admin/birthday-messages` | `STAFF` 이상 | 생일축하 쪽지·하트 사용자 관리 |
+| `/admin/bamboo/users` | `SUPER_ADMIN` | 실제 신원으로 사용자 검색 후 오픈채팅 차단·해제 |
 | `/admin/bamboo` | `STAFF` 이상 | 실시간·신고 채팅 조회, ADMIN 이상 익명 참여자 차단·감사 이력 관리 |
 | `/admin/system` | `SUPER_ADMIN` | 실시간 시스템 모니터링 |
 
 관리자 부스 담당자와 사용자 검색은 축제 서비스에 연결된 사용자만 대상으로 합니다. 일반 사용자 조회와 스탬프 임의 지급용 검색은 20명 단위 숫자 페이지를 사용합니다. 스탬프 페이지에서 `BOOTH_MANAGER`는 담당 부스만, `ADMIN` 이상은 모든 스탬프 지급 부스를 볼 수 있습니다.
 
-대나무숲 운영 화면은 `실시간 채팅`을 기본으로 열고 3초마다 변경 커서를 확인해 새 글이나 운영 조치가 있을 때만 목록을 갱신합니다. 신고된 채팅은 별도 탭에서 확인합니다. STAFF는 메시지 조회·숨김·삭제·복구와 닉네임 변경까지만 가능하고, 익명 참여자 검색과 작성 차단·해제는 `ADMIN` 이상만 가능합니다. 차단과 해제에는 사유가 필수이며 처리자·처리 시각·대상·기간과 함께 DB 감사 이력에 저장됩니다. 실제 사용자 신원은 노출되지 않으며 메시지 작성자 신원 조회는 기존처럼 `SUPER_ADMIN`에게만 허용됩니다. 대나무숲 열기·읽기 전용·자동 종료 설정은 `ADMIN` 이상만 변경할 수 있습니다.
+대나무숲 운영 화면은 `실시간 채팅`을 기본으로 열고 3초마다 변경 커서를 확인해 새 글이나 운영 조치가 있을 때만 목록을 갱신합니다. 신고된 채팅은 별도 탭에서 확인합니다. STAFF는 메시지 조회·숨김·삭제·복구, 닉네임 변경과 신고 여부와 관계없이 글의 작성자 차단이 가능합니다. 익명 참여자 검색·직접 차단과 차단 해제는 `ADMIN` 이상만 가능합니다. 차단과 해제에는 사유가 필수이며 처리자·처리 시각·대상·기간과 함께 DB 감사 이력에 저장됩니다. 익명 참여자 검색에는 실제 신원이 노출되지 않습니다. `SUPER_ADMIN`은 메시지 작성자의 신원을 조회하거나 `/admin/bamboo/users`에서 이름·학번·연락처 등으로 사용자를 검색해 닉네임·차단 상태를 확인하고 차단·해제할 수 있습니다. 실제 신원 검색은 조회자와 결과 사용자 UUID를 로그에 남기며, 닉네임 미등록 사용자는 차단할 수 없습니다. 대나무숲 열기·읽기 전용·자동 종료 설정은 `ADMIN` 이상만 변경할 수 있습니다.
 
 ### 관리자 화면용 JSON 조회
 

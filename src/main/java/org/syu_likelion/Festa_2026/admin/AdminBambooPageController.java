@@ -150,10 +150,6 @@ public class AdminBambooPageController {
                 HttpServletRequest request, HttpServletResponse response, RedirectAttributes flash) {
         AdminIdentity admin = staffOrNull(request, response);
         if (admin == null) return redirect(request);
-        if (!isAdmin(admin.role())) {
-            flash.addFlashAttribute("error", "작성 차단은 ADMIN 이상만 처리할 수 있습니다.");
-            return back(tab);
-        }
         try {
             bamboo.muteAuthorOf(id, minutes, admin.userUuid(), admin.displayName(), admin.role(), reason);
             flash.addFlashAttribute("message", minutes <= 0

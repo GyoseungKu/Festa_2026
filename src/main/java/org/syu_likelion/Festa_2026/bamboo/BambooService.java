@@ -387,13 +387,17 @@ public class BambooService {
 
     /**
      * 메시지를 지목해 그 작성자의 작성을 일정 시간 막는다.
-     * 지목 대상이 메시지이므로 STAFF 는 작성자 신원을 몰라도 조치할 수 있다.
+     * STAFF부터 신고 여부와 관계없이 메시지 작성자를 차단할 수 있으며 해제는 ADMIN 이상이다.
      */
     public BambooMuteResponse muteAuthorOf(Long messageId, int minutes, UUID actorUuid,
                                             String actorName, FestivalRole actorRole, String reason) {
         validateMuteDuration(minutes);
-        String auditReason = validateModerationActorAndReason(actorUuid, actorName, actorRole, reason);
+        String auditReason = validateModerationActorAndReason(actorUuid, actorName, actorRole, reason, true);
         return sequence.writeBatchInOrder(unused -> {
+            if (actorRole == FestivalRole.STAFF && minutes == 0) {
+                throw new ApiException(HttpStatus.FORBIDDEN, "BAMBOO_MANAGE_FORBIDDEN",
+                        "작성 차단 해제는 ADMIN 이상만 가능합니다.");
+            }
             BambooNickname nickname = authorNicknameOf(messageId);
             Instant now = Instant.now(clock);
             Instant until = minutes <= 0 ? null : now.plus(Duration.ofMinutes(minutes));
@@ -409,7 +413,7 @@ public class BambooService {
     public BambooMuteResponse muteParticipant(String requestedNickname, int minutes, UUID actorUuid,
                                                String actorName, FestivalRole actorRole, String reason) {
         validateMuteDuration(minutes);
-        String auditReason = validateModerationActorAndReason(actorUuid, actorName, actorRole, reason);
+        String auditReason = validateModerationActorAndReason(actorUuid, actorName, actorRole, reason, false);
         String key = BambooNicknamePolicy.normalize(
                 requestedNickname == null ? "" : requestedNickname.strip());
         if (key.isEmpty()) {
@@ -430,9 +434,29 @@ public class BambooService {
         });
     }
 
+    /** 실제 신원 검색에서 선택한 UUID로 조치한다. 닉네임 변경에도 대상을 유지한다. */
+    public BambooMuteResponse muteUser(UUID targetUuid, int minutes, UUID actorUuid,
+                                      String actorName, FestivalRole actorRole, String reason) {
+        BambooAdminService.requireRole(actorRole == null ? Set.of() : Set.of(actorRole), FestivalRole.SUPER_ADMIN);
+        validateMuteDuration(minutes);
+        String auditReason = validateModerationActorAndReason(actorUuid, actorName, actorRole, reason, false);
+        return sequence.writeBatchInOrder(unused -> {
+            BambooNickname nickname = nicknames.findById(targetUuid).orElseThrow(() ->
+                    new ApiException(HttpStatus.NOT_FOUND, "BAMBOO_NICKNAME_NOT_FOUND",
+                            "아직 오픈채팅 닉네임을 등록하지 않은 사용자입니다."));
+            Instant now = Instant.now(clock);
+            Instant until = minutes == 0 ? null : now.plus(Duration.ofMinutes(minutes));
+            nickname.mute(until);
+            nicknames.saveAndFlush(nickname);
+            saveModerationAudit(nickname, actorUuid, actorName, actorRole, minutes, auditReason, null, now);
+            return new BambooMuteResponse(until);
+        });
+    }
+
     private String validateModerationActorAndReason(UUID actorUuid, String actorName,
-                                                     FestivalRole actorRole, String reason) {
-        if (actorUuid == null || (actorRole != FestivalRole.ADMIN && actorRole != FestivalRole.SUPER_ADMIN)) {
+                                                     FestivalRole actorRole, String reason, boolean allowStaff) {
+        if (actorUuid == null || (actorRole != FestivalRole.ADMIN && actorRole != FestivalRole.SUPER_ADMIN
+                && !(allowStaff && actorRole == FestivalRole.STAFF))) {
             throw new ApiException(HttpStatus.FORBIDDEN, "BAMBOO_MANAGE_FORBIDDEN",
                     "작성 차단은 ADMIN 이상만 처리할 수 있습니다.");
         }
