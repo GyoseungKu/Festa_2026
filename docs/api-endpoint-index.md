@@ -26,12 +26,23 @@
 - [Stamp](#stamp)
 - [Password Change](#password-change)
 - [User](#user)
+- [Wristband](#wristband)
 
 2026-09-14 테스트 애플리케이션의 OpenAPI와 컨트롤러를 대조한 목록입니다. 총 98개 경로, HTTP 메서드 기준 125개입니다. 이 중 `/api/**`는 122개이며 학교 콜백 1개와 관리자 웹 JSON 조회 2개를 포함합니다.
 
 성공 코드는 컨트롤러의 선언 기준입니다. 오류·권한·생략/null 처리·서비스 검증은 연결된 도메인 문서를 함께 읽습니다. OpenAPI에 오류 응답이나 nullable이 생략되었다고 해서 실제로 발생하지 않는 것은 아닙니다. HTML 폼 경로는 [관리자 웹 경로](admin-web-api.md), 업로드 제한은 [업로드 규약](api-upload-limits.md)을 참고합니다.
 
 API를 추가·변경하면 이 색인과 도메인 문서를 함께 수정합니다. `/v3/api-docs`와 [OpenAPI 검증 테스트](../src/test/java/org/syu_likelion/Festa_2026/config/OpenApiDocumentationIntegrationTests.java)로 경로·메서드·성공 응답을 다시 대조할 수 있습니다.
+
+2026-09-16 팔찌 본인 조회를 추가했습니다. 위 개수는 최초 검토 시점의 수치이며 이후 추가된 API는 아래 항목과 현재 Swagger를 확인합니다.
+
+## Wristband
+
+[팔찌 지급·조회 문서](frontend-wristbands-api.md)
+
+| 메서드 | 경로 | 성공 코드·본문 | 요청 본문 |
+|---|---|---|---|
+| GET | `/api/users/me/wristband` | 200 · `MyStatus` (`issued`, `issuedAt`, `schoolVerified`) | 없음, Bearer 인증 |
 
 
 ## Admin Console

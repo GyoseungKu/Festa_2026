@@ -293,17 +293,19 @@ Origin은 경로나 마지막 `/` 없이 `scheme://host[:port]` 형식으로 입
 
 공연 구분은 `CELEBRITY`, `CLUB`, `INDIVIDUAL`입니다. 일반 링크는 최대 3개이고 이미지와 동영상은 각각 링크와 파일을 합해 최대 3개입니다.
 
+대나무숲·생일축하·투표/설문의 일반 사용자 API는 조회와 참여 모두 학생 인증이 필수입니다. 미인증·인증 회수 시 HTTP 403과 `SCHOOL_VERIFICATION_REQUIRED`를 반환합니다. 학생회비 납부는 필수가 아니며 별도 관리자 운영 API는 기존 역할 권한을 따릅니다.
+
 ### 투표와 응답 폼
 
-모든 투표 API는 로그인이 필요합니다.
+모든 투표 API는 로그인이 필요하며, 일반 사용자 API는 학생 인증도 필수입니다.
 
 | Method | Path | 권한 | 설명 |
 |---|---|---|---|
-| GET | `/api/polls` | 로그인 | 진행 중·진행 예정·종료 투표 목록 |
-| GET | `/api/polls/{id}` | 로그인 | 공개된 투표 상세와 질문·선택지·질문 미디어 |
-| POST | `/api/polls/{id}/submissions` | 로그인 | 투표 응답 제출 |
-| GET | `/api/polls/{id}/submissions/me` | 로그인 | 내 제출 내역 |
-| GET | `/api/polls/{id}/results` | 로그인 | 설정된 공개 시각 이후 결과 조회 |
+| GET | `/api/polls` | 로그인 + 학생 인증 | 진행 중·진행 예정·종료 투표 목록 |
+| GET | `/api/polls/{id}` | 로그인 + 학생 인증 | 공개된 투표 상세와 질문·선택지·질문 미디어 |
+| POST | `/api/polls/{id}/submissions` | 로그인 + 학생 인증 | 투표 응답 제출 |
+| GET | `/api/polls/{id}/submissions/me` | 로그인 + 학생 인증 | 내 제출 내역 |
+| GET | `/api/polls/{id}/results` | 로그인 + 학생 인증 | 설정된 공개 시각 이후 결과 조회 |
 | GET | `/api/admin/polls` | `ADMIN` 이상 | 전체 투표 목록 |
 | GET | `/api/admin/polls/{id}` | `ADMIN` 이상 | 실시간 집계와 제출 내역 페이지 |
 | POST | `/api/admin/polls` | `ADMIN` 이상 | 투표 생성 |
@@ -362,18 +364,18 @@ Origin은 경로나 마지막 `/` 없이 `scheme://host[:port]` 형식으로 입
 
 | Method | Path | 권한 | 설명 |
 |---|---|---|---|
-| GET | `/api/birthday-messages` | 공개 | 목록 조회 (`LATEST`, `OLDEST`, `MOST_LIKED`) |
-| GET | `/api/birthday-messages/{id}` | 공개 | 상세 조회 |
-| GET | `/api/birthday-messages/me` | 로그인 | 내가 작성한 활성 쪽지 조회 |
-| POST | `/api/birthday-messages` | 로그인 | 쪽지 작성, 사용자당 활성 1개 |
-| DELETE | `/api/birthday-messages/{id}` | 작성자 | 내 쪽지 삭제 |
-| PUT | `/api/birthday-messages/{id}/heart` | 로그인 | 하트 추가 |
-| DELETE | `/api/birthday-messages/{id}/heart` | 로그인 | 하트 취소 |
+| GET | `/api/birthday-messages` | 로그인 + 학생 인증 | 목록 조회 (`LATEST`, `OLDEST`, `MOST_LIKED`) |
+| GET | `/api/birthday-messages/{id}` | 로그인 + 학생 인증 | 상세 조회 |
+| GET | `/api/birthday-messages/me` | 로그인 + 학생 인증 | 내가 작성한 활성 쪽지 조회 |
+| POST | `/api/birthday-messages` | 로그인 + 학생 인증 | 쪽지 작성, 사용자당 활성 1개 |
+| DELETE | `/api/birthday-messages/{id}` | 학생 인증된 작성자 | 내 쪽지 삭제 |
+| PUT | `/api/birthday-messages/{id}/heart` | 로그인 + 학생 인증 | 하트 추가 |
+| DELETE | `/api/birthday-messages/{id}/heart` | 로그인 + 학생 인증 | 하트 취소 |
 | GET | `/api/admin/birthday-messages` | `STAFF` 이상 | 권한별 작성자 정보를 포함한 목록 |
 | GET | `/api/admin/birthday-messages/{id}/hearts` | `STAFF` 이상 | 하트를 누른 사용자 목록 |
 | DELETE | `/api/admin/birthday-messages/{id}` | `STAFF` 이상 | 관리자 삭제 |
 
-공개 목록은 `page=0`, `size=30`이 기본이고 페이지 크기는 최대 100입니다. 공개 작성자 정보와 관리자에게 보이는 개인정보 범위는 조회 권한에 따라 제한됩니다.
+목록은 `page=0`, `size=30`이 기본이고 페이지 크기는 최대 100입니다. 공개 작성자 정보와 관리자에게 보이는 개인정보 범위는 조회 권한에 따라 제한됩니다.
 
 ### 동적 QR 사용자 조회
 
@@ -393,16 +395,16 @@ QR에는 개인정보나 Access Token을 넣지 않습니다. 서버는 256비�
 
 ### 대나무숲 익명 채팅
 
-모든 사용자 API는 로그인이 필요합니다. 사용자 UUID는 메시지와 신고의 내부 소유권 판정에만 사용하고 일반 응답에는 노출하지 않습니다.
+모든 사용자 API는 로그인과 학생 인증이 필요합니다. 사용자 UUID는 메시지와 신고의 내부 소유권 판정에만 사용하고 일반 응답에는 노출하지 않습니다.
 
 | Method | Path | 권한 | 설명 |
 |---|---|---|---|
-| GET | `/api/bamboo` | 로그인 | 운영 상태, 내 닉네임과 현재 커서 |
-| GET | `/api/bamboo/nickname/suggest` | 로그인 | 사용 가능한 임시 닉네임 제안 |
-| POST | `/api/bamboo/nickname` | 로그인 | 변경 불가능한 닉네임 확정 |
-| GET | `/api/bamboo/messages` | 로그인 | 과거 메시지 또는 커서 이후 변경 조회 |
-| POST | `/api/bamboo/messages` | 로그인 | 메시지 작성 |
-| POST | `/api/bamboo/messages/{id}/report` | 로그인 | 메시지 신고 |
+| GET | `/api/bamboo` | 로그인 + 학생 인증 | 운영 상태, 내 닉네임과 현재 커서 |
+| GET | `/api/bamboo/nickname/suggest` | 로그인 + 학생 인증 | 사용 가능한 임시 닉네임 제안 |
+| POST | `/api/bamboo/nickname` | 로그인 + 학생 인증 | 변경 불가능한 닉네임 확정 |
+| GET | `/api/bamboo/messages` | 로그인 + 학생 인증 | 과거 메시지 또는 커서 이후 변경 조회 |
+| POST | `/api/bamboo/messages` | 로그인 + 학생 인증 | 메시지 작성 |
+| POST | `/api/bamboo/messages/{id}/report` | 로그인 + 학생 인증 | 메시지 신고 |
 | GET/PATCH/POST | `/api/admin/bamboo/**` | 기능별 상이 | STAFF 이상 신고 처리·작성자 차단·닉네임 변경, ADMIN 이상 해제·운영 설정 |
 | GET | `/api/admin/bamboo/messages/{id}/author` | `SUPER_ADMIN` | 작성자 신원 확인 및 감사 로그 |
 
@@ -429,6 +431,8 @@ QR에는 개인정보나 Access Token을 넣지 않습니다. 서버는 256비�
 이벤트는 비동기 JDBC Batch로 저장하며 중복 `eventId`, 시간 범위와 세션별 rate limit을 검증합니다. Presence는 DB에 저장하지 않고 JVM 메모리에서 기본 150초 후 만료됩니다.
 
 ## 관리자 페이지
+
+입장 팔찌는 `/admin/wristbands`에서 STAFF 이상이 QR·수동 조회 후 지급합니다. 학생 인증은 필수이며 납부 여부는 참고 정보입니다. ADMIN 이상은 `/admin/wristbands/manage`에서 목록·인원·이력을 조회하고 사유를 남겨 철회합니다. 사용자 본인 조회는 `GET /api/users/me/wristband`입니다. [권한·재가입 중복 방지·API·배포 안내](docs/frontend-wristbands-api.md)를 확인합니다.
 
 관리자 페이지는 Thymeleaf로 제공됩니다.
 

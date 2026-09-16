@@ -51,6 +51,10 @@ type MeResponse = {
 
 학생인증 전에는 납부 상태 대신 "학생인증 필요"로 표시하세요. [학생회비 확인 정책](student-fees.md)을 참고하세요.
 
+## 내 입장 팔찌 조회
+
+입장 팔찌 지급 완료 표시는 별도 `GET /api/users/me/wristband`를 사용합니다. [팔찌 응답·화면 처리](frontend-wristbands-api.md)를 확인합니다.
+
 ## 개인정보 수정
 
 ```http
@@ -127,6 +131,7 @@ Content-Type: application/json
 - **일반 공지(`notices`)는 현재 익명화 대상에 빠져 있습니다.** 작성 당시 `authorName`과 `authorUuid`, `lastModifiedByUuid`가 남습니다. 모든 게시글·운영 기록의 개인정보가 삭제된다고 안내하면 안 됩니다. 이는 문서상의 예외이며 코드 보완이 필요한 항목입니다.
 - 협찬사(`festival_sponsors`)의 `createdBy`, `updatedBy`도 현재 삭제 서비스가 변경하지 않습니다. 공개 협찬사 응답에 이 값은 없지만 DB 운영 기록에는 남습니다.
 - SSO 계정·프로필 및 공통 학생회비 납부 명부, 서버 요청/분석 로그는 이 API의 삭제 범위에 포함되지 않습니다.
+- 팔찌 수령자·처리자 UUID와 이름은 익명화합니다. 재가입 중복 지급을 막기 위한 학생 식별 HMAC과 지급 상태·시각·이력은 보존하며, 재인증하면 현재 지급 사실을 다시 확인할 수 있습니다. [팔찌 보존 범위](frontend-wristbands-api.md)를 참고합니다.
 - 이후 SSO 인증으로 서비스에 다시 접근하면 신규 사용자로 연결되며 기존 권한·학교 인증·활동 내역을 복원하지 않습니다. 유효한 SSO 토큰 자체를 폐기하는 API는 아니므로 다른 탭에서도 토큰과 캐시를 정리하세요.
 - 마지막 `SUPER_ADMIN`은 `409 LAST_SUPER_ADMIN_REQUIRED`로 거부됩니다. 먼저 다른 사용자에게 최고 관리자 권한을 부여해야 합니다.
 

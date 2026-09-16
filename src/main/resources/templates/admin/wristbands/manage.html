@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" th:replace="~{admin/wristbands/layout :: page('팔찌 지급 관리', ~{::content})}">
+<body><div th:fragment="content">
+    <section class="panel">
+        <h2 th:text="|현재 지급 완료 ${issuedCount}명|">지급 현황</h2>
+        <p class="support-copy">철회된 기록도 보존합니다. 재지급하면 같은 학생의 기존 기록에 이력이 추가됩니다. 처리 시각은 한국 시간입니다.</p>
+        <div class="wristband-table-scroll">
+            <table class="wristband-table"><thead><tr><th scope="col">기록</th><th scope="col">수령자</th><th scope="col">현재 상태</th><th scope="col">최근 지급자</th><th scope="col">최근 지급 일시</th><th scope="col">관리</th></tr></thead>
+                <tbody><tr th:each="item : ${records.content}">
+                    <td th:text="${item.id}"></td><td th:text="${item.targetName}"></td>
+                    <td th:text="${item.issued ? '지급 완료' : '지급 철회'}"></td><td th:text="${item.issuerName}"></td>
+                    <td th:text="${#temporals.format(item.issuedAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm:ss')}"></td>
+                    <td><a class="button button-secondary button-small" th:href="@{/admin/wristbands/records/{id}(id=${item.id})}">이력·철회</a></td>
+                </tr></tbody>
+            </table>
+        </div>
+        <p class="empty-copy" th:if="${records.empty}">지급 기록이 없습니다.</p>
+        <nav class="wristband-actions" th:if="${records.totalPages > 1}" aria-label="지급 목록 페이지">
+            <a class="button button-secondary" th:if="${records.hasPrevious()}" th:href="@{/admin/wristbands/manage(page=${records.number - 1})}">이전</a>
+            <span th:text="|${records.number + 1} / ${records.totalPages} 페이지|"></span>
+            <a class="button button-secondary" th:if="${records.hasNext()}" th:href="@{/admin/wristbands/manage(page=${records.number + 1})}">다음</a>
+        </nav>
+    </section>
+</div></body></html>

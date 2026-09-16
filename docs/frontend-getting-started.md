@@ -17,6 +17,8 @@
 
 첫 연결 확인은 공개 API인 `GET /api/booths`로 진행합니다. 응답 타입과 선택적 인증에 따른 찜 표시는 [부스 API](frontend-booths-api.md)를 확인합니다.
 
+대나무숲·생일축하·투표/설문은 조회부터 학생 인증이 필요합니다. `/api/users/me`의 `schoolVerified`를 확인하고, `403 SCHOOL_VERIFICATION_REQUIRED`이면 학생 인증으로 안내합니다. 학생회비 납부 여부는 이용 조건이 아닙니다.
+
 ## 2. 로그인과 새로고침 후 복구
 
 1. [인증 API](frontend-auth-api.md)의 로그인 요청으로 Access Token을 받고 메모리에 저장합니다. Refresh Token은 서버가 HttpOnly 쿠키로 설정합니다.
@@ -51,6 +53,7 @@
 | 공연 일정 | [공연](frontend-performances-api.md) | 시간·미디어 응답 |
 | 협찬사 | [협찬사](frontend-sponsors-api.md) | 사진·부스 연결 |
 | 내 QR·스탬프판·지급 화면 | [QR](frontend-qr-api.md), [스탬프](frontend-stamps-api.md) | 토큰 갱신, 스캔 목적별 API, 담당 부스·권한 |
+| 내 입장 팔찌 지급 여부 | [팔찌](frontend-wristbands-api.md) | 본인 조회, 학생 인증 전 안내, 철회 후 상태 갱신 |
 | 투표·설문 | [투표](frontend-polls-api.md) | 문항 종류, 제출 가능 조건, 결과 공개 조건 |
 | 분실물·생일축하 | [분실물](frontend-lost-items-api.md), [생일축하](frontend-birthday-messages-api.md) | 페이지네이션·작성 권한·내 글·하트 |
 | 익명 채팅 | [대나무숲](frontend-bamboo-api.md) | 닉네임 확정, 과거/변경 커서 구분, ID 기준 갱신, 작성 간격 |

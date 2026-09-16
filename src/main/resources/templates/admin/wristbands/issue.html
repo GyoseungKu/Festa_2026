@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" th:replace="~{admin/wristbands/layout :: page('무대 입장 팔찌 지급', ~{::content})}">
+<body><div th:fragment="content">
+    <div class="wristband-lookup">
+        <section class="panel scanner-panel">
+            <div class="panel-heading"><h2>QR 조회</h2><span id="camera-status" class="camera-status">대기 중</span></div>
+            <div class="camera-frame" id="camera-frame">
+                <video id="qr-video" playsinline muted aria-label="QR 스캔 카메라 화면"></video>
+                <div class="camera-placeholder"><p>사용자의 QR을 카메라에 보여 주세요.</p></div>
+                <div class="scan-guide" aria-hidden="true"></div>
+            </div>
+            <div class="wristband-actions">
+                <button id="camera-start" class="button button-primary" type="button">카메라 시작</button>
+                <button id="camera-stop" class="button button-secondary" type="button" disabled>중지</button>
+            </div>
+            <p id="camera-message" class="support-copy" aria-live="polite"></p>
+            <form id="qr-scan-form" method="post" th:action="@{/admin/wristbands/scan}" hidden>
+                <input id="token" type="hidden" name="token">
+            </form>
+        </section>
+        <section class="panel">
+            <h2>수동 조회</h2><p class="support-copy">이름·학번·아이디 등으로 검색한 뒤 본인을 확인해 주세요. QR 조회와 검색만으로 팔찌가 지급되지는 않습니다.</p>
+            <form class="wristband-form" method="post" th:action="@{/admin/wristbands/search}">
+                <label class="field-group"><span>검색어</span><input name="query" th:value="${query}" minlength="2" maxlength="100" required autocomplete="off" placeholder="이름 또는 학번"></label>
+                <button class="button button-primary" type="submit">사용자 조회</button>
+            </form>
+        </section>
+    </div>
+    <section th:if="${candidates != null}" class="wristband-results" aria-label="사용자 조회 결과">
+        <h2>조회 결과</h2>
+        <p th:if="${#lists.isEmpty(candidates)}" class="empty-copy">일치하는 축제 사용자가 없습니다.</p>
+        <article class="panel" th:each="person : ${candidates}">
+            <h3 th:text="${person.name ?: '알 수 없음'}">이름</h3>
+            <dl class="profile-grid">
+                <div><dt>학번</dt><dd th:text="${person.studentNo ?: '알 수 없음'}"></dd></div>
+                <div><dt>학과</dt><dd th:text="${person.department ?: '알 수 없음'}"></dd></div>
+                <div><dt>학생 인증</dt><dd th:text="${person.eligibility.schoolVerified ? '인증 완료' : '미인증 · 지급 불가'}"></dd></div>
+                <div><dt>학생회비</dt><dd th:text="${!person.eligibility.schoolVerified ? '학생 인증 필요' : (person.eligibility.studentFeePaid ? '납부' : '미납부')}"></dd></div>
+                <div><dt>팔찌</dt><dd th:text="${person.eligibility.issued ? '지급 완료' : '미지급'}"></dd></div>
+                <div th:if="${person.eligibility.issuedAt != null}"><dt>지급 일시</dt><dd th:text="${#temporals.format(person.eligibility.issuedAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm:ss')} + ' KST'"></dd></div>
+            </dl>
+            <p class="alert alert-error" th:if="${person.eligibility.schoolVerified and !person.eligibility.identityAvailable}">학생 식별정보를 확인할 수 없습니다. 관리자에게 학생 인증 재확인을 요청해 주세요.</p>
+            <div class="wristband-actions">
+                <form method="post" th:action="@{/admin/wristbands/issue}" onsubmit="return confirm('조회한 사용자 본인을 확인했나요? 팔찌 지급을 기록합니다.');">
+                    <input type="hidden" name="userUuid" th:value="${person.userUuid}">
+                    <button class="button button-primary" type="submit" th:disabled="${!person.eligibility.canIssue()}">팔찌 지급 처리</button>
+                </form>
+                <a class="button button-secondary" th:if="${canManage and person.eligibility.wristbandId != null}" th:href="@{/admin/wristbands/records/{id}(id=${person.eligibility.wristbandId})}">지급 이력·철회</a>
+            </div>
+        </article>
+        <nav class="wristband-actions" th:if="${search != null and search.totalPages > 1}" aria-label="검색 결과 페이지">
+            <form method="post" th:if="${search.page > 0}" th:action="@{/admin/wristbands/search}"><input type="hidden" name="query" th:value="${query}"><input type="hidden" name="page" th:value="${search.page - 1}"><button class="button button-secondary">이전</button></form>
+            <span th:text="|${search.page + 1} / ${search.totalPages} 페이지|"></span>
+            <form method="post" th:if="${search.page + 1 < search.totalPages}" th:action="@{/admin/wristbands/search}"><input type="hidden" name="query" th:value="${query}"><input type="hidden" name="page" th:value="${search.page + 1}"><button class="button button-secondary">다음</button></form>
+        </nav>
+    </section>
+</div></body></html>

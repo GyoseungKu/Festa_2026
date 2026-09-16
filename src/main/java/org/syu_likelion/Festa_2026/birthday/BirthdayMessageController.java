@@ -33,7 +33,7 @@ import org.syu_likelion.Festa_2026.user.UserController;
 
 @RestController
 @RequestMapping("/api/birthday-messages")
-@Tag(name = "Birthday Message", description = "수야·수호 생일축하 쪽지 게시판")
+@Tag(name = "Birthday Message", description = "학생 인증 필수 생일축하 쪽지 게시판. 미인증 시 403 SCHOOL_VERIFICATION_REQUIRED")
 public class BirthdayMessageController {
     private final BirthdayMessageService messages;
     private final BirthdayMessageApiService api;
@@ -47,25 +47,27 @@ public class BirthdayMessageController {
     }
 
     @GetMapping
-    @Operation(summary = "생일축하 쪽지 목록 조회", description = "로그인 없이 조회할 수 있습니다.")
+    @Operation(summary = "생일축하 쪽지 목록 조회", description = "로그인과 학생 인증이 필요합니다.")
+    @SecurityRequirement(name = "bearerAuth")
     ResponseEntity<BirthdayMessagePageResponse> list(
             @RequestParam(defaultValue = "LATEST") BirthdayMessageSort sort,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "30") int size,
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
             @Parameter(hidden = true) HttpServletRequest request) {
-        if (!hasBearer(authorization)) return ResponseEntity.ok(messages.list(null, sort, page, size));
+
         return response(api.list(BearerTokens.require(authorization), cookies.readRefreshToken(request),
                 sort, page, size));
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "생일축하 쪽지 상세 조회", description = "로그인 없이 조회할 수 있습니다.")
+    @Operation(summary = "생일축하 쪽지 상세 조회", description = "로그인과 학생 인증이 필요합니다.")
+    @SecurityRequirement(name = "bearerAuth")
     ResponseEntity<BirthdayMessageResponse> detail(
             @PathVariable Long id,
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
             @Parameter(hidden = true) HttpServletRequest request) {
-        if (!hasBearer(authorization)) return ResponseEntity.ok(messages.get(id, null));
+
         return response(api.get(id, BearerTokens.require(authorization), cookies.readRefreshToken(request)));
     }
 
@@ -125,10 +127,6 @@ public class BirthdayMessageController {
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
             @Parameter(hidden = true) HttpServletRequest request) {
         return response(api.removeHeart(id, BearerTokens.require(authorization), cookies.readRefreshToken(request)));
-    }
-
-    private boolean hasBearer(String authorization) {
-        return authorization != null && !authorization.isBlank();
     }
 
     private <T> ResponseEntity<T> response(AuthorizedResult<T> result) {

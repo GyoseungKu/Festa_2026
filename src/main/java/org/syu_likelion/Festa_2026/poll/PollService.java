@@ -80,6 +80,7 @@ public class PollService {
     @Transactional(readOnly = true)
     public AuthorizedResult<List<PollSummaryResponse>> listVisible(String access, String refresh) {
         AuthorizedResult<MeResponse> auth = users.getMe(access, refresh);
+        users.requireSchoolVerified(auth.body().userUuid());
         Instant now = clock.instant();
         List<PollSummaryResponse> result = polls.findByPublishedAtLessThanEqualOrderByStartsAtAsc(now).stream()
                 .map(poll -> toSummary(poll, auth.body().userUuid(), now))
@@ -92,6 +93,7 @@ public class PollService {
     @Transactional(readOnly = true)
     public AuthorizedResult<PollDetailResponse> getVisible(Long id, String access, String refresh) {
         AuthorizedResult<MeResponse> auth = users.getMe(access, refresh);
+        users.requireSchoolVerified(auth.body().userUuid());
         FestivalPoll poll = visible(id, clock.instant());
         return rotated(auth, toDetail(poll, auth.body().userUuid(), clock.instant()));
     }
@@ -100,6 +102,7 @@ public class PollService {
     public AuthorizedResult<SubmissionReceipt> submit(Long id, PollSubmissionRequest request,
                                                        String access, String refresh) {
         AuthorizedResult<MeResponse> auth = users.getMe(access, refresh);
+        users.requireSchoolVerified(auth.body().userUuid());
         SubmissionReceipt receipt = submitAs(id, auth.body().userUuid(), request);
         return rotated(auth, receipt);
     }
@@ -107,6 +110,7 @@ public class PollService {
     @Transactional(readOnly = true)
     public AuthorizedResult<List<MySubmissionResponse>> mySubmissions(Long id, String access, String refresh) {
         AuthorizedResult<MeResponse> auth = users.getMe(access, refresh);
+        users.requireSchoolVerified(auth.body().userUuid());
         visible(id, clock.instant());
         List<MySubmissionResponse> body = submissions
                 .findByPollIdAndUserUuidOrderBySubmittedAtDesc(id, auth.body().userUuid())
@@ -117,6 +121,7 @@ public class PollService {
     @Transactional(readOnly = true)
     public AuthorizedResult<PollResultResponse> publicResults(Long id, String access, String refresh) {
         AuthorizedResult<MeResponse> auth = users.getMe(access, refresh);
+        users.requireSchoolVerified(auth.body().userUuid());
         FestivalPoll poll = visible(id, clock.instant());
         if (!resultAvailable(poll, clock.instant()))
             throw new ApiException(HttpStatus.FORBIDDEN, "POLL_RESULT_NOT_AVAILABLE", "아직 공개되지 않은 투표 결과입니다.");

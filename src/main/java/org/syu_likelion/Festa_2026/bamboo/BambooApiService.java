@@ -35,9 +35,13 @@ public class BambooApiService {
      */
     private AuthorizedResult<UUID> authenticate(String access, String refresh) {
         UUID cached = identities.find(access);
-        if (cached != null) return new AuthorizedResult<>(cached, null, null);
+        if (cached != null) {
+            users.requireSchoolVerified(cached);
+            return new AuthorizedResult<>(cached, null, null);
+        }
         AuthorizedResult<MeResponse> authenticated = users.getMe(access, refresh);
         UUID userUuid = authenticated.body().userUuid();
+        users.requireSchoolVerified(userUuid);
         // 토큰이 갱신됐다면 만료된 옛 토큰이 아니라 새 토큰을 캐시한다.
         String rotated = authenticated.newAccessToken();
         identities.store(rotated != null ? rotated : access, userUuid);

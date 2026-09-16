@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" th:replace="~{admin/wristbands/layout :: page('팔찌 지급 이력', ~{::content})}">
+<body><div th:fragment="content">
+    <section class="panel">
+        <h2 th:text="|기록 #${wristband.id} · ${wristband.targetName}|"></h2>
+        <dl class="profile-grid">
+            <div><dt>현재 상태</dt><dd th:text="${wristband.issued ? '지급 완료' : '지급 철회'}"></dd></div>
+            <div><dt>수령자 UUID</dt><dd th:text="${wristband.targetUserUuid}"></dd></div>
+            <div><dt>최근 지급자</dt><dd th:text="${wristband.issuerName}"></dd></div>
+            <div><dt>최근 지급 일시</dt><dd th:text="${#temporals.format(wristband.issuedAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm:ss')} + ' KST'"></dd></div>
+        </dl>
+        <form class="wristband-form" th:if="${wristband.issued}" method="post" th:action="@{/admin/wristbands/records/{id}/revoke(id=${wristband.id})}" onsubmit="return confirm('팔찌 지급을 철회할까요? 사유와 처리 이력이 남습니다.');">
+            <input type="hidden" name="version" th:value="${wristband.version}">
+            <label class="field-group"><span>철회 사유 (필수)</span><textarea name="reason" rows="3" maxlength="500" required placeholder="철회 사유만 작성해 주세요. 이름·학번·연락처를 넣지 마세요."></textarea></label>
+            <button class="button button-danger" type="submit">지급 처리 철회</button>
+        </form>
+        <p th:unless="${wristband.issued}" class="support-copy">철회된 기록입니다. 재지급은 조회·지급 화면에서 학생 인증 상태를 다시 확인한 뒤 처리합니다.</p>
+    </section>
+    <section class="panel">
+        <h2>처리 이력</h2>
+        <ol class="wristband-history">
+            <li th:each="event : ${events.content}">
+                <strong th:text="${event.action.name() == 'ISSUE' ? '팔찌 지급' : '지급 철회'}"></strong>
+                <p><time th:text="${#temporals.format(event.occurredAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm:ss')} + ' KST'"></time> · <span th:text="${event.actorName}"></span></p>
+                <p class="support-copy">처리자 UUID: <span th:text="${event.actorUuid}"></span><br>수령자 UUID: <span th:text="${event.targetUserUuid}"></span></p>
+                <p class="wristband-reason" th:if="${event.reason != null}" th:text="${event.reason}"></p>
+            </li>
+        </ol>
+        <nav class="wristband-actions" th:if="${events.totalPages > 1}" aria-label="처리 이력 페이지">
+            <a class="button button-secondary" th:if="${events.hasPrevious()}" th:href="@{/admin/wristbands/records/{id}(id=${wristband.id},page=${events.number - 1})}">이전</a>
+            <span th:text="|${events.number + 1} / ${events.totalPages} 페이지|"></span>
+            <a class="button button-secondary" th:if="${events.hasNext()}" th:href="@{/admin/wristbands/records/{id}(id=${wristband.id},page=${events.number + 1})}">다음</a>
+        </nav>
+    </section>
+</div></body></html>

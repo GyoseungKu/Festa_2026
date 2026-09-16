@@ -43,6 +43,12 @@ public class FestivalWithdrawalService {
             update("LostItemNotice", "authorUuid", ", authorName = '알 수 없음'", userUuid, anonymous);
             update("BambooModerationAudit", "targetUserUuid", ", targetNickname = '알 수 없음'", userUuid, anonymous);
             update("BambooModerationAudit", "actorUuid", ", actorName = '알 수 없음'", userUuid, anonymous);
+            // Keep the school-subject HMAC and state to prevent duplicate wristbands after rejoining.
+            update("Wristband", "targetUserUuid", ", targetName = '알 수 없음'", userUuid, anonymous);
+            update("Wristband", "activeUserUuid", "", userUuid, anonymous);
+            update("Wristband", "issuedBy", ", issuerName = '알 수 없음'", userUuid, anonymous);
+            update("WristbandEvent", "targetUserUuid", "", userUuid, anonymous);
+            update("WristbandEvent", "actorUuid", ", actorName = '알 수 없음'", userUuid, anonymous);
             for (String entry : List.of("BambooMessage.deletedBy", "BambooReport.userUuid", "BirthdayMessageHeart.userUuid",
                     "LostItemNotice.lastModifiedByUuid", "PollSubmission.userUuid", "PollSubmission.singleVoteKey",
                     "FestivalPoll.createdBy", "FestivalPoll.updatedBy", "FestivalBooth.createdBy", "FestivalBooth.updatedBy",

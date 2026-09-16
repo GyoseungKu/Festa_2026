@@ -36,17 +36,20 @@ public class QrService {
     private final QrTokenStore tokenStore;
     private final QrProperties properties;
     private final Clock clock;
+    private final org.syu_likelion.Festa_2026.wristband.WristbandService wristbands;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public QrService(UserService users, FestivalUserService festivalUsers,
                      SsoInternalProfileClient profiles, QrTokenStore tokenStore,
-                     QrProperties properties, Clock clock) {
+                     QrProperties properties, Clock clock,
+                     org.syu_likelion.Festa_2026.wristband.WristbandService wristbands) {
         this.users = users;
         this.festivalUsers = festivalUsers;
         this.profiles = profiles;
         this.tokenStore = tokenStore;
         this.properties = properties;
         this.clock = clock;
+        this.wristbands = wristbands;
     }
 
     public AuthorizedResult<QrTokenResponse> issue(String accessToken, String refreshToken) {
@@ -178,7 +181,7 @@ public class QrService {
 
     private QrUserView toView(FestivalRole viewerRole, InternalUserProfile profile) {
         FestivalUserService.UserFestivalProfile festivalProfile = festivalProfile(profile.userUuid());
-        return switch (viewerRole) {
+        QrUserView view = switch (viewerRole) {
             case BOOTH_MANAGER -> new QrUserView(viewerRole, null, null, null, null, null,
                     maskName(profile.name()), null, maskStudentNo(profile.studentNo()),
                     profile.department(), profile.grade(), null, null, null, null, null,
@@ -199,6 +202,8 @@ public class QrService {
             case USER -> throw new ApiException(HttpStatus.FORBIDDEN, "QR_SCAN_FORBIDDEN",
                     "QR 사용자 조회 권한이 없습니다.");
         };
+        // The HTML-only status is computed before UUID masking and never serialized by the QR API.
+        return viewerRole == FestivalRole.BOOTH_MANAGER ? view : view.withWristband(wristbands.mine(profile.userUuid()));
     }
 
     private FestivalUserService.UserFestivalProfile festivalProfile(UUID userUuid) {

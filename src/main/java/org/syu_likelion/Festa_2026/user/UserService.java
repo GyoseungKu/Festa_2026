@@ -30,6 +30,14 @@ public class UserService {
         this.festivalUsers = festivalUsers;
     }
 
+    /** 참여 기능은 SSO 식별 캐시와 별개로 현재 축제 DB의 학생 인증을 확인한다. */
+    public void requireSchoolVerified(java.util.UUID userUuid) {
+        if (!festivalUsers.getProfile(userUuid).schoolVerified()) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "SCHOOL_VERIFICATION_REQUIRED",
+                    "학생 인증 완료 후 이용할 수 있습니다.");
+        }
+    }
+
     public AuthorizedResult<MeResponse> getMe(String access, String refresh) {
         CachedAuthentication cached = cachedAuthentication();
         if (cached != null && Objects.equals(cached.access(), access)

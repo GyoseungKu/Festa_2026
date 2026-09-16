@@ -49,7 +49,8 @@ class QrServiceTests {
         profiles = mock(SsoInternalProfileClient.class);
         tokens = new MemoryTokenStore();
         service = new QrService(users, festivalUsers, profiles, tokens,
-                new QrProperties(Duration.ofSeconds(60)), Clock.fixed(NOW, ZoneOffset.UTC));
+                new QrProperties(Duration.ofSeconds(60)), Clock.fixed(NOW, ZoneOffset.UTC),
+                mock(org.syu_likelion.Festa_2026.wristband.WristbandService.class));
         when(profiles.getProfile(TARGET_UUID)).thenReturn(targetProfile());
         when(festivalUsers.getRoles(TARGET_UUID)).thenReturn(Set.of(FestivalRole.USER));
         when(festivalUsers.getProfile(TARGET_UUID)).thenReturn(new FestivalUserService.UserFestivalProfile(
@@ -83,9 +84,10 @@ class QrServiceTests {
         assertThat(view.phone()).isNull();
         assertThat(view.email()).isNull();
         assertThat(view.userUuid()).isNull();
-        assertThat(view.schoolVerificationStatus()).isEqualTo(SchoolVerificationStatus.VERIFIED);
-        assertThat(view.schoolVerified()).isTrue();
-        assertThat(view.schoolVerifiedAt()).isEqualTo(NOW.minusSeconds(60));
+        assertThat(view.schoolVerificationStatus()).isNull();
+        assertThat(view.schoolVerified()).isNull();
+        assertThat(view.schoolVerifiedAt()).isNull();
+        assertThat(view.studentFeePaid()).isNull();
     }
 
     @Test

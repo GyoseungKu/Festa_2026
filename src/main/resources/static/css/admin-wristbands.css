@@ -1,0 +1,22 @@
+.wristband-content > div, .wristband-content { min-width:0; }
+.wristband-content > div > * + *, .wristband-results > * + * { margin-top:24px; }
+.wristband-main .panel { padding:28px; }
+.wristband-lookup { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:24px; }
+.wristband-lookup > * { min-width:0; }
+.wristband-actions { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin-top:20px; }
+.wristband-actions form { margin:0; }
+.wristband-form { display:grid; gap:16px; margin-top:24px; }
+.wristband-form input, .wristband-form textarea { width:100%; }
+.wristband-form button { justify-self:start; }
+.wristband-table-scroll { overflow-x:auto; margin:24px 0; }
+.wristband-table { width:100%; border-collapse:collapse; text-align:left; }
+.wristband-table th, .wristband-table td { padding:14px 16px; border-bottom:1px solid var(--admin-line); white-space:nowrap; }
+.wristband-history { list-style:none; margin:24px 0; padding:0; }
+.wristband-history li { padding:20px 0; border-bottom:1px solid var(--admin-line); overflow-wrap:anywhere; }
+.wristband-history p { margin:8px 0; }
+.wristband-reason { white-space:pre-wrap; }
+.wristband-main .profile-grid dd { overflow-wrap:anywhere; }
+@media (max-width:800px) {
+    .wristband-lookup { grid-template-columns:minmax(0,1fr); }
+    .wristband-main .panel { padding:20px; }
+}

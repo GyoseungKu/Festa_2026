@@ -31,7 +31,7 @@ import org.syu_likelion.Festa_2026.user.UserController;
 
 @RestController
 @RequestMapping("/api/polls")
-@Tag(name = "Poll", description = "로그인 사용자 투표·응답 폼")
+@Tag(name = "Poll", description = "학생 인증 필수 투표·응답 폼. 미인증 시 403 SCHOOL_VERIFICATION_REQUIRED")
 @SecurityRequirement(name = "bearerAuth")
 public class PollController {
     private final PollService polls;

@@ -9,6 +9,7 @@ import org.syu_likelion.Festa_2026.user.FestivalRole;
 @Component("adminFeatures")
 public class AdminFeatures {
     private static final List<Feature> FEATURES = List.of(
+            new Feature("/admin/wristbands", "무대 입장 팔찌 지급", "입장 팔찌 지급", "학생 인증·납부 여부를 확인하고 팔찌를 지급합니다. ADMIN 이상은 지급 철회와 이력을 관리합니다.", "STAFF 이상", "feature-icon", "", "◎", Access.STAFF),
             new Feature("/admin/student-fees", "학생회비 납부자 관리", "학생회비 납부자", "납부자 학번 등록·검색·삭제", "ADMIN 이상", "feature-icon", "", "₩", Access.ADMIN),
             new Feature("/admin/sponsors", "협찬사 관리", "협찬사 관리", "협찬사 이름·소개·사진을 등록하고 부스를 연결합니다.", "ADMIN 이상", "feature-icon", "", "★", Access.ADMIN),
             new Feature("/admin/school-verifications", "학생 인증 승인", "학생인증 승인", "이름 또는 학번이 다른 학교 인증 요청을 비교하고 승인하거나 삭제합니다.", "SUPER_ADMIN", "feature-icon feature-icon-verification", "M12 2 4 5v6c0 5.2 3.4 9.8 8 11 4.6-1.2 8-5.8 8-11V5l-8-3Zm0 3 5 1.9V11c0 3.6-2.1 6.9-5 8-2.9-1.1-5-4.4-5-8V6.9L12 5Zm-1 4v3H8l4 4 4-4h-3V9h-2Z", "", Access.SUPER_ADMIN),

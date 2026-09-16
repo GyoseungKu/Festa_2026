@@ -34,7 +34,7 @@ import org.syu_likelion.Festa_2026.user.UserController;
 
 @RestController
 @RequestMapping("/api/bamboo")
-@Tag(name = "Bamboo", description = "대나무숲 익명 오픈채팅")
+@Tag(name = "Bamboo", description = "학생 인증 필수 대나무숲 익명 오픈채팅. 미인증 시 403 SCHOOL_VERIFICATION_REQUIRED")
 public class BambooController {
     private final BambooApiService api;
     private final TokenCookieManager cookies;

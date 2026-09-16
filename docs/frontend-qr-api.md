@@ -79,18 +79,18 @@ Content-Type: application/json
 
 | 조회 권한 | 제공 범위 |
 |---|---|
-| `BOOTH_MANAGER` | 마스킹 이름·학번, 학과, 학년 + 학생 인증 상태·시각 |
-| `STAFF` | 마스킹 이름·학번, 학과, 학년 + 학생 인증 상태·시각 |
-| `ADMIN` | 원본 이름·학번, 학과, 학년 + 전화번호, 이메일 + 학생 인증 상태·시각 |
-| `SUPER_ADMIN` | SSO 전체 프로필 + 축제 권한 + 학생 인증 상태·시각 |
+| `BOOTH_MANAGER` | 마스킹 이름·학번, 학과, 학년 |
+| `STAFF` | 마스킹 이름·학번, 학과, 학년 + 학생 인증 상태·시각·학생회비 납부 여부 |
+| `ADMIN` | 원본 이름·학번, 학과, 학년 + 전화번호, 이메일 + 학생 인증 상태·시각·학생회비 납부 여부 |
+| `SUPER_ADMIN` | SSO 전체 프로필 + 축제 권한 + 학생 인증 상태·시각·학생회비 납부 여부 |
 
-모든 운영자 조회 응답에는 다음 학생 인증 필드가 포함됩니다.
+`STAFF`, `ADMIN`, `SUPER_ADMIN` 조회 응답에만 다음 학생 인증·납부 필드가 포함됩니다. `BOOTH_MANAGER` 단독 권한에는 네 필드 모두 JSON에서 생략되며 관리자 화면에도 표시되지 않습니다. 프런트는 필드 미제공을 미인증·미납부로 해석하지 말고 해당 항목을 숨겨야 합니다.
 
 ```ts
 type SchoolVerificationFields = {
   schoolVerificationStatus: "UNVERIFIED" | "VERIFIED" | "REVOKED";
   schoolVerified: boolean;
-  schoolVerifiedAt: string | null;
+  schoolVerifiedAt?: string; // 인증 시각이 없으면 생략
   studentFeePaid: boolean; // 미인증은 항상 false; UI에서는 학생인증 필요로 표시
 };
 ```
@@ -148,10 +148,10 @@ type QrUserView = {
   createdAt?: string;
   updatedAt?: string;
   festivalRoles?: Array<"USER" | "STAFF" | "ADMIN" | "SUPER_ADMIN" | "BOOTH_MANAGER">;
-  schoolVerificationStatus: "UNVERIFIED" | "VERIFIED" | "REVOKED";
-  schoolVerified: boolean;
+  schoolVerificationStatus?: "UNVERIFIED" | "VERIFIED" | "REVOKED";
+  schoolVerified?: boolean;
   schoolVerifiedAt?: string;
-  studentFeePaid: boolean;
+  studentFeePaid?: boolean;
 };
 ```
 

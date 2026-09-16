@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" th:fragment="page(title, content)">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${title + ' | SYU FESTA 2026'}">입장 팔찌</title>
+    <link rel="icon" type="image/svg+xml" th:href="@{/images/favicon.svg}">
+    <link rel="stylesheet" th:href="@{/css/admin.css}">
+    <link rel="stylesheet" th:href="@{/css/admin-console.css}">
+    <link rel="stylesheet" th:href="@{/css/admin-wristbands.css}">
+    <script defer th:src="@{/webjars/jsqr/1.4.0/dist/jsQR.js}"></script>
+    <script defer th:src="@{/js/admin-qr.js}"></script>
+</head>
+<body class="admin-page">
+<a class="skip-link" href="#admin-content">본문으로 건너뛰기</a>
+<div class="admin-layout">
+    <aside th:replace="~{admin/fragments/sidebar :: sidebar}"></aside>
+    <div class="admin-workspace">
+        <main id="admin-content" tabindex="-1" class="admin-main wristband-main">
+            <header class="management-toolbar">
+                <div><p class="eyebrow">STAGE ADMISSION</p><h1 th:text="${title}">입장 팔찌</h1>
+                    <p>학생 인증 완료자에게 1회 지급합니다. 학생회비 납부 여부는 참고 정보입니다.</p></div>
+                <nav class="wristband-actions" aria-label="팔찌 메뉴">
+                    <a class="button button-secondary" th:href="@{/admin/wristbands}">조회·지급</a>
+                    <a class="button button-secondary" th:if="${canManage}" th:href="@{/admin/wristbands/manage}">지급 관리·이력</a>
+                </nav>
+            </header>
+            <p th:if="${message}" class="alert alert-success" role="status" th:text="${message}"></p>
+            <p th:if="${error}" class="alert alert-error" role="alert" th:text="${error}"></p>
+            <div class="wristband-content" th:insert="${content}"></div>
+        </main>
+        <div th:replace="~{admin/fragments/footer :: footer(true)}"></div>
+    </div>
+</div>
+</body>
+</html>

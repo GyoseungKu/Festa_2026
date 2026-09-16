@@ -4,9 +4,22 @@
 
 공통 인증과 오류 처리는 [공통 API 규약](frontend-api-common.md)을 따릅니다.
 
+## 학생 인증 필수
+
+일반 사용자 API는 조회·참여 모두 로그인과 학생 인증이 필요합니다. `schoolVerificationStatus=VERIFIED`이고 인증 시각이 있어야 하며, 미인증·인증 회수 상태는 아래 오류를 반환합니다. 학생회비 납부 여부는 이용 조건이 아닙니다.
+
+```http
+HTTP/1.1 403 Forbidden
+Content-Type: application/json
+
+{"code":"SCHOOL_VERIFICATION_REQUIRED","message":"학생 인증 완료 후 이용할 수 있습니다."}
+```
+
+프런트는 `/api/users/me`의 `schoolVerified`로 진입 화면을 구성하고, 위 오류를 받으면 [학생 인증 흐름](frontend-school-sso.md)으로 안내합니다. 비로그인 요청은 `401`입니다. 일반 사용자 API에는 관리자 역할도 학생 인증 예외가 없으며, 별도 관리자 운영 API·페이지는 기존 역할 권한을 따릅니다. 경로와 성공 응답 구조는 동일하며, 이전에 허용되던 미인증 요청은 이제 `403`으로 거절됩니다.
+
 ## 정책
 
-- 목록·상세는 공개입니다.
+- 목록·상세를 포함한 모든 사용자 API에 Bearer 인증과 학생 인증이 필요합니다.
 - 작성·내 쪽지·본인 삭제·하트는 Bearer 인증이 필요합니다.
 - 활성 쪽지는 사용자당 하나이며 수정 API는 없습니다.
 - 삭제하면 연결된 하트도 삭제되고 새 쪽지를 작성할 수 있습니다.
@@ -45,14 +58,14 @@ type BirthdayMessagePage = {
 ```http
 GET /api/birthday-messages?sort=LATEST&page=0&size=30
 GET /api/birthday-messages/{id}
-Authorization: Bearer ACCESS_TOKEN  # 선택
+Authorization: Bearer ACCESS_TOKEN  # 필수
 ```
 
 - `sort`: `LATEST`(기본), `OLDEST`, `MOST_LIKED`
 - `page`: 0부터 시작
 - `size`: 기본 30, 최대 100
-- 비로그인 요청은 `heartedByMe=false`, `mine=false`
-- 로그인 토큰을 보내면 두 값이 사용자 기준으로 계산됨
+- 비로그인 요청은 `401`, 학생 미인증 요청은 `403 SCHOOL_VERIFICATION_REQUIRED`
+- 학생 인증된 사용자의 `heartedByMe`, `mine`은 해당 사용자 기준으로 계산됨
 
 목록은 `BirthdayMessagePage`, 상세는 `BirthdayMessage`를 반환합니다.
 

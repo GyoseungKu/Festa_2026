@@ -43,7 +43,7 @@
 
 ## 프론트 응답
 
-내 정보(`MeResponse`), 사용자 검색·QR 조회(`QrUserView`), 관리자 학생인증 변경 응답에 `studentFeePaid: boolean`을 추가했습니다. 기존 접근 권한과 개인정보 마스킹은 유지합니다.
+내 정보(`MeResponse`), STAFF 이상 사용자 검색·QR 조회(`QrUserView`), 관리자 학생인증 변경 응답에 `studentFeePaid: boolean`을 제공합니다. `BOOTH_MANAGER` 단독 권한으로 QR 조회 시 학생 인증 상태·시각과 `studentFeePaid` 필드는 JSON과 관리자 화면에서 제외됩니다. 본인의 내 정보 조회는 기존대로 유지됩니다.
 
 ```js
 const feeLabel = !user.schoolVerified

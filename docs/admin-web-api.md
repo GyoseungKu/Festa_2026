@@ -26,6 +26,22 @@
 
 ## 전체 관리자 경로
 
+### 입장 팔찌 (2026-09-16 추가)
+
+관리자 쿠키와 POST의 CSRF 토큰이 필요합니다. [정책·저장·본인 API](frontend-wristbands-api.md)를 함께 확인합니다.
+
+| 메서드 | 경로 | 권한·용도 |
+|---|---|---|
+| GET | `/admin/wristbands` | STAFF 이상 조회·지급 화면 |
+| POST | `/admin/wristbands/scan` | STAFF 이상 QR 조회 |
+| POST | `/admin/wristbands/search` | STAFF 이상 사용자 검색 |
+| POST | `/admin/wristbands/issue` | STAFF 이상 지급, 학생 인증 필수 |
+| GET | `/admin/wristbands/manage` | ADMIN 이상 전체 목록·현재 인원 |
+| GET | `/admin/wristbands/records/{id}` | ADMIN 이상 상세·이력 |
+| POST | `/admin/wristbands/records/{id}/revoke` | ADMIN 이상 철회, 사유·조회 버전 필수 |
+
+### 기존 기능
+
 2026-09-14 컨트롤러 선언 기준입니다. 아래에는 두 JSON 조회도 포함됩니다. 같은 경로의 GET과 POST는 서로 다른 작업입니다.
 
 | 메서드 | 경로 | 구현 |

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" th:fragment="page(title, kind, content)">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title th:text="${title + ' | SYU FESTA 2026'}">약관 | SYU FESTA 2026</title>
+    <link rel="icon" type="image/svg+xml" th:href="@{/images/favicon.svg}">
+    <link rel="stylesheet" th:href="@{/css/admin.css}">
+    <link rel="stylesheet" th:href="@{/css/admin-console.css}">
+    <link rel="stylesheet" th:href="@{/css/terms.css}">
+</head>
+<body class="admin-page terms-page">
+<div class="terms-shell">
+    <header class="terms-brand">
+        <img th:src="@{/images/festa.png}" alt="Make a Wish" width="579" height="419">
+        <div><span>삼육대학교 2026 천보축전</span><strong>서비스 이용 안내</strong></div>
+    </header>
+    <main class="terms-document" id="terms-content">
+        <header class="terms-heading">
+            <p class="terms-kicker">SYU FESTA 2026</p>
+            <h1 th:text="${title}">약관</h1>
+            <p class="terms-meta">시행일: 추후 안내 · 임시 작성본</p>
+        </header>
+        <aside class="terms-draft" aria-label="임시 내용 안내">
+            이 페이지는 문서 구성을 확인하기 위한 임시 화면입니다.
+            아래 내용은 확정된 약관이나 개인정보처리방침이 아니며, 정식 내용으로 교체될 예정입니다.
+        </aside>
+        <article class="terms-body" th:insert="${content}"></article>
+    </main>
+    <div class="terms-footer">
+        <footer th:replace="~{admin/fragments/footer :: footer(false)}"></footer>
+    </div>
+</div>
+</body>
+</html>

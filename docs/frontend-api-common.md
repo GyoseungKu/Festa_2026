@@ -123,6 +123,7 @@ await apiFetch<ResponseType>("/api/example", {
 | `400` | `INVALID_MULTIPART_REQUEST` | 필수 파트와 multipart boundary 확인 |
 | `401` | `UNAUTHORIZED` | 메모리 토큰과 사용자 캐시 제거 후 로그인 유도 |
 | `403` | 도메인별 `*_FORBIDDEN` | 권한 부족 안내 또는 접근 화면 제거 |
+| `403` | `SCHOOL_VERIFICATION_REQUIRED` | 대나무숲·생일축하·투표/설문의 조회·참여에 학생 인증 필요. 로그인 상태를 유지하고 학생 인증으로 안내 |
 | `403` | `ACCOUNT_FORBIDDEN` | SSO 계정 사용 불가, 로그인 상태 정리 |
 | `404` | 도메인별 `*_NOT_FOUND` | 목록으로 이동하거나 삭제된 항목 안내 |
 | `409` | 도메인별 충돌 code | 현재 상태를 다시 조회해 UI 동기화 |

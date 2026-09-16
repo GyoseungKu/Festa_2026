@@ -80,6 +80,19 @@ import org.syu_likelion.Festa_2026.poll.PollService;
 @AutoConfigureMockMvc
 class AdminPageIntegrationTests {
     @Test
+    void publicTermsRenderWithoutAdminAuthentication() throws Exception {
+        mvc.perform(get("/terms/service"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML))
+                .andExpect(content().string(containsString("제1조 목적")))
+                .andExpect(content().string(containsString("확정된 약관이나 개인정보처리방침이 아니며")));
+        mvc.perform(get("/terms/privacy"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML))
+                .andExpect(content().string(containsString("개인정보 처리 목적")));
+    }
+
+    @Test
     void sidebarKeepsCombinedRolesAndHighlightsDashboard() throws Exception {
         var combined = new AdminIdentity(UUID.randomUUID(), "운영자", FestivalRole.STAFF,
                 Set.of(FestivalRole.STAFF, FestivalRole.BOOTH_MANAGER));
@@ -114,7 +127,7 @@ class AdminPageIntegrationTests {
             if (manager) expected.addAll(Set.of("/admin/booths", "/admin/performances", "/admin/polls",
                     "/admin/student-fees", "/admin/sponsors", "/admin/timetable"));
             if (manager || assigned.contains(FestivalRole.STAFF)) expected.addAll(Set.of("/admin/notices",
-                    "/admin/lost-items", "/admin/bamboo", "/admin/birthday-messages"));
+                    "/admin/lost-items", "/admin/bamboo", "/admin/birthday-messages", "/admin/wristbands"));
             if (manager || assigned.contains(FestivalRole.BOOTH_MANAGER)) expected.add("/admin/stamps");
             if (assigned.contains(FestivalRole.SUPER_ADMIN)) expected.addAll(Set.of(
                     "/admin/school-verifications", "/admin/system"));
@@ -197,7 +210,7 @@ class AdminPageIntegrationTests {
                 .andExpect(content().string(containsString("서버 장애 긴급 연락처")))
                 .andExpect(content().string(containsString("010-4953-5080")))
                 .andExpect(content().string(containsString("대나무숲 운영")))
-                .andExpect(content().string(containsString("5개 기능 사용 가능")))
+                .andExpect(content().string(containsString("6개 기능 사용 가능")))
                 .andExpect(content().string(containsString("STAFF")));
 
         mvc.perform(get("/admin/qr").cookie(new Cookie("festivalAdminAccess", "access-one")))
@@ -429,19 +442,21 @@ class AdminPageIntegrationTests {
     }
 
     @Test
-    void birthdayBoardIsPublicAndCreateAndAdminHeartRoutesAppearInOpenApi() throws Exception {
+    void birthdayBoardRequiresLoginAndCreateAndAdminHeartRoutesAppearInOpenApi() throws Exception {
         java.time.Instant createdAt = java.time.Instant.parse("2026-08-14T03:00:00Z");
         BirthdayMessageResponse message = new BirthdayMessageResponse(11L, "수야 수호 생일 축하해!",
                 new PublicAuthor("컴퓨터공학부", "2024******", "홍*동"),
                 3L, false, false, createdAt);
-        when(birthdayMessageService.list(null, BirthdayMessageSort.LATEST, 0, 30))
-                .thenReturn(new BirthdayMessagePageResponse(java.util.List.of(message), 0, 30, 1, 1));
+        when(birthdayMessageApiService.list("user-token", null, BirthdayMessageSort.LATEST, 0, 30))
+                .thenReturn(new AuthorizedResult<>(new BirthdayMessagePageResponse(java.util.List.of(message), 0, 30, 1, 1), null, null));
         when(birthdayMessageApiService.create(
                 org.mockito.ArgumentMatchers.eq("user-token"),
                 org.mockito.ArgumentMatchers.isNull(), any()))
                 .thenReturn(new AuthorizedResult<>(message, null, null));
 
         mvc.perform(get("/api/birthday-messages"))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/birthday-messages").header("Authorization", "Bearer user-token"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].content").value("수야 수호 생일 축하해!"))
                 .andExpect(jsonPath("$.items[0].author.maskedStudentNo").value("2024******"));
