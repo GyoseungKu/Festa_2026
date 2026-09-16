@@ -40,7 +40,7 @@ Content-Type: application/json
 
 프런트는 `/api/users/me`의 `schoolVerified`로 진입 화면을 구성하고, 위 오류를 받으면 [학생 인증 흐름](frontend-school-sso.md)으로 안내합니다. 비로그인 요청은 `401`입니다. 일반 사용자 API에는 관리자 역할도 학생 인증 예외가 없으며, 별도 관리자 운영 API·페이지는 기존 역할 권한을 따릅니다. 경로와 성공 응답 구조는 동일하며, 이전에 허용되던 미인증 요청은 이제 `403`으로 거절됩니다.
 
-학생 인증 상태는 로그인 식별 캐시와 별개로 매 요청 DB에서 확인합니다. 인증 회수 시 캐시가 남아 있어도 이후 요청은 거절됩니다.
+SSO 로그인 상태와 DB의 학생 인증 상태를 매 요청 확인합니다. 요청 간 인증 캐시는 사용하지 않습니다.
 
 ## 1. 주요 정책
 
@@ -592,9 +592,9 @@ Content-Type: application/json
 - 대나무숲 사용자 API가 동시에 점유할 수 있는 요청 수를 제한합니다.
 - 동시 요청 한도 초과 시 다른 부스·스탬프·QR API의 스레드를 남기고 대나무숲 요청만 `429`로 거부합니다.
 - `Content-Length`가 16KiB를 초과하는 요청은 컨트롤러 진입 전에 `413`으로 거부합니다.
-- Access Token 원문은 인증 캐시에 저장하지 않고 SHA-256 해시만 키로 사용합니다.
-- 관리 API는 인증 캐시를 사용하지 않고 매 요청 SSO 권한을 확인합니다.
-- 일반 사용자 인증 결과는 SSO 부하 보호를 위해 기본 60초 캐시합니다.
+- 일반 사용자·관리 API 모두 매 요청 SSO 인증을 확인합니다. 폐기·차단된 토큰을 요청 간 캐시로 허용하지 않습니다.
+- 정상 Refresh Token에 의한 토큰 갱신과 응답 헤더·쿠키 전달은 유지됩니다.
+- 요청 간 인증 캐시 제거로 SSO 호출량이 증가합니다. 폴링 중복 방지·백오프와 동시 요청 제한을 유지하고 배포 전 SSO 용량을 확인합니다. 기존 BAMBOO_IDENTITY_TTL/MAX_ENTRIES 설정은 제거되었으며 더 이상 사용하지 않습니다.
 - 신고 알림 메일은 별도 스레드와 제한된 큐에서 발송하므로 SMTP 장애가 신고 저장을 롤백하지 않습니다.
 
 ## 14. 환경변수
@@ -606,8 +606,6 @@ BAMBOO_WRITES_PER_MINUTE=10
 BAMBOO_WRITES_PER_HOUR=200
 BAMBOO_REPORTS_PER_MINUTE=10
 BAMBOO_MAX_TRACKED_USERS=100000
-BAMBOO_IDENTITY_TTL=60s
-BAMBOO_IDENTITY_MAX_ENTRIES=20000
 
 BAMBOO_ALERT_ENABLED=true
 BAMBOO_ALERT_THRESHOLD=5

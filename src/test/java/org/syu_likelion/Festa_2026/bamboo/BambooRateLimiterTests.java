@@ -23,7 +23,7 @@ class BambooRateLimiterTests {
     void setUp() {
         clock = new MutableClock(Instant.parse("2026-10-06T10:00:00Z"));
         limiter = new BambooRateLimiter(new BambooProperties(100, Duration.ofSeconds(5), 10, 200, 10,
-                100_000, Duration.ofSeconds(60), 20_000, List.of()), clock);
+                100_000, List.of()), clock);
     }
 
     @Test

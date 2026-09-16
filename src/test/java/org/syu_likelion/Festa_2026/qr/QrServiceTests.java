@@ -168,6 +168,17 @@ class QrServiceTests {
     }
 
     @Test
+    void securityAuditStaffCanConfirmHiddenEmailThroughSearchResults() {
+        when(festivalUsers.getLinkedUserUuids()).thenReturn(List.of(TARGET_UUID));
+        when(profiles.getProfiles(List.of(TARGET_UUID))).thenReturn(List.of(targetProfile()));
+        var match = service.searchAs(FestivalRole.STAFF, "target@example.com");
+        var miss = service.searchAs(FestivalRole.STAFF, "different@example.com");
+        assertThat(match.totalElements()).isEqualTo(1);
+        assertThat(match.items().getFirst().email()).isNull();
+        assertThat(miss.totalElements()).isZero();
+    }
+
+    @Test
     void authenticatedAdminCanUpdateManagementRole() {
         authenticateAs(FestivalRole.ADMIN, SCANNER_UUID);
         when(festivalUsers.updateManagementRole(SCANNER_UUID, FestivalRole.ADMIN, TARGET_UUID, FestivalRole.STAFF))

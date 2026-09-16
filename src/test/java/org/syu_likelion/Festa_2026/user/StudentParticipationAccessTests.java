@@ -18,14 +18,14 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.http.MediaType;
 import org.syu_likelion.Festa_2026.auth.AuthorizedSsoExecutor.AuthorizedResult;
-import org.syu_likelion.Festa_2026.bamboo.BambooIdentityCache;
+
 
 @SpringBootTest(properties = "spring.datasource.url=jdbc:h2:mem:participation;MODE=MySQL;DB_CLOSE_DELAY=-1")
 @AutoConfigureMockMvc
 class StudentParticipationAccessTests {
     @Autowired MockMvc mvc;
     @Autowired FestivalUserRepository repository;
-    @Autowired BambooIdentityCache identities;
+
     @MockitoSpyBean UserService users;
     UUID id;
     String token;
@@ -62,12 +62,12 @@ class StudentParticipationAccessTests {
         }
     }
 
-    @Test void allUserRoutesRejectUnverifiedAndRevokedStudentsEvenWithIdentityCache() throws Exception {
+    @Test void allUserRoutesRejectUnverifiedAndRevokedStudents() throws Exception {
         assertBlocked();
         var student = repository.findByUserUuid(id).orElseThrow();
         student.verifySchoolByAdmin(Instant.now());
         repository.saveAndFlush(student);
-        identities.store(token, id);
+
         mvc.perform(get("/api/bamboo").header("Authorization", "Bearer " + token)).andExpect(status().isOk());
         student.revokeSchoolVerification();
         repository.saveAndFlush(student);

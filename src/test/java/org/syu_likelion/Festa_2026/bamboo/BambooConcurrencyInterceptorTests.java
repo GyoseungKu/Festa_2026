@@ -84,6 +84,6 @@ class BambooConcurrencyInterceptorTests {
 
     private BambooConcurrencyInterceptor interceptor(int permits) {
         return new BambooConcurrencyInterceptor(new BambooProperties(permits, Duration.ofSeconds(5),
-                10, 200, 10, 100_000, Duration.ofSeconds(60), 20_000, List.of()));
+                10, 200, 10, 100_000, List.of()));
     }
 }

@@ -12,8 +12,6 @@ public record BambooProperties(
         int writesPerHour,
         int reportsPerMinute,
         int maxTrackedUsers,
-        Duration identityTtl,
-        int identityMaxEntries,
         List<String> blockedWords) {
 
     public BambooProperties {
@@ -23,10 +21,6 @@ public record BambooProperties(
         if (writesPerHour <= 0) writesPerHour = 200;
         if (reportsPerMinute <= 0) reportsPerMinute = 10;
         if (maxTrackedUsers <= 0) maxTrackedUsers = 100_000;
-        if (identityTtl == null || identityTtl.isNegative() || identityTtl.isZero()) {
-            identityTtl = Duration.ofSeconds(60);
-        }
-        if (identityMaxEntries <= 0) identityMaxEntries = 20_000;
         blockedWords = blockedWords == null ? List.of() : List.copyOf(blockedWords);
     }
 }

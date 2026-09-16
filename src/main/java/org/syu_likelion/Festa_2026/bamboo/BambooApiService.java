@@ -18,33 +18,24 @@ import org.syu_likelion.Festa_2026.user.UserService;
 public class BambooApiService {
     private final BambooService bamboo;
     private final UserService users;
-    private final BambooIdentityCache identities;
     private final BambooReportNotifier notifier;
 
-    public BambooApiService(BambooService bamboo, UserService users, BambooIdentityCache identities,
+    public BambooApiService(BambooService bamboo, UserService users,
                             BambooReportNotifier notifier) {
         this.bamboo = bamboo;
         this.users = users;
-        this.identities = identities;
         this.notifier = notifier;
     }
 
     /**
-     * 사용자 식별자만 필요하므로 단기 캐시를 먼저 본다. 캐시가 맞으면 SSO 호출이 없고,
-     * 토큰 로테이션도 일어나지 않으므로 응답 헤더에 담을 새 토큰도 없다.
+     * 요청마다 SSO를 확인해 폐기된 토큰·계정 차단을 반영한다.
+     * UserService의 요청 내부 중복 조회 방지와 정상 토큰 갱신은 유지한다.
      */
     private AuthorizedResult<UUID> authenticate(String access, String refresh) {
-        UUID cached = identities.find(access);
-        if (cached != null) {
-            users.requireSchoolVerified(cached);
-            return new AuthorizedResult<>(cached, null, null);
-        }
         AuthorizedResult<MeResponse> authenticated = users.getMe(access, refresh);
         UUID userUuid = authenticated.body().userUuid();
         users.requireSchoolVerified(userUuid);
-        // 토큰이 갱신됐다면 만료된 옛 토큰이 아니라 새 토큰을 캐시한다.
         String rotated = authenticated.newAccessToken();
-        identities.store(rotated != null ? rotated : access, userUuid);
         return new AuthorizedResult<>(userUuid, rotated, authenticated.newRefreshToken());
     }
 
