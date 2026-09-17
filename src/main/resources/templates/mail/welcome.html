@@ -9,21 +9,31 @@
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f5f7fb;padding:32px 16px;">
     <tr><td align="center">
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:620px;background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 12px 36px rgba(22,33,62,.10);">
-            <tr><td style="padding:36px 40px;background:linear-gradient(135deg,#172554,#312e81);color:#ffffff;">
-                <p style="margin:0 0 10px;font-size:13px;font-weight:700;letter-spacing:.14em;color:#f9a8d4;">LIKELION SYU · CHEONBO FESTIVAL</p>
-                <h1 style="margin:0;font-size:28px;line-height:1.4;">천보축전에 오신 것을<br>환영합니다!</h1>
+            <tr><td style="padding:0;background:#172554;">
+                <img src="cid:welcome-banner" alt="2026 천보축전 · Make a Wish · LIKELION at SYU 14th" width="620" style="display:block;width:100%;max-width:620px;height:auto;border:0;">
             </td></tr>
             <tr><td style="padding:40px;">
-                <p style="margin:0 0 20px;font-size:18px;line-height:1.8;"><strong th:text="${name}">방문자</strong>님, 안녕하세요.</p>
-                <p style="margin:0 0 14px;font-size:16px;line-height:1.8;">삼육대학교 개교 120주년을 기념하는 천보축전 홈페이지 가입이 완료되었습니다.</p>
-                <p style="margin:0 0 30px;font-size:16px;line-height:1.8;color:#475569;">부스 지도와 공연 일정, 스탬프, 투표 등 축제를 더 즐겁게 만들어 줄 다양한 기능을 만나보세요.</p>
+                <h1 style="margin:0 0 24px;font-size:24px;line-height:1.5;"><span th:text="${name}">방문자</span>님, 반가워요!</h1>
+                <p style="margin:0 0 20px;font-size:18px;line-height:1.8;">천보축전을 즐길 준비가 되셨나요?</p>
+                <p style="margin:0 0 20px;font-size:16px;line-height:1.8;">삼육대학교 개교 120주년을 기념하는<br>2026 천보축전 홈페이지에 오신 것을 환영합니다.</p>
+                <p style="margin:0 0 30px;font-size:16px;line-height:1.8;color:#475569;">여러분의 바람과 설렘이 모여<br>오래도록 기억될 특별한 축제가 되길 바랍니다.</p>
                 <table role="presentation" cellspacing="0" cellpadding="0"><tr><td style="border-radius:10px;background:#ec4899;">
                     <a th:href="${siteUrl}" href="https://festa.syu-likelion.org" style="display:inline-block;padding:14px 24px;color:#ffffff;text-decoration:none;font-size:16px;font-weight:700;">천보축전 홈페이지 바로가기</a>
                 </td></tr></table>
             </td></tr>
             <tr><td style="padding:22px 40px;background:#f8fafc;border-top:1px solid #e2e8f0;color:#64748b;font-size:12px;line-height:1.7;">
-                본 메일은 천보축전 홈페이지 가입 완료에 따라 자동 발송되었습니다.<br>
-                © Likelion SYU. All rights reserved.
+                <p style="margin:0 0 16px;font-size:14px;line-height:1.8;color:#475569;">
+                    이용 중 궁금한 점이 있으신가요? <a th:href="${'mailto:' + supportEmail}" th:text="${supportEmail}" href="mailto:sahmyook.univ@likelion.org" style="color:#334155;text-decoration:underline;overflow-wrap:anywhere;">sahmyook.univ@likelion.org</a> 메일로 문의해 주세요.
+                </p>
+                <p style="margin:0 0 16px;">본 메일은 천보축전 홈페이지 가입 완료에 따라 자동 발송되었습니다. 본인이 가입하지 않았다면 위 문의처로 알려 주세요.</p>
+                <p style="margin:0 0 12px;overflow-wrap:anywhere;">
+                    <strong style="color:#475569;">멋쟁이사자처럼 삼육대학교 14기</strong> · 대표자: 구교승 · 주소: 서울특별시 노원구 화랑로 815, 삼육대학교 학생회관 304호 ·
+                    <a href="https://syu-likelion.org" target="_blank" rel="noopener noreferrer" style="color:#475569;text-decoration:underline;">syu-likelion.org</a> ·
+                    <a th:href="${termsUrl}" href="https://festa.syu-likelion.org/terms/service" target="_blank" rel="noopener noreferrer" style="color:#475569;text-decoration:underline;">이용약관</a> ·
+                    <a th:href="${privacyUrl}" href="https://festa.syu-likelion.org/terms/privacy" target="_blank" rel="noopener noreferrer" style="color:#475569;text-decoration:underline;">개인정보처리방침</a> ·
+                    호스팅 서비스 제공: Oracle Cloud Infrastructure (OCI), Cloudflare
+                </p>
+                <p style="margin:0;">© Likelion SYU. All rights reserved.</p>
             </td></tr>
         </table>
     </td></tr>

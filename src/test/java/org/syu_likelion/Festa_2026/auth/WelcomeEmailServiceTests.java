@@ -66,6 +66,7 @@ class WelcomeEmailServiceTests {
         message.saveChanges();
         assertThat(message.getHeader("Subject", null)).containsIgnoringCase("=?UTF-8?");
         assertThat(message.getAllRecipients()[0].toString()).isEqualTo("student@example.com");
+        assertThat(message.getHeader("Reply-To")).isNull();
     }
 
     @Test
