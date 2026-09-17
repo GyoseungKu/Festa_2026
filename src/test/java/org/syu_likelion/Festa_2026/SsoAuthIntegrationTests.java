@@ -74,6 +74,9 @@ class SsoAuthIntegrationTests {
     @AfterAll
     static void stopServer() { SSO.stop(0); }
 
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    org.syu_likelion.Festa_2026.admin.AdminAccessService swaggerAdminAccess;
+
     @Test
     void signupRequiresSsoEmailVerification() throws Exception {
         enqueue(400, "{}");
@@ -566,11 +569,19 @@ class SsoAuthIntegrationTests {
 
     @Test
     void swaggerUiAndOpenApiBearerSchemeAreAvailable() throws Exception {
-        mvc.perform(get("/swagger-ui.html"))
+        org.mockito.Mockito.when(swaggerAdminAccess.authenticateForSwagger("docs-admin", null)).thenReturn(
+                new org.syu_likelion.Festa_2026.auth.AuthorizedSsoExecutor.AuthorizedResult<>(
+                    new org.syu_likelion.Festa_2026.admin.AdminAccessService.AdminIdentity(
+                        java.util.UUID.randomUUID(), "docs", org.syu_likelion.Festa_2026.user.FestivalRole.ADMIN), null, null));
+        mvc.perform(get("/admin/swagger-ui.html").cookie(new jakarta.servlet.http.Cookie("festivalAdminAccess", "docs-admin")))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(header().string("Location", containsString("/swagger-ui/index.html")));
+                .andExpect(header().string("Location", containsString("/admin/swagger-ui/index.html")));
 
-        mvc.perform(get("/v3/api-docs"))
+        org.mockito.Mockito.when(swaggerAdminAccess.authenticateForSwagger("docs-admin", null)).thenReturn(
+                new org.syu_likelion.Festa_2026.auth.AuthorizedSsoExecutor.AuthorizedResult<>(
+                    new org.syu_likelion.Festa_2026.admin.AdminAccessService.AdminIdentity(
+                        java.util.UUID.randomUUID(), "docs", org.syu_likelion.Festa_2026.user.FestivalRole.ADMIN), null, null));
+        mvc.perform(get("/admin/v3/api-docs").cookie(new jakarta.servlet.http.Cookie("festivalAdminAccess", "docs-admin")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.info.title").value("SYU Festa 2026 API"))
                 .andExpect(jsonPath("$.servers[0].url").value("http://127.0.0.1:8888"))

@@ -27,10 +27,17 @@ class OpenApiDocumentationIntegrationTests {
     @Autowired ObjectMapper mapper;
     @Autowired @Qualifier("requestMappingHandlerMapping") RequestMappingHandlerMapping mappings;
 
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    org.syu_likelion.Festa_2026.admin.AdminAccessService swaggerAdminAccess;
+
     @Test
     @SuppressWarnings("unchecked")
     void documentsEveryApplicationApiWithSummaryDescriptionAndResponses() throws Exception {
-        byte[] json = mvc.perform(get("/v3/api-docs"))
+        org.mockito.Mockito.when(swaggerAdminAccess.authenticateForSwagger("docs-admin", null)).thenReturn(
+                new org.syu_likelion.Festa_2026.auth.AuthorizedSsoExecutor.AuthorizedResult<>(
+                    new org.syu_likelion.Festa_2026.admin.AdminAccessService.AdminIdentity(
+                        java.util.UUID.randomUUID(), "docs", org.syu_likelion.Festa_2026.user.FestivalRole.ADMIN), null, null));
+        byte[] json = mvc.perform(get("/admin/v3/api-docs").cookie(new jakarta.servlet.http.Cookie("festivalAdminAccess", "docs-admin")))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsByteArray();
         Map<String, Object> document = mapper.readValue(json, Map.class);
         Map<String, Map<String, Map<String, Object>>> paths =

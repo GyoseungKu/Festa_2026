@@ -13,6 +13,16 @@
 - 관리자 로그아웃은 `POST /admin/logout`입니다. GET 링크로 대체하지 않습니다. 쿠키·SSO 로그아웃 처리 후 로그인 페이지로 이동합니다.
 - 관리자 폼의 `datetime-local` 입력은 화면의 한국 시각으로 처리하며, REST의 UTC Instant 문자열과 구분합니다.
 
+## Swagger 문서 접근
+
+`/admin/swagger-ui.html`을 열면 미로그인 상태에서는 기존 로그인 폼인 `/admin/login?next=swagger`로 이동합니다. 로그인 후 문서로 돌아옵니다. 현재는 `USER`, `BOOTH_MANAGER`, `STAFF`, `ADMIN`, `SUPER_ADMIN` 모두 허용합니다. 일반 관리자 로그인(`/admin/login`)과 관리자 업무 화면의 기존 권한 제한은 유지합니다. `next`는 `swagger`만 특별 처리하며 임의 URL로 이동하지 않습니다.
+
+허용 권한은 [AdminAccessService](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminAccessService.java)의 `SWAGGER_ALLOWED_ROLES`에서 관리합니다. 일반 회원을 차단하려면 `FestivalRole.USER,` 줄을 주석 처리한 뒤 재빌드·배포합니다. 이 프로젝트에는 `MEMBER` 대신 `USER`가 사용됩니다. 목록은 로그인할 때와 문서 요청마다 동일하게 검사하며, 허용 목록에 포함된 권한을 하나도 갖지 않으면 403으로 차단합니다.
+
+JSON은 `/admin/v3/api-docs`, YAML은 `/admin/v3/api-docs.yaml`, UI 설정은 `/admin/v3/api-docs/swagger-config`입니다. 화면·정적 리소스·명세 모두 요청마다 SSO 인증과 Swagger 허용 권한을 확인하고 `Cache-Control: no-store`를 적용합니다. 미로그인 UI는 `/admin/login?next=swagger`로 이동하고, 미인증 명세 요청은 401, 권한 부족은 403입니다. SSO 토큰 폐기 시 관리자 쿠키도 정리합니다.
+
+기존 `/swagger-ui.html`과 `/swagger-ui/index.html` 링크는 인증이 적용된 `/admin/swagger-ui.html`로 이동합니다. 이전 명세(`/v3/api-docs` 등)와 이전 정적 리소스 경로는 404입니다. 문서 열람에는 관리자 쿠키가 필요하고 Swagger의 `Authorize`에는 실제 `/api/**` 호출에 사용할 Bearer Token을 별도로 입력합니다.
+
 ## 웹 화면 전용 JSON
 
 | 메서드·경로 | 인증·권한 | 응답 |

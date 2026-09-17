@@ -1,4 +1,5 @@
 package org.syu_likelion.Festa_2026.admin;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -201,6 +202,36 @@ class AdminPageIntegrationTests {
         assertThat(result.getResponse().getHeaders("Set-Cookie"))
                 .anySatisfy(value -> assertThat(value).contains("festivalAdminAccess=access-one", "HttpOnly", "Path=/admin"))
                 .anySatisfy(value -> assertThat(value).contains("festivalAdminRefresh=refresh-one", "HttpOnly", "Path=/admin"));
+    }
+
+    @Test
+    void swaggerLoginReusesFormAndReturnsMemberToDocs() throws Exception {
+        mvc.perform(get("/admin/login").param("next", "swagger"))
+                .andExpect(status().isOk()).andExpect(view().name("admin/login"))
+                .andExpect(content().string(containsString("name=\"next\" value=\"swagger\"")));
+        when(auth.login(any())).thenReturn(new AuthService.LoginResult(new TokenResponse("member"), "refresh"));
+        when(adminAccess.authenticateForSwagger("member", "refresh"))
+                .thenReturn(new AuthorizedResult<>(identity(FestivalRole.USER), "rotated", "rotated-refresh"));
+        mvc.perform(post("/admin/login").with(csrf()).param("next", "swagger")
+                        .param("loginId", "member").param("password", "password123"))
+                .andExpect(redirectedUrl("/admin/swagger-ui.html"))
+                .andExpect(cookie().value("festivalAdminAccess", "rotated"))
+                .andExpect(cookie().value("festivalAdminRefresh", "rotated-refresh"));
+        org.mockito.Mockito.verify(adminAccess, org.mockito.Mockito.never()).authenticate("member", "refresh");
+    }
+
+    @Test
+    void swaggerLoginKeepsDestinationOnErrorAndRejectsExternalRedirect() throws Exception {
+        mvc.perform(post("/admin/login").with(csrf()).param("next", "swagger")
+                        .param("loginId", "").param("password", ""))
+                .andExpect(view().name("admin/login"))
+                .andExpect(content().string(containsString("name=\"next\" value=\"swagger\"")));
+        when(auth.login(any())).thenReturn(new AuthService.LoginResult(new TokenResponse("admin"), "refresh"));
+        when(adminAccess.authenticate("admin", "refresh"))
+                .thenReturn(new AuthorizedResult<>(identity(FestivalRole.ADMIN), null, null));
+        mvc.perform(post("/admin/login").with(csrf()).param("next", "https://example.org")
+                        .param("loginId", "admin").param("password", "password123"))
+                .andExpect(redirectedUrl("/admin"));
     }
 
     @Test
@@ -437,7 +468,11 @@ class AdminPageIntegrationTests {
                 .andExpect(jsonPath("$.id").value(7))
                 .andExpect(jsonPath("$.status").value("HOLDING"));
 
-        mvc.perform(get("/v3/api-docs"))
+        org.mockito.Mockito.when(adminAccess.authenticateForSwagger("docs-admin", null)).thenReturn(
+                new org.syu_likelion.Festa_2026.auth.AuthorizedSsoExecutor.AuthorizedResult<>(
+                    new org.syu_likelion.Festa_2026.admin.AdminAccessService.AdminIdentity(
+                        java.util.UUID.randomUUID(), "docs", org.syu_likelion.Festa_2026.user.FestivalRole.ADMIN), null, null));
+        mvc.perform(get("/admin/v3/api-docs").cookie(new jakarta.servlet.http.Cookie("festivalAdminAccess", "docs-admin")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.paths['/api/lost-items'].post").exists())
                 .andExpect(jsonPath("$.paths['/api/lost-items/{id}'].patch").exists())
@@ -473,7 +508,11 @@ class AdminPageIntegrationTests {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(11));
 
-        mvc.perform(get("/v3/api-docs"))
+        org.mockito.Mockito.when(adminAccess.authenticateForSwagger("docs-admin", null)).thenReturn(
+                new org.syu_likelion.Festa_2026.auth.AuthorizedSsoExecutor.AuthorizedResult<>(
+                    new org.syu_likelion.Festa_2026.admin.AdminAccessService.AdminIdentity(
+                        java.util.UUID.randomUUID(), "docs", org.syu_likelion.Festa_2026.user.FestivalRole.ADMIN), null, null));
+        mvc.perform(get("/admin/v3/api-docs").cookie(new jakarta.servlet.http.Cookie("festivalAdminAccess", "docs-admin")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.paths['/api/birthday-messages'].get").exists())
                 .andExpect(jsonPath("$.paths['/api/birthday-messages'].post").exists())

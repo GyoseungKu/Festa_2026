@@ -17,12 +17,16 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
 import org.syu_likelion.Festa_2026.auth.EarlyMultipartAuthenticationFilter;
 import org.syu_likelion.Festa_2026.auth.TokenCookieManager;
 import org.syu_likelion.Festa_2026.user.UserService;
+import org.syu_likelion.Festa_2026.admin.AdminAccessService;
+import org.syu_likelion.Festa_2026.admin.AdminCookieManager;
+import org.syu_likelion.Festa_2026.auth.SwaggerAccessFilter;
 
 @Configuration
 public class SecurityConfig {
     @Bean
     SecurityFilterChain securityFilterChain(
             HttpSecurity http, UserService users, TokenCookieManager cookies,
+            AdminAccessService admins, AdminCookieManager adminCookies,
             @Qualifier("handlerExceptionResolver") HandlerExceptionResolver exceptions) throws Exception {
         return http
                 .cors(cors -> { })
@@ -32,6 +36,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
                 .addFilterBefore(new EarlyMultipartAuthenticationFilter(users, cookies, exceptions), CsrfFilter.class)
+                .addFilterBefore(new SwaggerAccessFilter(admins, adminCookies, exceptions), CsrfFilter.class)
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
                 .build();

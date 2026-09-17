@@ -10,7 +10,7 @@
 |---|---|
 | 프로젝트 파악·서버 실행 | 이 README의 주요 기능 → 기술 구성 → 로컬 실행 |
 | 사용자 프런트 개발 | [프런트 연동 시작하기](docs/frontend-getting-started.md) → [공통 규약](docs/frontend-api-common.md) → [기능별 문서 목차](docs/README.md) |
-| 특정 API 경로·응답 찾기 | [API 전체 색인](docs/api-endpoint-index.md), Swagger UI(`/swagger-ui.html`) |
+| 특정 API 경로·응답 찾기 | [API 전체 색인](docs/api-endpoint-index.md), Swagger UI(`/admin/swagger-ui.html`) |
 | 관리자 화면 연동 | [관리자 웹 경로·쿠키·CSRF](docs/admin-web-api.md) |
 | 운영·설계·검토 기록 찾기 | [문서 목차](docs/README.md)의 운영 및 참고 문서 |
 
@@ -603,9 +603,12 @@ Actuator는 기본적으로 `127.0.0.1:9091`에서 `health`, `prometheus`만 노
 
 ## Swagger / OpenAPI
 
-- Swagger UI: `http://localhost:8888/swagger-ui.html`
-- OpenAPI JSON: `http://localhost:8888/v3/api-docs`
-- OpenAPI YAML: `http://localhost:8888/v3/api-docs.yaml`
+- Swagger UI: `http://localhost:8888/admin/swagger-ui.html`
+- 기존 `/swagger-ui.html`, `/swagger-ui/index.html` 주소도 위 화면으로 이동합니다.
+- OpenAPI JSON: `http://localhost:8888/admin/v3/api-docs`
+- OpenAPI YAML: `http://localhost:8888/admin/v3/api-docs.yaml`
+
+Swagger 화면과 명세(JSON·YAML·설정)는 SSO 로그인 후 허용 목록에 포함된 권한으로 열 수 있습니다. 현재 `USER`, `BOOTH_MANAGER`, `STAFF`, `ADMIN`, `SUPER_ADMIN`을 모두 허용합니다. `/admin/swagger-ui.html` 접속 시 기존 로그인 폼(`/admin/login?next=swagger`)을 거쳐 문서로 돌아옵니다. 관리자 업무 화면의 권한은 별도로 유지합니다. 미인증 명세 요청은 401, 권한 부족은 403을 반환하며 요청마다 SSO 인증과 현재 축제 권한을 확인합니다. 추후 일반 회원을 차단하려면 [AdminAccessService](src/main/java/org/syu_likelion/Festa_2026/admin/AdminAccessService.java)의 `SWAGGER_ALLOWED_ROLES`에서 `FestivalRole.USER,` 줄을 주석 처리한 뒤 재빌드·배포합니다. 기존 `/swagger-ui.html`은 새 화면 주소로 이동하며 `/v3/api-docs` 등 이전 명세 경로는 제공하지 않습니다. 프록시는 `/admin/**`를 백엔드로 전달해야 합니다. Swagger의 **Authorize**는 문서 열람 로그인과 별도로 API 실행용 Bearer Token을 입력하는 기능입니다.
 
 Swagger UI의 **Authorize**에는 SSO Access Token 원문만 입력합니다. `Bearer ` 접두사는 Swagger UI가 추가합니다.
 
