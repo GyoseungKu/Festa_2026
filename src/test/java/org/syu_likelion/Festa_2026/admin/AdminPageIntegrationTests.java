@@ -85,11 +85,16 @@ class AdminPageIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML))
                 .andExpect(content().string(containsString("제1조 목적")))
-                .andExpect(content().string(containsString("확정된 약관이나 개인정보처리방침이 아니며")));
+                .andExpect(content().string(containsString("2026년 9월 23일")))
+                .andExpect(content().string(containsString("제15조 문의 및 분쟁 해결")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("임시 작성본"))));
         mvc.perform(get("/terms/privacy"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML))
-                .andExpect(content().string(containsString("개인정보 처리 목적")));
+                .andExpect(content().string(containsString("개인정보의 처리 목적")))
+                .andExpect(content().string(containsString("16. 처리방침의 변경 및 서비스 종료")))
+                .andExpect(content().string(containsString("2026년 9월 23일")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("임시 내용"))));
     }
 
     @Test
