@@ -56,7 +56,18 @@ callback 처리 후 브라우저는 프런트 경로로 돌아옵니다.
 https://festa.syu-likelion.org/temporary-auth
 ```
 
-`/temporary-auth`는 백엔드 테스트 페이지가 아닙니다. 프런트 라우터가 callback 결과를 처리하는 전용 경로로 구현해야 합니다.
+프런트 완성 전에는 `TEMPORARY_AUTH_UI_ENABLED=true`(기본값)로 백엔드 테스트 화면을 사용합니다. `/temporary-auth`와 `/syu-sso-test`가 같은 화면을 제공합니다.
+
+1. 학교에 등록된 콜백과 같은 도메인에서 `https://festa.syu-likelion.org/syu-sso-test`를 엽니다.
+2. **학교 학생 인증하기**를 눌러 학교 로그인·정보 제공 동의 화면으로 이동합니다.
+3. 완료 후 `SYU_SSO_RETURN_URL`의 `/temporary-auth`로 돌아오면 이름·학번·학과·동의 대상·유효 기간을 확인합니다.
+4. 실패 시 동의 거부·세션 만료 등의 결과 메시지를 확인합니다. **임시 학적정보 지우기**로 세션의 학적정보를 삭제할 수 있습니다.
+
+이 버튼은 기존 회원가입용 학적정보 조회 흐름을 사용합니다. Festa 회원가입이나 기존 계정에 학생 인증 저장은 수행하지 않습니다. 기존 계정 인증 API에서 이 화면으로 돌아온 경우에는 결과 상태만 표시합니다. 로그인과 학과 변경 확인 등 계정 인증의 나머지 단계는 아래 API 설명을 따릅니다.
+
+`SCHOOL_SSO_ENABLED=true`와 학교 발급 설정이 필요합니다. 임시 UI를 켜는 설정과 학교 SSO 연동 설정은 별개입니다. 콜백·복귀·테스트 페이지가 같은 브라우저 세션을 공유해야 하며, 프록시도 해당 경로를 백엔드로 전달해야 합니다.
+
+프런트 완성 후에는 `TEMPORARY_AUTH_UI_ENABLED=false`로 임시 UI를 끄고 프런트 라우터가 `/temporary-auth`의 callback 결과를 처리하도록 전환합니다.
 
 ## 3. 전체 흐름 구분
 

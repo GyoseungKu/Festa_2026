@@ -583,7 +583,19 @@ location / {
 }
 ```
 
-학교 SSO 콜백 후 복귀 주소는 운영에서 `SYU_SSO_RETURN_URL=https://festa.syu-likelion.org/temporary-auth`처럼 절대 HTTPS URL로 설정합니다. `/temporary-auth`는 프런트엔드가 callback 결과 쿼리를 처리하는 경로이며, 백엔드는 해당 UI를 제공하지 않습니다.
+학교 SSO 콜백 후 복귀 주소는 운영에서 `SYU_SSO_RETURN_URL=https://festa.syu-likelion.org/temporary-auth`처럼 절대 HTTPS URL로 설정합니다. 프런트 완성 전에는 백엔드 임시 테스트 페이지를 사용할 수 있습니다.
+
+### 임시 학교 인증 테스트 페이지
+
+- 접속: `/temporary-auth` 또는 `/syu-sso-test`
+- `TEMPORARY_AUTH_UI_ENABLED=true`가 기본값입니다. 프런트가 이 경로를 처리하기 시작하면 `false`로 끕니다.
+- **학교 학생 인증하기** → 학교 로그인·정보 제공 동의 → 기존 `/auth/sso/callback` → 테스트 페이지에서 이름·학번·학과·유효 기간 확인 순서입니다.
+- 회원가입이나 기존 계정 학생 인증 저장 없이 학교 링크와 학적정보 수신을 확인합니다. 임시 학적정보는 현재 브라우저 세션에만 보관되며 화면에서 지울 수 있습니다.
+- 실제 테스트는 `SCHOOL_SSO_ENABLED=true`, 학교 발급 자격증명 및 학교에 등록된 콜백 주소가 필요합니다. 인증 후 복귀 주소는 이 백엔드가 처리하는 `/temporary-auth`로 연결해야 합니다.
+- 운영 주소: `https://festa.syu-likelion.org/syu-sso-test`. 배포 및 프록시에서 `/temporary-auth`, `/syu-sso-test`와 관련 정적 리소스를 백엔드로 전달해야 합니다.
+- 로컬에서 시작한 후 운영 콜백으로 돌아오면 세션이 달라집니다. 학교에 등록된 콜백과 같은 도메인의 테스트 페이지에서 시작하세요.
+
+[학교 SSO 테스트·프런트 연동 안내](docs/frontend-school-sso.md)를 참고하세요.
 
 Actuator는 기본적으로 `127.0.0.1:9091`에서 `health`, `prometheus`만 노출합니다. `/admin/system`의 최근 5분 그래프는 해당 브라우저 메모리에만 유지되며, 다중 인스턴스 통합 모니터링은 외부 Prometheus/Grafana 구성이 필요합니다.
 

@@ -322,7 +322,7 @@ STAFF 이상 운영자의 QR 조회와 사용자 검색 응답에는 다음 필�
 | `SYU_SSO_CALLBACK_URL` | 학교 SSO 콜백 URL |
 | `SYU_SSO_ISSUER` | 허용 JWT Issuer |
 | `SYU_SSO_AUDIENCE` | 허용 JWT Audience |
-| `SYU_SSO_RETURN_URL` | 인증 후 프런트 복귀 절대 HTTPS URL (`https://festa.syu-likelion.org/temporary-auth`, 프런트엔드가 해당 경로 처리) |
+| `SYU_SSO_RETURN_URL` | 인증 후 프런트 복귀 절대 HTTPS URL (`https://festa.syu-likelion.org/temporary-auth`, 임시 UI 활성화 시 백엔드가 처리, 비활성화 시 프런트엔드가 처리) |
 | `SYU_SSO_SUBJECT_HASH_SECRET` | 학교 학번 HMAC 비밀키 |
 
 기본 시간 설정:

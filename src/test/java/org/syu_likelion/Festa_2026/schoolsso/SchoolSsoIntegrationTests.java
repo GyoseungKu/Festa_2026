@@ -56,6 +56,7 @@ import org.syu_likelion.Festa_2026.user.UserDtos.MeResponse;
 import org.syu_likelion.Festa_2026.user.UserService;
 
 @SpringBootTest(properties = {
+        "temporary-auth-ui.enabled=true",
         "school-sso.enabled=true",
         "school-sso.client-id=festa-2026",
         "school-sso.client-secret=test-school-secret",
@@ -317,6 +318,49 @@ class SchoolSsoIntegrationTests {
         mvc.perform(get("/api/auth/school/profile").session(session))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("SCHOOL_SSO_VERIFICATION_REQUIRED"));
+    }
+
+    @Test
+    void temporaryPageDisplaysVerifiedCallbackProfileAndClearsItWithCsrf() throws Exception {
+        MockHttpSession session = authorizeSession();
+        String state = stateFromSessionRedirect(session);
+        mvc.perform(get("/auth/sso/callback").session(session)
+                        .param("state", state).param("code", "valid-one-time-code"))
+                .andExpect(redirectedUrl("https://festa.syu-likelion.org/temporary-auth?schoolSso=success"));
+        mvc.perform(get("/temporary-auth").session(session).param("schoolSso", "success"))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().string("Cache-Control", "no-store"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().string("Referrer-Policy", "no-referrer"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().string(org.hamcrest.Matchers.containsString("학교홍길동")))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().string(org.hamcrest.Matchers.containsString("20260001")))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().string(org.hamcrest.Matchers.containsString("컴퓨터공학과")))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("test-school-secret"))));
+        mvc.perform(post("/temporary-auth/clear").session(session)).andExpect(status().isForbidden());
+        mvc.perform(post("/temporary-auth/clear").session(session)
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()))
+                .andExpect(redirectedUrl("/temporary-auth"));
+        mvc.perform(get("/api/auth/school/profile").session(session)).andExpect(status().isBadRequest());
+        org.mockito.Mockito.verifyNoInteractions(authService, festivalUsers);
+    }
+
+    @Test
+    void temporaryPageShowsStartLinkAndDoesNotTrustForgedSuccess() throws Exception {
+        for (String path : List.of("/temporary-auth", "/syu-sso-test")) {
+            mvc.perform(get(path))
+                    .andExpect(status().isOk())
+                    .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().string(
+                            org.hamcrest.Matchers.containsString("href=\"/api/auth/school/authorize\"")));
+        }
+        mvc.perform(get("/temporary-auth").param("schoolSso", "success"))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().string(
+                        org.hamcrest.Matchers.containsString("학적정보가 없거나 만료되었습니다")));
+        mvc.perform(get("/temporary-auth").param("schoolSso", "access_denied"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().string(
+                        org.hamcrest.Matchers.containsString("정보 제공에 동의하지 않아")));
+        mvc.perform(get("/temporary-auth").param("schoolSso", "invalid_state"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().string(
+                        org.hamcrest.Matchers.containsString("브라우저 세션이 일치하지 않습니다")));
     }
 
     private MockHttpSession authorizeSession() throws Exception {
