@@ -20,16 +20,28 @@ class SwaggerRolePolicyTests {
     private final AdminAccessService access = new AdminAccessService(users);
 
     @ParameterizedTest
-    @EnumSource(FestivalRole.class)
+    @EnumSource(value = FestivalRole.class, names = {"ADMIN", "SUPER_ADMIN"})
     void eachExplicitlyAllowedRoleCanReadSwagger(FestivalRole role) {
         profile(Set.of(role));
         assertThat(access.authenticateForSwagger("token", null).body().roles()).contains(role);
         verify(users).getMe("token", null);
     }
 
-    @Test void swaggerMemberCannotAccessAdminWorkflows() {
+    @ParameterizedTest
+    @EnumSource(value = FestivalRole.class, names = {"USER", "BOOTH_MANAGER", "STAFF"})
+    void lowerRolesCannotReadSwagger(FestivalRole role) {
+        profile(Set.of(role));
+        assertThatThrownBy(() -> access.authenticateForSwagger("token", null))
+                .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code()).isEqualTo("SWAGGER_ROLE_REQUIRED"));
+    }
+
+    @Test void adminWithAdditionalRolesCanReadSwagger() {
+        profile(Set.of(FestivalRole.USER, FestivalRole.BOOTH_MANAGER, FestivalRole.ADMIN));
+        assertThat(access.authenticateForSwagger("token", null).body().roles()).contains(FestivalRole.ADMIN);
+    }
+
+    @Test void memberCannotAccessAdminWorkflows() {
         profile(Set.of(FestivalRole.USER));
-        access.authenticateForSwagger("token", null);
         assertThatThrownBy(() -> access.authenticate("token", null))
                 .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code()).isEqualTo("ADMIN_ROLE_REQUIRED"));
     }

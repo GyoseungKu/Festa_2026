@@ -42,7 +42,7 @@ class SwaggerAccessIntegrationTests {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"USER", "STAFF", "BOOTH_MANAGER", "ADMIN", "SUPER_ADMIN"})
+    @ValueSource(strings = {"ADMIN", "SUPER_ADMIN"})
     void allowedRolesCanLoadUiConfigurationAndBothSpecificationFormats(String role) throws Exception {
         allow(FestivalRole.valueOf(role));
         mvc.perform(get("/admin/swagger-ui.html").cookie(access())).andExpect(redirectedUrl("/admin/swagger-ui/index.html"));
@@ -52,6 +52,17 @@ class SwaggerAccessIntegrationTests {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.url").value("/admin/v3/api-docs"));
         mvc.perform(get("/admin/v3/api-docs").cookie(access())).andExpect(status().isOk());
         mvc.perform(get("/admin/v3/api-docs.yaml").cookie(access())).andExpect(status().isOk());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"/admin/swagger-ui.html", "/admin/swagger-ui/index.html",
+            "/admin/swagger-ui/swagger-initializer.js", "/admin/swagger-ui/swagger-ui.css",
+            "/admin/v3/api-docs", "/admin/v3/api-docs.yaml", "/admin/v3/api-docs/swagger-config"})
+    void insufficientRoleCannotReadUiSpecificationsOrAssets(String path) throws Exception {
+        when(admins.authenticateForSwagger("docs", null)).thenThrow(
+                new ApiException(HttpStatus.FORBIDDEN, "SWAGGER_ROLE_REQUIRED", "forbidden"));
+        mvc.perform(get(path).cookie(access())).andExpect(status().isForbidden())
+                .andExpect(header().string("Cache-Control", "no-store"));
     }
 
     @Test void revokedAuthenticationIsCheckedAgainAndCookiesAreCleared() throws Exception {

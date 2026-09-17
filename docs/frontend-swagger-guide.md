@@ -11,7 +11,9 @@
 | 사용자 Access Token 갱신 | `/api` 전용 Refresh 쿠키 | `POST /api/auth/token/refresh` |
 | 관리자 HTML 폼 | 관리자 쿠키와 CSRF | `/admin/login` |
 
-현재 문서 열람 허용 목록은 `USER`, `BOOTH_MANAGER`, `STAFF`, `ADMIN`, `SUPER_ADMIN`입니다. 이 프로젝트의 일반 회원 enum은 `MEMBER`가 아니라 `USER`입니다. 문서에 접근할 수 있어도 개별 API의 관리자 권한이나 학생 인증을 통과한 것은 아닙니다. 향후 열람 권한은 `AdminAccessService.SWAGGER_ALLOWED_ROLES`에서 제한할 수 있습니다.
+문서 열람은 축제 권한 `ADMIN`, `SUPER_ADMIN`만 허용합니다. `USER`, `BOOTH_MANAGER`, `STAFF`만 보유한 사용자는 접근할 수 없습니다. 문서에 접근할 수 있어도 개별 API의 학생 인증 등 추가 조건을 통과한 것은 아닙니다. 허용 목록은 `AdminAccessService.SWAGGER_ALLOWED_ROLES`에서 관리합니다.
+
+로그인 화면과 인증 처리는 기존 관리자 로그인 하나를 사용합니다. `next=swagger`는 로그인 후 Swagger로 돌아가기 위한 값입니다. 이미 관리자에 로그인했다면 다시 로그인할 필요가 없습니다. STAFF·BOOTH_MANAGER는 관리자 로그인은 가능하지만 Swagger 접근 시 403으로 거부됩니다.
 
 명세 JSON은 `/admin/v3/api-docs`, YAML은 `/admin/v3/api-docs.yaml`입니다. 이전 `/swagger-ui.html`, `/swagger-ui/index.html`은 새 UI로 이동하고 `/v3/api-docs`는 제공하지 않습니다. 미인증 명세 요청은 401, 허용되지 않는 역할은 403입니다.
 

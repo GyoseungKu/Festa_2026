@@ -205,19 +205,37 @@ class AdminPageIntegrationTests {
     }
 
     @Test
-    void swaggerLoginReusesFormAndReturnsMemberToDocs() throws Exception {
+    void swaggerLoginReusesFormAndReturnsAdminToDocs() throws Exception {
         mvc.perform(get("/admin/login").param("next", "swagger"))
                 .andExpect(status().isOk()).andExpect(view().name("admin/login"))
+                .andExpect(content().string(containsString("<h2>관리자 로그인</h2>")))
                 .andExpect(content().string(containsString("name=\"next\" value=\"swagger\"")));
-        when(auth.login(any())).thenReturn(new AuthService.LoginResult(new TokenResponse("member"), "refresh"));
-        when(adminAccess.authenticateForSwagger("member", "refresh"))
-                .thenReturn(new AuthorizedResult<>(identity(FestivalRole.USER), "rotated", "rotated-refresh"));
+        when(auth.login(any())).thenReturn(new AuthService.LoginResult(new TokenResponse("docs-admin"), "refresh"));
+        when(adminAccess.authenticate("docs-admin", "refresh"))
+                .thenReturn(new AuthorizedResult<>(identity(FestivalRole.ADMIN), "rotated", "rotated-refresh"));
         mvc.perform(post("/admin/login").with(csrf()).param("next", "swagger")
-                        .param("loginId", "member").param("password", "password123"))
+                        .param("loginId", "docs-admin").param("password", "password123"))
                 .andExpect(redirectedUrl("/admin/swagger-ui.html"))
                 .andExpect(cookie().value("festivalAdminAccess", "rotated"))
                 .andExpect(cookie().value("festivalAdminRefresh", "rotated-refresh"));
-        org.mockito.Mockito.verify(adminAccess, org.mockito.Mockito.never()).authenticate("member", "refresh");
+        org.mockito.Mockito.verify(adminAccess, org.mockito.Mockito.never()).authenticateForSwagger("docs-admin", "refresh");
+    }
+
+    @Test
+    void existingStaffLoginIsPreservedWhenSwaggerRejectsAccess() throws Exception {
+        when(adminAccess.authenticate("staff", "refresh"))
+                .thenReturn(new AuthorizedResult<>(identity(FestivalRole.STAFF), null, null));
+        Cookie accessCookie = new Cookie("festivalAdminAccess", "staff");
+        Cookie refreshCookie = new Cookie("festivalAdminRefresh", "refresh");
+        mvc.perform(get("/admin/login").param("next", "swagger").cookie(accessCookie, refreshCookie))
+                .andExpect(redirectedUrl("/admin/swagger-ui.html"))
+                .andExpect(cookie().doesNotExist("festivalAdminAccess"));
+        when(adminAccess.authenticateForSwagger("staff", "refresh"))
+                .thenThrow(new ApiException(HttpStatus.FORBIDDEN, "SWAGGER_ROLE_REQUIRED", "forbidden"));
+        mvc.perform(get("/admin/swagger-ui.html").cookie(accessCookie, refreshCookie))
+                .andExpect(status().isForbidden())
+                .andExpect(cookie().doesNotExist("festivalAdminAccess"))
+                .andExpect(cookie().doesNotExist("festivalAdminRefresh"));
     }
 
     @Test

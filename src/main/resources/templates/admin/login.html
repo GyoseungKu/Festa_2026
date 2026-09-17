@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title th:text="${swaggerLogin == true ? 'API 문서 로그인 | SYU FESTA 2026' : '관리자 로그인 | SYU FESTA 2026'}">관리자 로그인 | SYU FESTA 2026</title>
+    <title>관리자 로그인 | SYU FESTA 2026</title>
     <link rel="icon" type="image/svg+xml" th:href="@{/images/favicon.svg}" href="/images/favicon.svg">
     <link rel="stylesheet" th:href="@{/css/admin.css}">
 <link rel="stylesheet" th:href="@{/css/admin-console.css}">
@@ -26,14 +26,14 @@
     <section class="login-card">
         <div class="card-heading">
             <p class="eyebrow">ADMIN CONSOLE</p>
-            <h2 th:text="${swaggerLogin == true ? 'API 문서 로그인' : '관리자 로그인'}">관리자 로그인</h2>
-            <p th:text="${swaggerLogin == true ? 'SSO 계정으로 로그인하면 API 문서로 이동합니다.' : '축제 운영 권한이 부여된 SSO 계정으로 로그인하세요.'}">축제 운영 권한이 부여된 SSO 계정으로 로그인하세요.</p>
+            <h2>관리자 로그인</h2>
+            <p>축제 운영 권한이 부여된 SSO 계정으로 로그인하세요.</p>
         </div>
 
         <div class="alert alert-error" role="alert" th:if="${error}" th:text="${error}"></div>
 
         <form class="login-form" method="post" th:action="@{/admin/login}">
-            <input th:if="${swaggerLogin == true}" type="hidden" name="next" value="swagger">
+            <input th:if="${loginNext == 'swagger'}" type="hidden" name="next" value="swagger">
             <label for="loginId">로그인 아이디</label>
             <input id="loginId" name="loginId" type="text" autocomplete="username"
                    maxlength="100" required autofocus th:value="${loginId}">
@@ -42,7 +42,7 @@
             <input id="password" name="password" type="password" autocomplete="current-password"
                    maxlength="128" required>
 
-            <button class="button button-primary button-full" type="submit" th:text="${swaggerLogin == true ? 'API 문서 열기' : '관리자 페이지 입장'}">관리자 페이지 입장</button>
+            <button class="button button-primary button-full" type="submit">관리자 페이지 입장</button>
         </form>
 
         <p class="login-help">권한이 없다면 축제 최고 관리자에게 문의하세요.</p>

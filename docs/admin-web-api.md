@@ -15,9 +15,9 @@
 
 ## Swagger 문서 접근
 
-`/admin/swagger-ui.html`을 열면 미로그인 상태에서는 기존 로그인 폼인 `/admin/login?next=swagger`로 이동합니다. 로그인 후 문서로 돌아옵니다. 현재는 `USER`, `BOOTH_MANAGER`, `STAFF`, `ADMIN`, `SUPER_ADMIN` 모두 허용합니다. 일반 관리자 로그인(`/admin/login`)과 관리자 업무 화면의 기존 권한 제한은 유지합니다. `next`는 `swagger`만 특별 처리하며 임의 URL로 이동하지 않습니다.
+`/admin/swagger-ui.html`을 열면 미로그인 상태에서는 기존 로그인 폼인 `/admin/login?next=swagger`로 이동합니다. 축제 권한 `ADMIN`, `SUPER_ADMIN`으로 로그인하면 문서로 돌아옵니다. `USER`, `BOOTH_MANAGER`, `STAFF`만 보유한 사용자는 Swagger에 접근할 수 없습니다. 일반 관리자 로그인(`/admin/login`)과 관리자 업무 화면의 기존 권한 제한은 유지합니다. `next`는 `swagger`만 특별 처리하며 임의 URL로 이동하지 않습니다.
 
-허용 권한은 [AdminAccessService](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminAccessService.java)의 `SWAGGER_ALLOWED_ROLES`에서 관리합니다. 일반 회원을 차단하려면 `FestivalRole.USER,` 줄을 주석 처리한 뒤 재빌드·배포합니다. 이 프로젝트에는 `MEMBER` 대신 `USER`가 사용됩니다. 목록은 로그인할 때와 문서 요청마다 동일하게 검사하며, 허용 목록에 포함된 권한을 하나도 갖지 않으면 403으로 차단합니다.
+허용 권한은 [AdminAccessService](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminAccessService.java)의 `SWAGGER_ALLOWED_ROLES`에서 관리합니다. `USER`, `BOOTH_MANAGER`, `STAFF` 항목은 주석 처리되어 있습니다. 로그인 화면·인증·쿠키 발급은 기존 관리자 로그인 하나로 통합되어 있으며 `next=swagger`는 로그인 후 이동할 목적지만 지정합니다. Swagger 요청마다 별도 허용 목록을 검사하므로 STAFF·BOOTH_MANAGER는 관리자 로그인에 성공해도 Swagger에서 403을 받습니다. Swagger 권한 부족 때문에 유효한 관리자 로그인 쿠키를 삭제하지 않습니다.
 
 JSON은 `/admin/v3/api-docs`, YAML은 `/admin/v3/api-docs.yaml`, UI 설정은 `/admin/v3/api-docs/swagger-config`입니다. 화면·정적 리소스·명세 모두 요청마다 SSO 인증과 Swagger 허용 권한을 확인하고 `Cache-Control: no-store`를 적용합니다. 미로그인 UI는 `/admin/login?next=swagger`로 이동하고, 미인증 명세 요청은 401, 권한 부족은 403입니다. SSO 토큰 폐기 시 관리자 쿠키도 정리합니다.
 

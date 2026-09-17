@@ -15,9 +15,9 @@ public class AdminAccessService {
     // Swagger 전용 허용 목록. 일반 회원(MEMBER에 해당)의 실제 권한명은 USER입니다.
     // 접근을 막을 권한의 줄을 주석 처리하세요. 관리자 업무 화면의 권한에는 영향이 없습니다.
     private static final Set<FestivalRole> SWAGGER_ALLOWED_ROLES = Set.of(
-            FestivalRole.USER,
-            FestivalRole.BOOTH_MANAGER,
-            FestivalRole.STAFF,
+            // FestivalRole.USER,
+            // FestivalRole.BOOTH_MANAGER,
+            // FestivalRole.STAFF,
             FestivalRole.ADMIN,
             FestivalRole.SUPER_ADMIN
     );

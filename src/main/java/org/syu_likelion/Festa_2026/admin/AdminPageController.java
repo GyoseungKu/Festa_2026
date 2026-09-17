@@ -42,17 +42,11 @@ public class AdminPageController {
     String loginPage(HttpServletRequest request, HttpServletResponse response,
                      @RequestParam(required = false) String next, Model model) {
         boolean swagger = "swagger".equals(next);
-        model.addAttribute("swaggerLogin", swagger);
+        model.addAttribute("loginNext", swagger ? "swagger" : null);
         if (cookies.readAccessToken(request) == null) return "admin/login";
         try {
-            if (swagger) {
-                var authenticated = adminAccess.authenticateForSwagger(
-                        cookies.readAccessToken(request), cookies.readRefreshToken(request));
-                cookies.applyRotation(response, authenticated.newAccessToken(), authenticated.newRefreshToken());
-                return "redirect:/admin/swagger-ui.html";
-            }
             requireAdmin(request, response);
-            return "redirect:/admin";
+            return swagger ? "redirect:/admin/swagger-ui.html" : "redirect:/admin";
         } catch (RuntimeException invalidLogin) {
             cookies.clear(response);
             return "admin/login";
@@ -64,7 +58,7 @@ public class AdminPageController {
                  @RequestParam(required = false) String next,
                  HttpServletResponse response, Model model) {
         boolean swagger = "swagger".equals(next);
-        model.addAttribute("swaggerLogin", swagger);
+        model.addAttribute("loginNext", swagger ? "swagger" : null);
         if (loginId == null || loginId.isBlank() || password == null || password.isBlank()) {
             model.addAttribute("error", "아이디와 비밀번호를 입력해 주세요.");
             model.addAttribute("loginId", loginId);
@@ -72,15 +66,13 @@ public class AdminPageController {
         }
         try {
             AuthService.LoginResult login = auth.login(new LoginRequest(loginId, password));
-            var authenticated = swagger
-                    ? adminAccess.authenticateForSwagger(login.tokens().accessToken(), login.refreshToken())
-                    : adminAccess.authenticate(login.tokens().accessToken(), login.refreshToken());
+            var authenticated = adminAccess.authenticate(login.tokens().accessToken(), login.refreshToken());
             cookies.setLoginCookies(response,
                     authenticated.newAccessToken() == null ? login.tokens().accessToken() : authenticated.newAccessToken(),
                     authenticated.newRefreshToken() == null ? login.refreshToken() : authenticated.newRefreshToken());
             return swagger ? "redirect:/admin/swagger-ui.html" : "redirect:/admin";
         } catch (ApiException exception) {
-            model.addAttribute("error", swagger ? "API 문서 접근 권한이 없습니다." : "관리자 페이지 접근 권한이 없습니다.");
+            model.addAttribute("error", "관리자 페이지 접근 권한이 없습니다.");
         } catch (SsoException exception) {
             model.addAttribute("error", "아이디 또는 비밀번호를 확인해 주세요.");
         }
