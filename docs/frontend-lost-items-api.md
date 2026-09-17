@@ -163,6 +163,7 @@ Content-Type: application/json
 | `400` | `INVALID_LOST_ITEM_IMAGE_ID` | 상세를 다시 조회해 사진 동기화 |
 | `400` | `LOST_ITEM_IMAGE_LIMIT_EXCEEDED` | 최대 5장 안내 |
 | `400` | `UNSUPPORTED_IMAGE_TYPE` | JPG·PNG·WebP 파일인지 확인 |
+| `400` | `EMPTY_IMAGE_FILE` | 빈 사진 파일 제외 |
 | `400` | `IMAGE_FILE_TOO_LARGE` | 파일당 이미지 용량 제한 확인 (기본 10MB) |
 | `403` | `LOST_ITEM_MANAGE_FORBIDDEN` | 관리 UI 접근 차단 |
 | `404` | `LOST_ITEM_NOT_FOUND` | 목록으로 이동 |

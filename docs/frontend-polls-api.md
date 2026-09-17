@@ -340,6 +340,8 @@ DELETE /api/admin/polls/{pollId}/questions/{questionId}/media/{mediaId}
 | HTTP | code | 처리 |
 |---|---|---|
 | `400` | `INVALID_POLL` | 질문 유형, 필수 답변, 선택지 소속, 일정 검증 |
+| `400` | `POLL_OPTION_IMAGE_REQUIRED`, `POLL_QUESTION_MEDIA_REQUIRED` | 업로드 파일 누락 또는 빈 파일 확인 |
+| `400` | `INVALID_POLL_QUESTION_MEDIA_ORDER` | 현재 질문의 미디어 ID 전체를 누락·중복 없이 재전송 |
 | `400` | `UNSUPPORTED_POLL_OPTION_IMAGE_TYPE` | JPG/PNG/WebP 안내 |
 | `400` | `POLL_OPTION_IMAGE_TOO_LARGE` | 10MB 이하 안내 |
 | `400` | `POLL_QUESTION_MEDIA_LIMIT_EXCEEDED` | 질문별 이미지·동영상 합계 3개 이하로 조정 |
@@ -349,11 +351,13 @@ DELETE /api/admin/polls/{pollId}/questions/{questionId}/media/{mediaId}
 | `403` | `POLL_MANAGE_FORBIDDEN` | 관리자 UI 접근 차단 |
 | `404` | `POLL_NOT_FOUND` | 목록으로 이동 |
 | `404` | `POLL_OPTION_NOT_FOUND` | 상세 재조회 |
+| `404` | `POLL_QUESTION_NOT_FOUND` | 해당 투표에 속한 질문인지 확인 후 상세 재조회 |
 | `404` | `POLL_QUESTION_MEDIA_NOT_FOUND` | 상세 재조회 |
 | `409` | `POLL_NOT_OPEN` | 상태 재조회 후 제출 버튼 비활성화 |
 | `409` | `POLL_ALREADY_SUBMITTED` | 1회 투표 완료 상태 표시 |
 | `409` | `POLL_STRUCTURE_LOCKED` | 설정 전용 수정 UI로 전환 |
 | `409` | `POLL_ALREADY_ENDED` | 종료 상태 재조회 |
 | `409` | `POLL_DELETE_LOCKED` | 응답이 있어 일반 삭제 불가 |
+| `503` | `POLL_OPTION_IMAGE_UPLOAD_FAILED`, `POLL_QUESTION_MEDIA_UPLOAD_FAILED` | 저장소 업로드 실패, 상태 확인 후 재시도 안내 |
 
 관리자 HTML 화면은 `/admin/polls`입니다.

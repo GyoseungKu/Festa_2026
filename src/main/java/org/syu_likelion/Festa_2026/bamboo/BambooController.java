@@ -82,7 +82,9 @@ public class BambooController {
     @GetMapping("/messages")
     @Operation(summary = "메시지 조회",
             description = "after 를 주면 해당 커서 이후의 신규·변경 메시지를, before 를 주면 그 id 이전의 과거 메시지를 "
-                    + "반환합니다. 두 값을 함께 보낼 수 없습니다. 응답의 cursor 는 다음 조회 시작점입니다. "
+                    + "반환합니다. 두 값을 함께 보낼 수 없습니다. 둘 다 없으면 과거 목록이 아니라 현재 cursor와 빈 messages를 반환합니다. "
+                    + "최초 과거 조회는 before=9223372036854775807을 문자열 그대로 전송합니다(JS Number로 만들지 않음). "
+                    + "응답 cursor는 after 폴링에 사용하고 추가 과거 조회에는 가장 오래된 메시지 id를 before로 보냅니다. 진행 중 폴링 cursor를 추가 과거 조회 응답으로 덮어쓰지 않습니다. "
                     + "신고 5회 이상은 HIDDEN과 원문, 관리자 차단은 BLOCKED와 null 본문을 반환합니다. "
                     + "과거 목록에도 HIDDEN·BLOCKED를 포함하고 DELETED는 제외합니다.")
     @SecurityRequirement(name = "bearerAuth")

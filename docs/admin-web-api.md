@@ -52,13 +52,18 @@ JSON은 `/admin/v3/api-docs`, YAML은 `/admin/v3/api-docs.yaml`, UI 설정은 `/
 
 ### 기존 기능
 
-2026-09-14 컨트롤러 선언 기준입니다. 아래에는 두 JSON 조회도 포함됩니다. 같은 경로의 GET과 POST는 서로 다른 작업입니다.
+2026-09-17 컨트롤러 선언과 대조했습니다. 아래에는 두 JSON 조회도 포함됩니다. 같은 경로의 GET과 POST는 서로 다른 작업입니다.
+
+타임테이블 폼은 ADMIN 이상이며 `title`, `performanceId`, `startsAt`, `endsAt`, `publishedAt`을 보냅니다. 세 시각은 `yyyy-MM-dd'T'HH:mm` 형식의 한국 시간입니다. JSON REST의 시간대 포함 Instant와 구분합니다. 실제 신원으로 대나무숲 참여자를 찾는 `/admin/bamboo/users/**`는 SUPER_ADMIN 전용이며 일반 닉네임 검색과 다릅니다.
 
 | 메서드 | 경로 | 구현 |
 |---|---|---|
 | GET | `/admin` | [AdminPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminPageController.java) |
 | GET | `/admin/bamboo` | [AdminBambooPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminBambooPageController.java) |
 | GET | `/admin/bamboo/cursor` | [AdminBambooPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminBambooPageController.java) |
+| GET | `/admin/bamboo/users` | [AdminBambooIdentityController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminBambooIdentityController.java) |
+| POST | `/admin/bamboo/users/search` | [AdminBambooIdentityController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminBambooIdentityController.java) |
+| POST | `/admin/bamboo/users/{userUuid}/mute` | [AdminBambooIdentityController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminBambooIdentityController.java) |
 | POST | `/admin/bamboo/messages/{id}/author` | [AdminBambooPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminBambooPageController.java) |
 | POST | `/admin/bamboo/messages/{id}/mute` | [AdminBambooPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminBambooPageController.java) |
 | POST | `/admin/bamboo/messages/{id}/nickname` | [AdminBambooPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminBambooPageController.java) |
@@ -130,3 +135,9 @@ JSON은 `/admin/v3/api-docs`, YAML은 `/admin/v3/api-docs.yaml`, UI 설정은 `/
 | POST | `/admin/student-fees/delete` | [AdminStudentFeeController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminStudentFeeController.java) |
 | GET | `/admin/system` | [AdminSystemPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminSystemPageController.java) |
 | GET | `/admin/system/snapshot` | [AdminSystemPageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminSystemPageController.java) |
+| GET | `/admin/timetable` | [AdminTimetablePageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminTimetablePageController.java) |
+| GET | `/admin/timetable/new` | [AdminTimetablePageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminTimetablePageController.java) |
+| POST | `/admin/timetable` | [AdminTimetablePageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminTimetablePageController.java) |
+| GET | `/admin/timetable/{id}/edit` | [AdminTimetablePageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminTimetablePageController.java) |
+| POST | `/admin/timetable/{id}` | [AdminTimetablePageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminTimetablePageController.java) |
+| POST | `/admin/timetable/{id}/delete` | [AdminTimetablePageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminTimetablePageController.java) |

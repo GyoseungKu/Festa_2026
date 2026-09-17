@@ -35,7 +35,10 @@ public class WristbandService {
     public static void requireAdmin(FestivalRole role) {
         if (!isAdmin(role)) throw new ApiException(HttpStatus.FORBIDDEN, "WRISTBAND_MANAGE_FORBIDDEN", "지급 관리·철회는 ADMIN 이상만 가능합니다.");
     }
-    public record MyStatus(boolean issued, Instant issuedAt, boolean schoolVerified) { }
+    public record MyStatus(
+            @io.swagger.v3.oas.annotations.media.Schema(description = "현재 유효한 팔찌 지급 여부. 철회 후 false이며 과거 지급 이력의 존재 여부와 다릅니다.") boolean issued,
+            @io.swagger.v3.oas.annotations.media.Schema(description = "현재 지급 시각. 미지급·철회 상태이면 null.", types = {"string", "null"}, format = "date-time") Instant issuedAt,
+            @io.swagger.v3.oas.annotations.media.Schema(description = "현재 학생 인증 여부. 미인증도 본인 상태 조회는 가능하지만 지급은 불가합니다.") boolean schoolVerified) { }
     public record Eligibility(boolean schoolVerified, boolean studentFeePaid, boolean identityAvailable,
                               boolean issued, Instant issuedAt, Long wristbandId) {
         public boolean canIssue() { return schoolVerified && identityAvailable && !issued; }

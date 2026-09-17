@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -18,11 +19,17 @@ public final class BambooDtos {
                                      String nickname, long cursor) { }
 
     /** HIDDEN은 신고 가림과 원문, BLOCKED·DELETED는 null 본문을 전달한다. */
-    public record BambooMessageResponse(Long id, long seq, String anonName, String content,
-                                        BambooMessageStatus status, Instant createdAt, boolean mine) { }
+    public record BambooMessageResponse(Long id,
+            @Schema(description = "신규 작성·상태 변경마다 증가하는 변경 순번. 같은 id는 더 큰 seq로 교체합니다.") long seq,
+            String anonName,
+            @Schema(description = "VISIBLE·HIDDEN은 원문, BLOCKED·DELETED는 null. 차단·삭제 변경 수신 시 화면 캐시의 기존 원문도 제거합니다.", types = {"string", "null"}) String content,
+            @Schema(description = "신고 5회 누적 HIDDEN은 원문 제공(프런트 가림·펼치기), 관리자 BLOCKED와 DELETED는 원문 미제공. 관리자 조회 응답과 구분합니다.") BambooMessageStatus status,
+            Instant createdAt, boolean mine) { }
 
     /** 스트림과 과거 조회가 같은 응답을 쓴다. {@code cursor}는 이어서 스트림을 받을 시작점이다. */
-    public record BambooStreamResponse(long cursor, List<BambooMessageResponse> messages) { }
+    public record BambooStreamResponse(
+            @Schema(description = "after 폴링의 다음 시작점. 최초 과거 조회에서 초기화하되 추가 과거 조회의 cursor로 진행 중 폴링 커서를 덮어쓰지 않습니다. before에는 메시지 id를 사용합니다.") long cursor,
+            List<BambooMessageResponse> messages) { }
 
     public record BambooMessageCreateRequest(@NotBlank @Size(max = 400) String content) { }
 

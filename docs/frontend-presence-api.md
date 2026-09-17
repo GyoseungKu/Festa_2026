@@ -2,7 +2,7 @@
 
 [문서 목차](README.md) · [프런트 연동 시작하기](frontend-getting-started.md)
 
-관리자 모니터링의 “현재 접속 추정”은 로그인 사용자 목록이 아니라 최근 150초 안에 heartbeat를 보낸 브라우저 세션 수입니다. 개인정보와 Access Token은 수집하지 않습니다.
+관리자 모니터링의 “현재 접속 추정”은 로그인 사용자 목록이 아니라 최근 150초 안에 heartbeat를 보낸 브라우저 세션 수입니다. heartbeat 본문에는 임의 sessionId와 route만 보내고 이름·학번·Access Token을 넣지 않습니다. 이는 일반 HTTP 접속 로그와 별개이며, 요청 로그에는 IP 등 운영 정보가 기록될 수 있습니다.
 
 공통 API 규약은 [공통 API 규약](frontend-api-common.md)을 참고하되, 이 API에는 인증과 쿠키가 필요하지 않습니다.
 

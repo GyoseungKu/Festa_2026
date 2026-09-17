@@ -84,6 +84,8 @@ Festa는 SSO의 UUID로만 사용자를 연결합니다. 같은 UUID로 복구�
 
 일반 보호 API는 서버가 자동 갱신을 시도하므로 보통 직접 호출할 필요가 없습니다. 앱 시작 시 메모리 Access Token이 없고 Refresh 쿠키만 남아 있을 때 사용할 수 있습니다.
 
+본문과 Bearer 헤더는 필요하지 않으며 `credentials: "include"`로 API 로그인에서 발급한 쿠키를 전송합니다. `/admin/login`의 Swagger 열람용 쿠키는 이 API에 사용할 수 없습니다. Swagger 테스트 순서는 [별도 가이드](frontend-swagger-guide.md)를 확인합니다. 최종 401이면 메모리 토큰·사용자 캐시를 정리하고 반복 갱신하지 않습니다.
+
 ```http
 POST /api/auth/token/refresh
 ```

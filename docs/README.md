@@ -21,6 +21,7 @@
 |---|---|
 | 공통 헤더·오류·토큰 갱신 | [공통 API 규약](frontend-api-common.md) |
 | 전체 경로·메서드·성공 응답 | [API 전체 색인](api-endpoint-index.md) |
+| Swagger 열람 로그인·API 테스트·오류 확인 | [Swagger 연동 가이드](frontend-swagger-guide.md) |
 | 파일 형식·파트·개수·용량 | [업로드 규약](api-upload-limits.md) |
 | 이메일 인증코드 재전송·429·남은 대기 시간 | [이메일 재전송 제한](frontend-email-cooldown.md) |
 
@@ -43,6 +44,7 @@
 | 일반 공지·배너·첨부파일 | [일반 공지 API](frontend-notices-api.md) |
 | 부스 지도·찜·미디어 | [부스 API](frontend-booths-api.md) |
 | 공연 일정·미디어 | [공연 API](frontend-performances-api.md) |
+| 독립 일정·공개 전 TBA·공연팀 연결 | [타임테이블 API](frontend-timetable-api.md) |
 | 협찬사 공개 조회·이미지·부스 연결 | [협찬사 API](frontend-sponsors-api.md) |
 | 동적 사용자 QR | [QR API](frontend-qr-api.md) |
 | 스탬프판·지급·회수·이력 | [스탬프 API](frontend-stamps-api.md) |

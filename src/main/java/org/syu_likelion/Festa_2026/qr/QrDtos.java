@@ -36,6 +36,7 @@ public final class QrDtos {
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
+    @io.swagger.v3.oas.annotations.media.Schema(description = "조회자의 축제 권한별 응답. 숨긴 필드와 null은 JSON에서 생략합니다. 학생 인증·납부 여부는 STAFF·ADMIN·SUPER_ADMIN만 조회합니다. wristband와 managementRole은 JSON 필드가 아닙니다. 본인 팔찌 상태는 GET /api/users/me/wristband를 사용합니다.")
     public record QrUserView(
             FestivalRole viewerRole,
             UUID userUuid,
@@ -53,8 +54,9 @@ public final class QrDtos {
             String createdAt,
             String updatedAt,
             Set<FestivalRole> festivalRoles,
-            SchoolVerificationStatus schoolVerificationStatus,
-            Instant schoolVerifiedAt, Boolean studentFeePaid,
+            @io.swagger.v3.oas.annotations.media.Schema(description = "STAFF 이상만 포함. 필드 누락은 미인증(false)과 다릅니다.") SchoolVerificationStatus schoolVerificationStatus,
+            Instant schoolVerifiedAt,
+            @io.swagger.v3.oas.annotations.media.Schema(description = "STAFF 이상만 포함. 필드 누락을 미납부(false)로 표시하지 않습니다.") Boolean studentFeePaid,
             @com.fasterxml.jackson.annotation.JsonIgnore
             org.syu_likelion.Festa_2026.wristband.WristbandService.MyStatus wristband) {
         public QrUserView {

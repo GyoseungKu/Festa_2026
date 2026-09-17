@@ -99,7 +99,10 @@ PATCH도 `category`, `teamName`, `memberNames`, `startsAt`, `endsAt`, `descripti
 |---|---|---|
 | `400` | `INVALID_PERFORMANCE`, `INVALID_PERFORMANCE_TIME` | 필드 또는 시간 범위 오류 |
 | `400` | `INVALID_MEDIA_URL`, `TOO_MANY_MEDIA` | 링크 또는 개수 오류 |
+| `400` | `MEMBER_REQUIRED`, `TOO_MANY_LINKS` | 정규화 후 구성원이 없거나 일반 링크가 3개 초과 |
+| `400` | `MEDIA_FILE_REQUIRED`, `EMPTY_MEDIA_FILE`, `INVALID_MEDIA_ID` | 업로드 파일 누락·빈 파일 또는 잘못된 삭제 ID |
 | `400` | `UNSUPPORTED_MEDIA_TYPE`, `MEDIA_FILE_TOO_LARGE` | 지원하지 않는 형식 또는 개별 파일 제한 초과 |
 | `403` | `PERFORMANCE_MANAGE_FORBIDDEN` | 관리자 권한 없음 |
 | `404` | `PERFORMANCE_NOT_FOUND` | 공연 없음 또는 미공개 |
 | `413` | `UPLOAD_TOO_LARGE` | multipart 요청 전체 크기 초과 |
+| `503` | `MEDIA_UPLOAD_FAILED` | 저장소 업로드 실패. 파일 요청을 무조건 자동 재시도하지 않음 |

@@ -58,8 +58,9 @@ public class AuthController {
 
     @GetMapping("/check/login-id")
     @Operation(summary = "로그인 아이디 중복 확인",
-            description = "로그인 없이 loginId의 사용 가능 여부를 SSO에서 확인합니다. available=true이면 사용할 수 있습니다.")
+            description = "로그인 없이 4–50 Unicode 코드 포인트 아이디를 확인합니다. 한글·특수문자·이모지 허용, 공백만 금지, trim·소문자 변환 없음. 가입된 아이디와 탈퇴 후 30일 미만 예약된 아이디는 available=false입니다. 확인 이후 다른 가입이 가능하므로 최종 가입에서도 중복 검사합니다.")
     AvailabilityResponse checkLoginId(
+            @Parameter(description = "입력값 그대로 전달. Unicode 코드 포인트 4–50자, 공백만 금지.", schema = @io.swagger.v3.oas.annotations.media.Schema(minLength = 4, maxLength = 50))
             @RequestParam @NotBlank @CodePointLength(min = 4, max = 50, message = "아이디는 4–50자여야 합니다.") String loginId) {
         return authService.checkLoginId(loginId);
     }
@@ -133,7 +134,7 @@ public class AuthController {
 
     @PostMapping("/signup")
     @Operation(summary = "회원가입",
-            description = "SSO 계정을 생성합니다. academicInfoSource가 MANUAL이면 입력한 학적정보를, SCHOOL_SSO이면 학교 SSO에서 검증해 세션에 보관한 이름·학번·학과를 사용합니다.")
+            description = "이메일 인증 완료 후 가입합니다. 성공은 200 + userUuid이며 자동 로그인하지 않습니다. academicInfoSource가 MANUAL이면 입력한 학적정보를, SCHOOL_SSO이면 학교 세션의 이름·학번·학과를 사용합니다. SCHOOL_SSO도 요청 DTO의 필수 학적정보를 보내야 합니다. 409 RECENTLY_WITHDRAWN_ACCOUNT이면 기존 계정 로그인·복구 또는 탈퇴 후 30일 경과를 안내합니다.")
     SignupResponse signup(@Valid @RequestBody SignupRequest request, HttpServletRequest servletRequest) {
         SignupRequest effective = request;
         SchoolAcademicProfile verifiedProfile = null;
@@ -151,7 +152,7 @@ public class AuthController {
 
     @PostMapping("/login")
     @Operation(summary = "로그인",
-            description = "SSO 로그인 후 Access Token을 응답 본문으로 반환하고 Refresh Token은 HttpOnly 쿠키로 설정합니다.")
+            description = "Access Token은 JSON, Refresh Token은 /api 범위의 HttpOnly 쿠키로 반환합니다. 최초 reactivate는 생략/false. 409 ACCOUNT_REACTIVATION_REQUIRED일 때만 복구 동의창을 표시하고 명시적 동의 후 true로 재요청합니다. 401 LOGIN_FAILED는 자동 복구하지 않습니다. SSO clientSecret은 프런트에 전달하지 않습니다.")
     ResponseEntity<TokenResponse> login(@Valid @RequestBody LoginRequest request) {
         AuthService.LoginResult result = authService.login(request);
         return ResponseEntity.ok()
@@ -160,8 +161,9 @@ public class AuthController {
     }
 
     @PostMapping("/token/refresh")
+    @io.swagger.v3.oas.annotations.security.SecurityRequirement(name = "refreshCookie")
     @Operation(summary = "Access Token 갱신",
-            description = "HttpOnly Refresh Token 쿠키를 사용해 새 Access Token을 발급합니다. Swagger UI에서는 로그인 후 쿠키가 자동으로 사용됩니다.")
+            description = "POST /api/auth/login이 설정한 HttpOnly Refresh 쿠키로 갱신합니다. Bearer와 본문은 불필요합니다. 브라우저 요청은 credentials: include를 사용합니다. Swagger 접속용 /admin/login 쿠키와 별개이므로 API 로그인을 먼저 실행해야 합니다. 성공 accessToken을 교체하고, 최종 401이면 로그인 상태를 정리하며 반복 갱신하지 않습니다.")
     ResponseEntity<TokenResponse> refresh(@Parameter(hidden = true) HttpServletRequest request) {
         String currentRefreshToken = cookies.readRefreshToken(request);
         SsoResult<TokenResponse> result = refreshCoordinator.refresh(currentRefreshToken);

@@ -8,6 +8,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -69,14 +72,16 @@ class OpenApiDocumentationIntegrationTests {
         Map<String, List<String>> expectedResponses = Map.of(
                 "201", List.of("POST /api/sponsors", "POST /api/admin/polls", "POST /api/polls/{id}/submissions",
                         "POST /api/performances", "POST /api/notices", "POST /api/lost-items", "POST /api/booths",
-                        "POST /api/birthday-messages", "POST /api/bamboo/nickname", "POST /api/bamboo/messages"),
+                        "POST /api/birthday-messages", "POST /api/bamboo/nickname", "POST /api/bamboo/messages",
+                        "POST /api/timetable"),
                 "202", List.of("POST /api/analytics/events"),
                 "204", List.of("DELETE /api/sponsors/{id}", "DELETE /api/admin/polls/{id}",
                         "DELETE /api/performances/{id}", "DELETE /api/notices/{id}", "DELETE /api/lost-items/{id}",
                         "DELETE /api/booths/{id}", "POST /api/booths/{id}/favorite", "DELETE /api/booths/{id}/favorite",
                         "DELETE /api/birthday-messages/{id}", "DELETE /api/admin/birthday-messages/{id}",
                         "POST /api/bamboo/messages/{id}/report", "POST /api/presence/heartbeat",
-                        "POST /api/auth/logout", "DELETE /api/users/me", "DELETE /api/auth/school/profile"),
+                        "POST /api/auth/logout", "DELETE /api/users/me", "DELETE /api/auth/school/profile",
+                        "DELETE /api/timetable/{id}"),
                 "302", List.of("GET /api/auth/school/authorize", "GET /auth/sso/callback"));
         expectedResponses.forEach((code, endpoints) -> endpoints.forEach(endpoint -> {
             String[] parts = endpoint.split(" ", 2);
@@ -98,6 +103,44 @@ class OpenApiDocumentationIntegrationTests {
                 }
             }
         }
+        // Compare the maintained Markdown inventory with generated runtime mappings, not a fixed count.
+        Set<String> actualEndpoints = new TreeSet<>();
+        paths.forEach((path, operations) -> operations.keySet().forEach(verb ->
+                actualEndpoints.add(verb.toUpperCase(java.util.Locale.ROOT) + " " + path)));
+        Set<String> indexedEndpoints = new TreeSet<>();
+        var row = Pattern.compile("(?m)^\\|\\s*`?(GET|POST|PUT|PATCH|DELETE)`?\\s*\\|\\s*`([^`]+)`");
+        var matcher = row.matcher(Files.readString(Path.of("docs/api-endpoint-index.md")));
+        while (matcher.find()) indexedEndpoints.add(matcher.group(1) + " " + matcher.group(2));
+        assertThat(indexedEndpoints).as("Markdown API index matches generated OpenAPI")
+                .containsExactlyElementsOf(actualEndpoints);
+
+        Map<String, Object> components = (Map<String, Object>) document.get("components");
+        Map<String, Map<String, Object>> schemas = (Map<String, Map<String, Object>>) components.get("schemas");
+        for (var field : Map.of("SignupRequest", "password", "ResetPasswordRequest", "newPassword").entrySet()) {
+            var schema = schemas.get(field.getKey());
+            assertThat((List<String>) schema.get("required")).contains(field.getValue());
+            var properties = (Map<String, Map<String, Object>>) schema.get("properties");
+            assertThat(properties.get(field.getValue())).containsEntry("minLength", 8)
+                    .containsEntry("maxLength", 20).containsEntry("format", "password")
+                    .containsEntry("writeOnly", true);
+        }
+        var signupProperties = (Map<String, Map<String, Object>>) schemas.get("SignupRequest").get("properties");
+        assertThat(signupProperties.get("loginId")).containsEntry("minLength", 4).containsEntry("maxLength", 50);
+        var chatProperties = (Map<String, Map<String, Object>>) schemas.get("BambooMessageResponse").get("properties");
+        assertThat((List<String>) chatProperties.get("content").get("type")).contains("null", "string");
+        assertThat((String) chatProperties.get("content").get("description")).contains("HIDDEN", "BLOCKED");
+        var qrProperties = (Map<String, Object>) schemas.get("QrUserView").get("properties");
+        assertThat(qrProperties).doesNotContainKeys("wristband", "managementRole");
+        assertThat(paths.get("/api/auth/token/refresh").get("post").get("security"))
+                .isEqualTo(List.of(Map.of("refreshCookie", List.of())));
+        for (String endpoint : List.of("/api/bamboo/messages", "/api/birthday-messages", "/api/polls")) {
+            var responses = (Map<String, Map<String, Object>>) paths.get(endpoint).get("get").get("responses");
+            assertThat((String) responses.get("403").get("description")).contains("SCHOOL_VERIFICATION_REQUIRED");
+            var content = (Map<String, Map<String, Object>>) responses.get("403").get("content");
+            assertThat((Map<String, Object>) content.get("application/json").get("schema"))
+                    .containsEntry("$ref", "#/components/schemas/ApiError");
+        }
+        assertThat(schemas).containsKey("ApiError");
         Path report = Path.of("build/reports/openapi.json");
         Files.createDirectories(report.getParent());
         Files.write(report, json);

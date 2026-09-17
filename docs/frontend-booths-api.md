@@ -241,6 +241,8 @@ await apiFetch(`/api/booths/${boothId}/images`, {
 | `400` | `INVALID_BOOTH_COORDINATES`, `INVALID_BOOTH_HOURS` | 좌표·운영시간 필드 표시 |
 | `400` | `INVALID_BOOTH_MEDIA_ORDER` | 서버 상세를 다시 조회해 미디어 목록 동기화 |
 | `400` | `TOO_MANY_BOOTH_MEDIA` | 파일 개수 안내 |
+| `400` | `EMPTY_BOOTH_MEDIA_FILE`, `UNSUPPORTED_BOOTH_MEDIA_TYPE`, `BOOTH_MEDIA_FILE_TOO_LARGE` | 빈 파일·지원하지 않는 형식·개별 파일 크기 제한 확인 |
 | `413` | `UPLOAD_TOO_LARGE` | 파일 크기 안내 |
+| `503` | `BOOTH_MEDIA_UPLOAD_FAILED` | 저장소 업로드 실패. 상태 확인 후 사용자가 재시도 |
 
 관리자 HTML 화면은 `/admin/booths`입니다.
