@@ -99,20 +99,21 @@ class SchoolSsoIntegrationTests {
         SCHOOL.stop(0);
     }
 
-    @Test
-    void verifiedSchoolProfileOverridesManipulatedSignupFieldsAndIsConsumed() throws Exception {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"valid-one-time-code, 컴퓨터공학과", "major-code, 컴퓨터공학부"})
+    void verifiedSchoolProfileOverridesManipulatedSignupFieldsAndIsConsumed(String code, String department) throws Exception {
         MockHttpSession session = authorizeSession();
         String state = stateFromSessionRedirect(session);
 
         mvc.perform(get("/auth/sso/callback").session(session)
-                        .param("state", state).param("code", "valid-one-time-code"))
+                        .param("state", state).param("code", code))
                 .andExpect(redirectedUrl("https://festa.syu-likelion.org/temporary-auth?schoolSso=success"));
 
         mvc.perform(get("/api/auth/school/profile").session(session))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("학교홍길동"))
                 .andExpect(jsonPath("$.studentNo").value("20260001"))
-                .andExpect(jsonPath("$.department").value("컴퓨터공학과"));
+                .andExpect(jsonPath("$.department").value(department));
 
         mvc.perform(post("/api/auth/signup").session(session).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"loginId\":\"festival01\",\"password\":\"Password123!\","+
@@ -125,7 +126,7 @@ class SchoolSsoIntegrationTests {
         org.mockito.Mockito.verify(authService).signup(captor.capture(), any());
         assertThat(captor.getValue().name()).isEqualTo("학교홍길동");
         assertThat(captor.getValue().studentNo()).isEqualTo("20260001");
-        assertThat(captor.getValue().department()).isEqualTo("컴퓨터공학과");
+        assertThat(captor.getValue().department()).isEqualTo(department);
 
         mvc.perform(get("/api/auth/school/profile").session(session))
                 .andExpect(status().isBadRequest())
@@ -134,16 +135,17 @@ class SchoolSsoIntegrationTests {
         assertThat(REQUESTS).anySatisfy(request -> {
             assertThat(request.path()).isEqualTo("/token");
             assertThat(request.authorization()).startsWith("Basic ");
-            assertThat(request.body()).contains("code=valid-one-time-code")
+            assertThat(request.body()).contains("code=" + code)
                     .contains("redirect_uri=https%3A%2F%2Ffesta.syu-likelion.org%2Fauth%2Fsso%2Fcallback");
         });
     }
 
-    @Test
-    void loggedInUserCanCompleteSchoolVerificationAfterSignup() throws Exception {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"valid-one-time-code, 컴퓨터공학과", "major-code, 컴퓨터공학부"})
+    void loggedInUserCanCompleteSchoolVerificationAfterSignup(String code, String department) throws Exception {
         UUID userUuid = UUID.fromString("123e4567-e89b-12d3-a456-426614174099");
         MeResponse me = new MeResponse(userUuid, "festival01", "student@example.com", "USER", "ACTIVE",
-                "학교홍길동", null, "20260001", "컴퓨터공학과", null, null, null, null, null, null);
+                "학교홍길동", null, "20260001", department, null, null, null, null, null, null);
         when(userService.getMe(any(), any())).thenReturn(new AuthorizedResult<>(me, null, null));
 
         MvcResult authorize = mvc.perform(post("/api/users/me/school-verification/authorize")
@@ -157,10 +159,13 @@ class SchoolSsoIntegrationTests {
         String state = UriComponentsBuilder.fromUriString(authorizeUrl).build().getQueryParams().getFirst("state");
 
         mvc.perform(get("/auth/sso/callback").session(session)
-                        .param("state", state).param("code", "valid-one-time-code"))
+                        .param("state", state).param("code", code))
                 .andExpect(redirectedUrl("https://festa.syu-likelion.org/temporary-auth?schoolVerification=success"));
 
-        org.mockito.Mockito.verify(festivalUsers).verifySchool(org.mockito.ArgumentMatchers.eq(userUuid), any());
+        ArgumentCaptor<SchoolAcademicProfile> profile = ArgumentCaptor.forClass(SchoolAcademicProfile.class);
+        org.mockito.Mockito.verify(festivalUsers).verifySchool(org.mockito.ArgumentMatchers.eq(userUuid), profile.capture());
+        assertThat(profile.getValue().department()).isEqualTo(department);
+        org.mockito.Mockito.verify(userService, org.mockito.Mockito.never()).updateProfile(any(), any(), any());
     }
 
     @Test
@@ -400,7 +405,7 @@ class SchoolSsoIntegrationTests {
         String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
         REQUESTS.add(new RecordedRequest(exchange.getRequestURI().getPath(), body,
                 exchange.getRequestHeaders().getFirst("Authorization")));
-        respond(exchange, 200, "{\"access_token\":\"" + jwt(body.contains("code=invalid-issuer"))
+        respond(exchange, 200, "{\"access_token\":\"" + jwt(body.contains("code=invalid-issuer"), body.contains("code=major-code") ? "컴퓨터공학전공" : "컴퓨터공학과")
                 + "\",\"token_type\":\"Bearer\",\"expires_in\":300}");
     }
 
@@ -419,13 +424,13 @@ class SchoolSsoIntegrationTests {
         respond(exchange, 200, "{\"keys\":[{\"kid\":\"school-key-2026\",\"pem\":" + json(pem) + "}]}");
     }
 
-    private static String jwt(boolean invalidIssuer) {
+    private static String jwt(boolean invalidIssuer, String department) {
         Instant now = Instant.now();
         JWTClaimsSet claims = new JWTClaimsSet.Builder()
                 .issuer(invalidIssuer ? "https://attacker.invalid" : "https://www.syu.ac.kr").audience("festa-2026")
                 .subject("20260001").issueTime(Date.from(now)).notBeforeTime(Date.from(now))
                 .expirationTime(Date.from(now.plusSeconds(300))).jwtID(UUID.randomUUID().toString())
-                .claim("student_id", "20260001").claim("department", "컴퓨터공학과")
+                .claim("student_id", "20260001").claim("department", department)
                 .claim("name", "학교홍길동").claim("consent_target", "2026학년도 총학생회").build();
         SignedJWT jwt = new SignedJWT(new JWSHeader.Builder(JWSAlgorithm.RS256)
                 .keyID("school-key-2026").build(), claims);

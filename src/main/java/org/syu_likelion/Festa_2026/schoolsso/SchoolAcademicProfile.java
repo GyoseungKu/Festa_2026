@@ -10,4 +10,7 @@ public record SchoolAcademicProfile(
         String consentTarget,
         Instant verifiedAt,
         Instant expiresAt) implements Serializable {
+    public SchoolAcademicProfile {
+        department = SchoolDepartmentNormalizer.normalize(department);
+    }
 }

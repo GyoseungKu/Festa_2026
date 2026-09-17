@@ -585,6 +585,8 @@ location / {
 
 학교 SSO 콜백 후 복귀 주소는 운영에서 `SYU_SSO_RETURN_URL=https://festa.syu-likelion.org/temporary-auth`처럼 절대 HTTPS URL로 설정합니다. 프런트 완성 전에는 백엔드 임시 테스트 페이지를 사용할 수 있습니다.
 
+학교 SSO의 세부전공은 회원정보 비교·저장 전에 학부명으로 통일합니다. 인공지능·컴퓨터·항공관광 계열의 지정 전공, 자유전공 포함 값, 건축학과의 연제 표기에 대한 [학과 변환 규칙](docs/frontend-school-sso.md#학교-학과명-통일-규칙)을 적용합니다.
+
 ### 임시 학교 인증 테스트 페이지
 
 - 접속: `/temporary-auth` 또는 `/syu-sso-test`
