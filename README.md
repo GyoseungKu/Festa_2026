@@ -11,6 +11,7 @@
 | 프로젝트 파악·서버 실행 | 이 README의 주요 기능 → 기술 구성 → 로컬 실행 |
 | 사용자 프런트 개발 | [프런트 연동 시작하기](docs/frontend-getting-started.md) → [공통 규약](docs/frontend-api-common.md) → [기능별 문서 목차](docs/README.md) |
 | 특정 API 경로·응답 찾기 | [API 전체 색인](docs/api-endpoint-index.md), Swagger UI(`/admin/swagger-ui.html`) |
+| 권한별 사용 가능·불가 API 확인 | [권한별 API·관리자 기능 허용표](docs/api-role-permissions.md) |
 | 관리자 화면 연동 | [관리자 웹 경로·쿠키·CSRF](docs/admin-web-api.md) |
 | 운영·설계·검토 기록 찾기 | [문서 목차](docs/README.md)의 운영 및 참고 문서 |
 

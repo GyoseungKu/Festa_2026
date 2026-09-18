@@ -4,6 +4,8 @@
 
 **이 문서의 순서**
 
+각 API를 누가 사용할 수 있는지는 [권한별 허용·차단 표](api-role-permissions.md)를 함께 확인합니다.
+
 - [Admin Console](#admin-console)
 - [Account Recovery](#account-recovery)
 - [Auth](#auth)

@@ -6,6 +6,8 @@
 
 ## 로그인·CSRF·오류
 
+역할별 허용·차단과 학생 인증·담당 부스 등 추가 조건은 [권한별 API·관리자 기능 허용표](api-role-permissions.md)를 확인합니다.
+
 - `GET /admin/login`으로 로그인 폼을 연 뒤 `POST /admin/login`에 `loginId`, `password`와 폼의 CSRF 값을 전송합니다. 성공 시 `/admin`으로 리다이렉트하고 실패 시 오류가 포함된 HTML 폼을 반환할 수 있습니다.
 - 관리자 쿠키 기본 이름은 `festivalAdminAccess`, `festivalAdminRefresh`이며 HttpOnly, Path=`/admin`입니다. 일반 API의 `festivalRefreshToken`과 별개입니다. Swagger Bearer 인증만으로 관리자 웹 요청을 인증할 수 없습니다.
 - 변경 폼은 CSRF 보호 대상입니다. 기존 Thymeleaf 폼의 `_csrf` hidden 필드를 유지합니다. 일반 `/api/**`는 이 CSRF 검사에서 제외됩니다. Spring CSRF 필터에서 발생한 403은 도메인 JSON 오류 형태를 보장하지 않습니다.
