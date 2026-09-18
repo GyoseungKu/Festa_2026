@@ -7,6 +7,7 @@
     <link rel="icon" type="image/svg+xml" th:href="@{/images/favicon.svg}">
     <link rel="stylesheet" th:href="@{/css/admin.css}">
 <link rel="stylesheet" th:href="@{/css/admin-console.css}">
+    <link rel="stylesheet" th:href="@{/css/admin-bamboo.css}">
 </head>
 <body class="admin-page">
 <a class="skip-link" href="#bamboo-admin">본문으로 건너뛰기</a>
@@ -69,15 +70,16 @@
         <span class="media-count" th:unless="${canChangeSettings}">설정 변경은 ADMIN 이상만 가능합니다.</span>
     </form>
 
-    <section class="bamboo-participant-panel" th:if="${canManageBlocks}">
-        <div class="form-section-heading">
-            <span>참여자 관리</span>
-            <div>
-                <h2>익명 참여자 검색·차단</h2>
-                <a class="button button-secondary" th:if="${canSeeAuthor}" th:href="@{/admin/bamboo/users}">실제 사용자 검색·차단</a>
+    <section class="bamboo-participant-panel" th:if="${canManageBlocks}" aria-labelledby="bamboo-participant-title">
+        <header class="bamboo-participant-header">
+            <div class="bamboo-participant-heading">
+                <span class="bamboo-participant-label">참여자 관리</span>
+                <h2 id="bamboo-participant-title">익명 참여자 검색·차단</h2>
                 <p>ADMIN 이상은 실제 신원을 보지 않고 익명 닉네임으로 차단하거나 해제할 수 있습니다.</p>
             </div>
-        </div>
+            <a class="button button-secondary bamboo-identity-link" th:if="${canSeeAuthor}"
+               th:href="@{/admin/bamboo/users}">실제 사용자 검색·차단</a>
+        </header>
         <form class="bamboo-participant-search" method="get" th:action="@{/admin/bamboo}">
             <input type="hidden" name="tab" th:value="${tab}">
             <label class="field-group">
@@ -85,9 +87,11 @@
                 <input type="search" name="participantQuery" th:value="${participantQuery}"
                        maxlength="15" placeholder="닉네임 일부 입력">
             </label>
-            <button class="button button-primary" type="submit">검색</button>
-            <a class="button button-ghost" th:if="${!#strings.isEmpty(participantQuery)}"
-               th:href="@{/admin/bamboo(tab=${tab})}">초기화</a>
+            <div class="bamboo-participant-search-actions">
+                <button class="button button-primary" type="submit">검색</button>
+                <a class="button button-ghost" th:if="${!#strings.isEmpty(participantQuery)}"
+                   th:href="@{/admin/bamboo(tab=${tab})}">초기화</a>
+            </div>
         </form>
 
         <p class="media-count" th:if="${#lists.isEmpty(participants.items)}">검색된 익명 참여자가 없습니다.</p>
