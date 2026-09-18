@@ -22,11 +22,11 @@
     <form class="performance-form" method="post" th:object="${form}"
           th:action="${editing} ? @{/admin/timetable/{id}(id=${schedule.id})} : @{/admin/timetable}">
         <section class="form-section"><div class="form-grid">
-            <label class="field-group field-full"><span>일정명</span><input type="text" th:field="*{title}" maxlength="150" placeholder="개회식, ○○○의 무대, 폐회식" required></label>
+            <label class="field-group field-full"><span>일정명</span><input type="text" th:field="*{title}" maxlength="150" placeholder="개회식, 공연팀 이름, 폐회식" required></label>
             <label class="field-group field-full"><span>공연팀 연결 (선택)</span>
                 <select th:field="*{performanceId}"><option value="">연결 없음</option>
                     <option th:each="team : ${performances}" th:value="${team.id}" th:text="${team.teamName}"
-                            th:attr="data-title=${team.teamName + '의 무대'},
+                            th:attr="data-title=${team.teamName},
                                      data-starts-at=${#temporals.format(team.startsAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm').replace(' ', 'T')},
                                      data-ends-at=${#temporals.format(team.endsAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm').replace(' ', 'T')},
                                      data-published-at=${#temporals.format(team.publishedAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm').replace(' ', 'T')}"></option>

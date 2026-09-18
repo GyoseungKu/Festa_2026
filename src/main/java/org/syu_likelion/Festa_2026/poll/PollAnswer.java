@@ -8,7 +8,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
-import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -23,7 +22,7 @@ public class PollAnswer {
     private PollSubmission submission;
     @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "question_id", nullable = false)
     private PollQuestion question;
-    @Lob @Column(name = "text_value") private String textValue;
+    @Column(name = "text_value", columnDefinition = "TEXT") private String textValue;
     @ManyToMany
     @JoinTable(name = "festival_poll_answer_options",
             joinColumns = @JoinColumn(name = "answer_id"), inverseJoinColumns = @JoinColumn(name = "option_id"))

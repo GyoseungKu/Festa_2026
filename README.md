@@ -281,14 +281,14 @@ Origin은 경로나 마지막 `/` 없이 `scheme://host[:port]` 형식으로 입
 
 공개 전에도 시간 정보는 반환하며 일정명은 `TBA`, 공연팀 정보는 `null`입니다. 공연팀의 공개 시각도 지난 경우에만 팀 연결을 공개합니다. [요청·응답과 공개 규칙](docs/frontend-timetable-api.md)을 참고하세요.
 
-관리자 등록·수정 화면에서 공연팀을 선택하면 일정명(`팀 이름의 무대`)과 시작·종료·공개 일시를 자동으로 채웁니다. 채워진 항목은 저장 전에 직접 수정할 수 있습니다.
+관리자 등록·수정 화면에서 공연팀을 선택하면 일정명(팀 이름 그대로)과 시작·종료·공개 일시를 자동으로 채웁니다. 채워진 항목은 저장 전에 직접 수정할 수 있습니다.
 
 ### 공연팀
 
 | Method | Path | 권한 | 설명 |
 |---|---|---|---|
-| GET | `/api/performances` | 로그인 | 공개 시각이 지난 공연 목록 |
-| GET | `/api/performances/{id}` | 로그인 | 공개된 공연 상세 |
+| GET | `/api/performances` | 로그인 | 전체 공연 목록, 공개 전에는 TBA·빈 소개·빈 구성원/미디어/링크 |
+| GET | `/api/performances/{id}` | 로그인 | 공연 상세, 공개 전에도 200·TBA 마스킹 |
 | POST | `/api/performances` | `ADMIN` 이상 | 공연팀과 링크 등록 |
 | PATCH | `/api/performances/{id}` | `ADMIN` 이상 | 공연팀 정보 수정 |
 | POST | `/api/performances/{id}/images` | `ADMIN` 이상 | 이미지 파일 추가 |

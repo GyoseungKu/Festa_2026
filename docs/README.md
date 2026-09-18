@@ -64,6 +64,7 @@
 | 학생 인증·관리자 승인 | [학생 인증 기능](student-verification.md) |
 | 학생회비 납부자 관리·자동 확인 | [학생회비 확인 정책](student-fees.md) |
 | 관리자 공통 디자인·레이아웃 | [관리자 디자인](admin-design.md) |
+| DB 컬럼 용량·운영 스키마 대조 SQL | [DB 점검 및 운영 확인](database-audit.md) |
 
 ## 검토 기록
 

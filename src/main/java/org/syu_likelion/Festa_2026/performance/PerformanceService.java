@@ -43,19 +43,16 @@ public class PerformanceService {
     @Transactional(readOnly = true)
     public AuthorizedResult<List<PerformanceResponse>> listVisible(String accessToken, String refreshToken) {
         AuthorizedResult<MeResponse> authenticated = users.getMe(accessToken, refreshToken);
-        List<PerformanceResponse> body = repository
-                .findByPublishedAtLessThanEqualOrderByStartsAtAsc(clock.instant())
-                .stream().map(this::toResponse).toList();
+        Instant now = clock.instant();
+        List<PerformanceResponse> body = repository.findAllByOrderByStartsAtAsc()
+                .stream().map(item -> toPublicResponse(item, now)).toList();
         return rotated(authenticated, body);
     }
 
     @Transactional(readOnly = true)
     public AuthorizedResult<PerformanceResponse> getVisible(Long id, String accessToken, String refreshToken) {
         AuthorizedResult<MeResponse> authenticated = users.getMe(accessToken, refreshToken);
-        FestivalPerformance performance = repository
-                .findByIdAndPublishedAtLessThanEqual(id, clock.instant())
-                .orElseThrow(this::notFound);
-        return rotated(authenticated, toResponse(performance));
+        return rotated(authenticated, toPublicResponse(find(id), clock.instant()));
     }
 
     @Transactional
@@ -359,13 +356,25 @@ public class PerformanceService {
     }
 
     private PerformanceResponse toResponse(FestivalPerformance performance) {
+        return toResponse(performance, !performance.getPublishedAt().isAfter(clock.instant()));
+    }
+
+    private PerformanceResponse toPublicResponse(FestivalPerformance performance, Instant now) {
+        if (!performance.getPublishedAt().isAfter(now)) return toResponse(performance, true);
+        return new PerformanceResponse(performance.getId(), performance.getCategory(),
+                performance.getCategory().getLabel(), "TBA", List.of(),
+                performance.getStartsAt(), performance.getEndsAt(), "", List.of(), List.of(), List.of(),
+                performance.getPublishedAt(), false, performance.getCreatedAt(), performance.getUpdatedAt());
+    }
+
+    private PerformanceResponse toResponse(FestivalPerformance performance, boolean published) {
         List<MediaResponse> images = media(performance, PerformanceMediaKind.IMAGE);
         List<MediaResponse> videos = media(performance, PerformanceMediaKind.VIDEO);
         return new PerformanceResponse(performance.getId(), performance.getCategory(),
                 performance.getCategory().getLabel(), performance.getTeamName(), performance.getMemberNames(),
                 performance.getStartsAt(), performance.getEndsAt(), performance.getDescription(),
                 performance.getLinks(), images, videos, performance.getPublishedAt(),
-                !performance.getPublishedAt().isAfter(clock.instant()),
+                published,
                 performance.getCreatedAt(), performance.getUpdatedAt());
     }
 

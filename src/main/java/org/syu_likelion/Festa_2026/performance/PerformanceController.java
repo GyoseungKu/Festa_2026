@@ -44,8 +44,8 @@ public class PerformanceController {
     }
 
     @GetMapping
-    @Operation(summary = "공개된 공연팀 목록 조회",
-            description = "로그인한 사용자가 공개일시가 지난 연예인·동아리·개인 공연팀을 공연 시작순으로 조회합니다.")
+    @Operation(summary = "공연팀 목록 조회 (공개 전 TBA)",
+            description = "로그인 후 전체 공연을 시작순으로 조회합니다. 공개 전에는 teamName=TBA, description=빈 문자열, memberNames·links·images·videos=빈 배열이며 published=false입니다. ID·분류·시간은 유지합니다. 관리자 토큰도 같은 공개 규칙을 적용합니다.")
     ResponseEntity<List<PerformanceResponse>> list(
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
             @Parameter(hidden = true) HttpServletRequest request) {
@@ -54,8 +54,8 @@ public class PerformanceController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "공개된 공연팀 상세 조회",
-            description = "로그인한 사용자가 공개일시가 지난 공연팀 하나를 조회합니다.")
+    @Operation(summary = "공연팀 상세 조회 (공개 전 TBA)",
+            description = "공개 전에도 200으로 반환하되 목록과 동일하게 TBA 및 빈 소개·구성원·링크·미디어로 숨깁니다. 공개 시각부터 실제 정보를 반환하며, 존재하지 않는 ID만 404입니다.")
     ResponseEntity<PerformanceResponse> detail(
             @PathVariable Long id,
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,

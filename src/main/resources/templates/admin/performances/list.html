@@ -7,6 +7,7 @@
     <link rel="icon" type="image/svg+xml" th:href="@{/images/favicon.svg}" href="/images/favicon.svg">
     <link rel="stylesheet" th:href="@{/css/admin.css}">
 <link rel="stylesheet" th:href="@{/css/admin-console.css}">
+    <link rel="stylesheet" th:href="@{/css/admin-performances.css}">
 </head>
 <body class="admin-page">
 <a class="skip-link" href="#admin-content">본문으로 건너뛰기</a>
@@ -23,7 +24,7 @@
         <div>
             <p class="eyebrow">STAGE LINEUP</p>
             <h1>공연팀 관리</h1>
-            <p>연예인·동아리·개인 공연팀을 필요한 만큼 계속 추가할 수 있습니다.</p>
+            <p>공연 시작이 빠른 순서로 표시합니다. 모든 시간은 한국 시간(KST) 기준입니다.</p>
         </div>
         <a class="button button-primary" th:href="@{/admin/performances/new}">공연팀 추가</a>
     </section>
@@ -36,32 +37,46 @@
         <a class="button button-primary" th:href="@{/admin/performances/new}">첫 공연팀 등록</a>
     </section>
 
-    <section class="performance-list" th:unless="${#lists.isEmpty(performances)}">
-        <article class="performance-admin-card" th:each="performance : ${performances}">
-            <div class="performance-card-top">
-                <div>
-                    <span class="category-chip" th:text="${performance.categoryLabel}">연예인</span>
-                    <span class="publish-chip" th:classappend="${performance.published} ? ' is-public' : ' is-scheduled'"
-                          th:text="${performance.published} ? '공개 중' : '공개 예정'">공개 예정</span>
-                </div>
-                <span class="media-count" th:text="|이미지 ${#lists.size(performance.images)} · 동영상 ${#lists.size(performance.videos)}|">미디어</span>
-            </div>
-            <h2 th:text="${performance.teamName}">팀 이름</h2>
-            <p class="member-summary" th:text="${#strings.listJoin(performance.memberNames, ', ')}">구성원</p>
-            <dl class="performance-meta">
-                <div><dt>공연 시작</dt><dd th:text="${#temporals.format(performance.startsAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm')} + ' KST'">2026-08-10 19:00 KST</dd></div>
-                <div><dt>공연 종료</dt><dd th:text="${#temporals.format(performance.endsAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm')} + ' KST'">2026-08-10 20:00 KST</dd></div>
-                <div><dt>공개 일시</dt><dd th:text="${#temporals.format(performance.publishedAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm')} + ' KST'">2026-08-01 09:00 KST</dd></div>
-            </dl>
-            <div class="performance-card-actions">
-                <a class="button button-secondary" th:href="@{/admin/performances/{id}/edit(id=${performance.id})}">수정</a>
-                <form method="post" th:action="@{/admin/performances/{id}/delete(id=${performance.id})}"
-                      onsubmit="return confirm('이 공연팀과 업로드 파일을 삭제할까요?');">
-                    <button class="button button-danger" type="submit">삭제</button>
-                </form>
-            </div>
-        </article>
-    </section>
+    <div class="performance-table-wrap" th:unless="${#lists.isEmpty(performances)}"
+         role="region" aria-label="공연팀 목록, 작은 화면에서는 좌우로 스크롤할 수 있습니다" tabindex="0">
+        <table class="performance-table">
+            <caption>공연 시작 시간순 · 한국 시간(KST)</caption>
+            <thead><tr>
+                <th scope="col" aria-sort="ascending">공연 시작</th>
+                <th scope="col">공연 종료</th>
+                <th scope="col">구분</th>
+                <th scope="col">공연팀</th>
+                <th scope="col">공개 상태·일시</th>
+                <th scope="col">미디어</th>
+                <th scope="col">관리</th>
+            </tr></thead>
+            <tbody>
+                <tr th:each="performance : ${performances}">
+                    <td class="performance-time" th:text="${#temporals.format(performance.startsAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm')} + ' KST'"></td>
+                    <td class="performance-time" th:text="${#temporals.format(performance.endsAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm')} + ' KST'"></td>
+                    <td><span class="category-chip" th:text="${performance.categoryLabel}">연예인</span></td>
+                    <td class="performance-team"><strong th:text="${performance.teamName}">팀 이름</strong>
+                        <details th:unless="${#lists.isEmpty(performance.memberNames)}">
+                            <summary th:text="|구성원 ${#lists.size(performance.memberNames)}명|">구성원</summary>
+                            <p th:text="${#strings.listJoin(performance.memberNames, ', ')}"></p>
+                        </details>
+                    </td>
+                    <td><span class="publish-chip" th:classappend="${performance.published} ? ' is-public' : ' is-scheduled'"
+                              th:text="${performance.published} ? '공개 중' : '공개 예정'">공개 예정</span>
+                        <small class="performance-time" th:text="${#temporals.format(performance.publishedAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm')} + ' KST'"></small>
+                    </td>
+                    <td class="performance-media-count" th:text="|이미지 ${#lists.size(performance.images)} · 동영상 ${#lists.size(performance.videos)}|"></td>
+                    <td><div class="performance-table-actions">
+                        <a class="button button-secondary" th:href="@{/admin/performances/{id}/edit(id=${performance.id})}">수정</a>
+                        <form method="post" th:action="@{/admin/performances/{id}/delete(id=${performance.id})}"
+                              onsubmit="return confirm('이 공연팀과 업로드 파일을 삭제할까요?');">
+                            <button class="button button-danger" type="submit">삭제</button>
+                        </form>
+                    </div></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 </main>
 <div th:replace="~{admin/fragments/footer :: footer(true)}"></div>
 </div></div>

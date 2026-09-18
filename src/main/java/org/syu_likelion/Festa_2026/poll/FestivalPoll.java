@@ -8,7 +8,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
-import jakarta.persistence.Lob;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.PrePersist;
@@ -29,7 +28,7 @@ public class FestivalPoll {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @Column(nullable = false, length = 200) private String title;
-    @Lob @Column(nullable = false) private String description;
+    @Column(nullable = false, columnDefinition = "TEXT") private String description;
     @Column(nullable = false) private boolean anonymous;
     @Column(name = "allow_multiple_submissions", nullable = false) private boolean allowMultipleSubmissions;
     @Column(name = "published_at", nullable = false) @Convert(converter = KstInstantAttributeConverter.class)
