@@ -36,6 +36,26 @@ JSON은 `/admin/v3/api-docs`, YAML은 `/admin/v3/api-docs.yaml`, UI 설정은 `/
 
 ## 전체 관리자 경로
 
+### 전체 회원 조회
+
+사용자 조회(`/admin/qr`)의 **전체 회원 조회·필터** 버튼에서 `/admin/qr/users`로 이동합니다. 전체 목록과 모든 필터는 ADMIN·SUPER_ADMIN만 이용할 수 있습니다. STAFF에게는 버튼을 표시하지 않으며 직접 URL로 요청해도 403으로 거부합니다. STAFF의 기존 검색 조회와 개인정보 마스킹은 유지합니다. BOOTH_MANAGER는 기존 QR 조회만 가능합니다.
+
+| 쿼리 | 기본값 | 의미 |
+|---|---|---|
+| `page` | `0` | 0부터 시작하는 페이지. 음수는 0, 최대 1,000,000으로 보정 |
+| `size` | `100` | 1–100으로 보정. 화면에서는 20·50·100명 선택 |
+| `role` | 생략 | ADMIN 이상 전용. USER·STAFF·ADMIN·SUPER_ADMIN은 관리 권한, BOOTH_MANAGER는 겸임 여부 |
+| `verified` | 생략 | true: 학생 인증 완료, false: 미인증·회수. 생략하면 전체 |
+| `paid` | 생략 | true: 학생 인증 완료 및 납부 확인, false: 미납부·미인증. 생략하면 전체 |
+
+필터는 AND 조건이며 페이지 이동 시 유지합니다. 조건을 바꿔 조회하면 첫 페이지부터 표시합니다. 범위를 벗어난 페이지는 빈 목록이며 ‘처음’으로 돌아갈 수 있습니다. 전체 인원은 현재 필터에 맞는 **축제 회원 행 수**이고 SSO 전체 가입자 수가 아닙니다. SSO 탈퇴자도 축제 연결이 남아 있다면 포함되며 정상 프로필 응답에 해당 계정이 없으면 ‘알 수 없음’으로 표시합니다. SSO 장애는 빈 목록으로 숨기지 않고 조회 오류를 안내합니다.
+
+DB에서 필터·정렬(id 내림차순)·페이지 제한을 먼저 적용하고 해당 페이지의 UUID만 최대 100개 일괄 SSO 조회합니다. 팔찌 상태도 현재 페이지에 한해 일괄 조회하며 재가입 식별값 대조를 유지합니다. SSO에만 저장된 이름·학과 검색은 기존 사용자 검색을 이용합니다. 기존 검색은 전체 연결 프로필을 대조하므로 전체 목록의 DB 페이지 조회와 성능 특성이 다릅니다. 전체 목록은 HTML 전용이고 별도 공개 REST API·다운로드 기능은 제공하지 않습니다. 응답은 `Cache-Control: no-store`입니다.
+
+| 메서드 | 경로 | 구현 |
+|---|---|---|
+| GET | `/admin/qr/users` | [AdminUserDirectoryController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminUserDirectoryController.java) |
+
 ### 입장 팔찌 (2026-09-16 추가)
 
 관리자 쿠키와 POST의 CSRF 토큰이 필요합니다. [정책·저장·본인 API](frontend-wristbands-api.md)를 함께 확인합니다.

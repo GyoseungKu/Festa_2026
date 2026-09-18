@@ -36,6 +36,8 @@ public class Wristband {
     public Long getId() { return id; }
     public long getVersion() { return version; }
     public boolean isIssued() { return issued; }
+    public UUID getActiveUserUuid() { return activeUserUuid; }
+    public String getSubjectHash() { return subjectHash; }
     public UUID getTargetUserUuid() { return targetUserUuid; }
     public String getTargetName() { return targetName; }
     public UUID getIssuedBy() { return issuedBy; }

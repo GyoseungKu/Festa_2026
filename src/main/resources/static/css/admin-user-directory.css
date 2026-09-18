@@ -1,0 +1,9 @@
+.directory-filters { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; margin: 20px 0; }
+.directory-filters label { display: grid; gap: 8px; flex: 1 1 150px; }
+.directory-filters select { width: 100%; min-height: 44px; }
+.directory-table-scroll { overflow-x: auto; margin-top: 16px; }
+.directory-table { width: 100%; border-collapse: collapse; text-align: left; }
+.directory-table th, .directory-table td { padding: 14px 16px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+.directory-table th { white-space: nowrap; }
+.directory-table td { overflow-wrap: anywhere; min-width: 90px; }
+@media (max-width: 600px) { .directory-filters label { flex-basis: 100%; } }

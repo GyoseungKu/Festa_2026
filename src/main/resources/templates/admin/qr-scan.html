@@ -34,6 +34,7 @@
     <div class="alert alert-success" role="status" th:if="${message}" th:text="${message}"></div>
 
     <section class="panel user-search-panel" th:if="${adminRole.name() == 'STAFF' || adminRole.name() == 'ADMIN' || adminRole.name() == 'SUPER_ADMIN'}">
+        <p th:if="${adminRole.name() == 'ADMIN' || adminRole.name() == 'SUPER_ADMIN'}"><a class="button button-secondary" th:href="@{/admin/qr/users}">전체 회원 조회·필터</a></p>
         <div class="panel-heading"><div><span class="step-number">01</span><h2>사용자 검색 및 권한 관리</h2></div></div>
         <form class="user-search-form" method="post" th:action="@{/admin/qr/search}">
             <label class="field-group"><span>검색어</span><input type="search" name="query" minlength="2" maxlength="100" required th:value="${searchQuery}" placeholder="이름, 학번, 아이디, 이메일, 전화번호, 학과"></label>

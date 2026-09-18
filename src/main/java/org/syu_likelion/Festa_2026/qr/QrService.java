@@ -181,6 +181,18 @@ public class QrService {
 
     private QrUserView toView(FestivalRole viewerRole, InternalUserProfile profile) {
         FestivalUserService.UserFestivalProfile festivalProfile = festivalProfile(profile.userUuid());
+        return toView(viewerRole, profile, festivalProfile);
+    }
+
+    QrUserView toView(FestivalRole viewerRole, InternalUserProfile profile,
+                      FestivalUserService.UserFestivalProfile festivalProfile) {
+        return toView(viewerRole, profile, festivalProfile,
+                viewerRole == FestivalRole.BOOTH_MANAGER ? null : wristbands.mine(profile.userUuid()));
+    }
+
+    QrUserView toView(FestivalRole viewerRole, InternalUserProfile profile,
+                      FestivalUserService.UserFestivalProfile festivalProfile,
+                      org.syu_likelion.Festa_2026.wristband.WristbandService.MyStatus wristband) {
         QrUserView view = switch (viewerRole) {
             case BOOTH_MANAGER -> new QrUserView(viewerRole, null, null, null, null, null,
                     maskName(profile.name()), null, maskStudentNo(profile.studentNo()),
@@ -203,7 +215,7 @@ public class QrService {
                     "QR 사용자 조회 권한이 없습니다.");
         };
         // The HTML-only status is computed before UUID masking and never serialized by the QR API.
-        return viewerRole == FestivalRole.BOOTH_MANAGER ? view : view.withWristband(wristbands.mine(profile.userUuid()));
+        return viewerRole == FestivalRole.BOOTH_MANAGER ? view : view.withWristband(wristband);
     }
 
     private FestivalUserService.UserFestivalProfile festivalProfile(UUID userUuid) {

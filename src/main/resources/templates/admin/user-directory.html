@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>전체 회원 조회 | SYU FESTA 2026</title>
+    <link rel="icon" type="image/svg+xml" th:href="@{/images/favicon.svg}">
+    <link rel="stylesheet" th:href="@{/css/admin.css}">
+    <link rel="stylesheet" th:href="@{/css/admin-console.css}">
+    <link rel="stylesheet" th:href="@{/css/admin-user-directory.css}">
+</head>
+<body class="admin-page">
+<a class="skip-link" href="#admin-content">본문으로 건너뛰기</a>
+<div class="admin-layout">
+    <aside th:replace="~{admin/fragments/sidebar :: sidebar}"></aside>
+    <div class="admin-workspace">
+        <main id="admin-content" tabindex="-1" class="admin-main">
+            <nav class="breadcrumb" aria-label="현재 위치"><a th:href="@{/admin}">관리자 홈</a><span>/</span><a th:href="@{/admin/qr}">사용자 조회</a><span>/</span><strong>전체 회원</strong></nav>
+            <section class="page-heading"><div><p class="eyebrow">FESTIVAL MEMBERS</p><h1>전체 회원 조회</h1><p>축제 서비스에 등록된 회원을 최근 등록 순으로 조회합니다.</p></div><a class="button button-secondary" th:href="@{/admin/qr}">QR·이름 검색</a></section>
+            <section class="panel">
+                <h2>조회 조건</h2>
+                <form class="directory-filters" method="get" th:action="@{/admin/qr/users}">
+                    <label th:if="${adminRole.name() != 'STAFF'}">축제 권한<select name="role"><option value="">전체</option><option th:each="option : ${roleOptions}" th:value="${option}" th:text="${option}" th:selected="${option == role}"></option></select></label>
+                    <label>학생 인증<select name="verified"><option value="">전체</option><option value="true" th:selected="${verified == true}">인증 완료</option><option value="false" th:selected="${verified == false}">미인증·인증 회수</option></select></label>
+                    <label>학생회비<select name="paid"><option value="">전체</option><option value="true" th:selected="${paid == true}">납부 확인</option><option value="false" th:selected="${paid == false}">납부 미확인·학생 미인증</option></select></label>
+                    <label>페이지당 인원<select name="size"><option th:each="count : ${ {20, 50, 100} }" th:value="${count}" th:text="|${count}명|" th:selected="${count == size}"></option></select></label>
+                    <button class="button button-primary" type="submit">조회</button><a class="button button-secondary" th:href="@{/admin/qr/users}">초기화</a>
+                </form>
+                <p class="support-copy">조건은 함께 적용됩니다. 부스 담당자는 관리 권한과 함께 보유할 수 있습니다. SSO에서 탈퇴했더라도 축제 회원 기록이 남아 있으면 ‘알 수 없음’으로 표시됩니다.</p>
+            </section>
+            <div class="alert alert-error" role="alert" th:if="${error}" th:text="${error}"></div>
+            <section class="panel" th:if="${result != null}">
+                <div class="panel-heading"><h2 th:text="|조건에 맞는 회원 ${result.totalElements}명|">회원 목록</h2><span th:text="|현재 ${result.numberOfElements}명 표시|">표시 인원</span></div>
+                <p class="empty-copy" th:if="${result.empty}">이 페이지에 표시할 회원이 없습니다. 조건을 바꾸거나 첫 페이지에서 다시 조회해 주세요.</p>
+                <div class="directory-table-scroll" th:unless="${result.empty}">
+                    <table class="directory-table"><thead><tr><th scope="col">이름</th><th scope="col">학번</th><th scope="col">학과</th><th scope="col" th:if="${adminRole.name() != 'STAFF'}">축제 권한</th><th scope="col">학생 인증</th><th scope="col">학생회비</th><th scope="col">입장 팔찌</th></tr></thead>
+                        <tbody><tr th:each="user : ${result.content}">
+                            <td th:text="${user.name ?: '알 수 없음'}"></td><td th:text="${user.studentNo ?: '-'}"></td><td th:text="${user.department ?: '-'}"></td>
+                            <td th:if="${adminRole.name() != 'STAFF'}" th:text="${user.festivalRoles}"></td>
+                            <td th:text="${user.schoolVerified ? '인증 완료' : '미인증'}"></td>
+                            <td th:text="${!user.schoolVerified ? '학생 인증 필요' : (user.studentFeePaid ? '납부' : '미납부')}"></td>
+                            <td th:text="${user.wristband == null ? '-' : (user.wristband.issued ? '지급 완료' : (user.schoolVerified ? '미지급' : '학생 인증 후 확인'))}"></td>
+                        </tr></tbody>
+                    </table>
+                </div>
+                <nav class="number-pagination" th:if="${result.totalPages > 1 or result.number > 0}" aria-label="전체 회원 목록 페이지">
+                    <a th:if="${result.number > 0}" th:href="@{/admin/qr/users(page=0,size=${size},role=${role},verified=${verified},paid=${paid})}">처음</a>
+                    <a th:if="${result.hasPrevious()}" th:href="@{/admin/qr/users(page=${result.number - 1},size=${size},role=${role},verified=${verified},paid=${paid})}">이전</a>
+                    <a th:each="number : ${pages}" th:href="@{/admin/qr/users(page=${number},size=${size},role=${role},verified=${verified},paid=${paid})}" th:text="${number + 1}" th:classappend="${number == result.number ? 'is-current' : ''}" th:attr="aria-current=${number == result.number ? 'page' : null}"></a>
+                    <a th:if="${result.hasNext()}" th:href="@{/admin/qr/users(page=${result.number + 1},size=${size},role=${role},verified=${verified},paid=${paid})}">다음</a>
+                </nav>
+            </section>
+        </main>
+        <div th:replace="~{admin/fragments/footer :: footer(false)}"></div>
+    </div>
+</div>
+</body>
+</html>

@@ -48,6 +48,28 @@ public class WristbandService {
         var status = status(userUuid);
         return new MyStatus(status.issued(), status.issuedAt(), status.schoolVerified());
     }
+
+    /** 전체 회원 페이지에서 한 명마다 사용자·팔찌를 재조회하지 않는다. 재가입 해시 대조도 유지한다. */
+    @Transactional(readOnly = true)
+    public java.util.Map<UUID, MyStatus> forPage(java.util.List<FestivalUser> page) {
+        if (page.size() > 100) throw new IllegalArgumentException("At most 100 users per page");
+        if (page.isEmpty()) return java.util.Map.of();
+        var active = new java.util.HashMap<UUID, Wristband>();
+        records.findByActiveUserUuidIn(page.stream().map(FestivalUser::getUserUuid).toList())
+                .forEach(record -> active.put(record.getActiveUserUuid(), record));
+        var hashes = page.stream().map(this::identity).filter(java.util.Objects::nonNull).distinct().toList();
+        var byHash = new java.util.HashMap<String, Wristband>();
+        if (!hashes.isEmpty()) records.findBySubjectHashInAndIssuedTrue(hashes)
+                .forEach(record -> byHash.put(record.getSubjectHash(), record));
+        var result = new java.util.HashMap<UUID, MyStatus>();
+        for (FestivalUser user : page) {
+            Wristband record = active.get(user.getUserUuid());
+            if (record == null) record = byHash.get(identity(user));
+            result.put(user.getUserUuid(), new MyStatus(record != null,
+                    record == null ? null : record.getIssuedAt(), user.isSchoolVerified()));
+        }
+        return java.util.Map.copyOf(result);
+    }
     @Transactional(readOnly = true)
     public Eligibility eligibility(FestivalRole role, UUID userUuid) {
         requireStaff(role);
