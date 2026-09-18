@@ -351,7 +351,7 @@ Content-Type: application/json
 - 같은 사용자는 같은 메시지를 한 번만 신고할 수 있습니다.
 - 관리자 차단·삭제된 메시지는 신고할 수 없습니다. 신고 누적 `HIDDEN`은 추가 신고할 수 있습니다.
 - 기본 신고 제한은 사용자당 분당 10건입니다.
-- 5번째 신고부터 `HIDDEN`과 원문이 전달되며 변경 커서도 갱신됩니다. 관리자 알림 메일 기준은 별도 설정입니다.
+- 5번째 신고부터 `HIDDEN`과 원문이 전달되며 변경 커서도 갱신됩니다. 작성자 경고 메일 기준은 별도 설정입니다.
 
 ## 10. 관리자 REST API
 
@@ -609,16 +609,17 @@ BAMBOO_MAX_TRACKED_USERS=100000
 
 BAMBOO_ALERT_ENABLED=true
 BAMBOO_ALERT_THRESHOLD=5
-BAMBOO_ALERT_TO=admin@syu-likelion.org
 BAMBOO_ALERT_FROM=no-reply@syu-likelion.org
-BAMBOO_ALERT_ADMIN_URL=https://festa.syu-likelion.org/admin/bamboo
+BAMBOO_ALERT_SERVICE_URL=https://festa.syu-likelion.org
 BAMBOO_ALERT_MAX_PER_MINUTE=10
 BAMBOO_ALERT_PREVIEW_LENGTH=50
 ```
 
-- `BAMBOO_ALERT_TO`가 비어 있으면 신고는 저장되지만 메일은 발송하지 않습니다.
+- 수신자는 신고된 메시지 작성자 UUID로 SSO 내부 프로필에서 조회한 이메일입니다. 이메일이 없거나 SSO 조회가 실패하면 발송하지 않으며 관리자에게 대체 발송하지 않습니다. 기존 `BAMBOO_ALERT_TO`와 `BAMBOO_ALERT_ADMIN_URL`은 사용하지 않습니다.
 - `BAMBOO_ALERT_FROM`은 SMTP 계정에서 발송 권한이 있는 주소여야 합니다.
-- 신고 누적 알림 제목은 `[2026 천보축전] 오픈채팅 이용 경고`입니다. 수신자는 신고된 사용자가 아니라 `BAMBOO_ALERT_TO`에 설정된 관리자입니다.
+- 신고 경고 메일 제목은 `[2026 천보축전] 오픈채팅 이용 경고`입니다. 본문에는 작성 메시지의 일부, 누적 신고 수, 이용 주의·운영정책 안내, 홈페이지 링크와 문의 이메일을 표시합니다. 신고자 정보나 관리자 페이지 링크는 포함하지 않습니다. 신고만으로 위반이 확정됐다고 안내하지 않습니다.
+- 메일은 Welcome과 같은 배너(`email-banner.png`)·흰색 본문 카드·홈페이지 버튼·운영정보 Footer 형식입니다. `templates/mail/bamboo-warning.html`에서 경고 내용을 렌더링하며 닉네임과 본문은 HTML 이스케이프합니다. 배너는 CID 첨부, 작성 시각은 KST로 표시하고 일반 텍스트 대체 본문도 함께 제공합니다.
+- 메시지별 발송 중복 방지와 분당 제한은 서버 메모리 기준입니다. 재시작·다중 인스턴스에서는 중복 발송될 수 있습니다. 발송 실패·제한 시 별도 자동 재시도 작업은 없고, 이후 신고 요청에서 재시도할 수 있습니다. SSO·SMTP 장애는 신고 저장 결과에 영향을 주지 않습니다.
 - 본문 금칙어는 `bamboo.blocked-words[n]` Spring 설정으로 추가할 수 있습니다.
 
 ## 15. DB와 배포
@@ -656,7 +657,7 @@ DB의 기존 `HIDDEN`은 관리자 숨김 기록이므로 사용자 응답에서
 - [ ] `bamboo-schema.sql` 적용
 - [ ] 다섯 테이블의 collation이 `utf8mb4`인지 확인
 - [ ] Festa 애플리케이션이 단일 인스턴스로 실행되는지 확인
-- [ ] `BAMBOO_ALERT_TO` 실제 수신 주소 설정
+- [ ] 작성자의 SSO 이메일 조회·SMTP 설정 및 사용자 경고 메일 수신 확인
 - [ ] SMTP 계정에서 `no-reply@syu-likelion.org` 발송 권한 확인
 - [ ] Nginx에 `/api/bamboo` 요청 크기 제한 설정
 - [ ] 프런트가 `id` 기준으로 메시지를 갱신하는지 확인

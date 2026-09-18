@@ -1,6 +1,5 @@
 package org.syu_likelion.Festa_2026.bamboo;
 
-import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
@@ -13,21 +12,19 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record BambooAlertProperties(
         boolean enabled,
         int threshold,
-        List<String> to,
         String from,
-        String adminUrl,
+        String serviceUrl,
         int maxPerMinute,
         int previewLength) {
 
     public BambooAlertProperties {
         if (threshold <= 0) threshold = 5;
-        to = to == null ? List.of() : to.stream().filter(address -> address != null && !address.isBlank())
-                .map(String::trim).toList();
+        if (serviceUrl == null || serviceUrl.isBlank()) serviceUrl = "https://festa.syu-likelion.org";
         if (maxPerMinute <= 0) maxPerMinute = 10;
         if (previewLength <= 0) previewLength = 50;
     }
 
     boolean deliverable() {
-        return enabled && !to.isEmpty() && from != null && !from.isBlank();
+        return enabled && from != null && !from.isBlank();
     }
 }
