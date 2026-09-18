@@ -1,0 +1,18 @@
+<dl xmlns:th="http://www.thymeleaf.org" th:fragment="profile(user)" class="profile-grid">
+            <div th:if="${user.name != null}"><dt>이름</dt><dd th:text="${user.name}"></dd></div>
+            <div th:if="${user.studentNo != null}"><dt>학번</dt><dd th:text="${user.studentNo}"></dd></div>
+            <div th:if="${user.department != null}"><dt>학과</dt><dd th:text="${user.department}"></dd></div>
+            <div th:if="${user.grade != null}"><dt>학년</dt><dd><span th:text="${user.grade}"></span>학년</dd></div>
+            <div th:if="${user.schoolVerificationStatus != null}"><dt>학교 인증</dt><dd th:text="${user.schoolVerificationStatus}"></dd></div>
+            <div th:if="${user.schoolVerifiedAt != null}"><dt>학교 인증 시각</dt><dd th:text="${user.schoolVerifiedAt}"></dd></div>
+            <div th:if="${user.phone != null}"><dt>전화번호</dt><dd th:text="${user.phone}"></dd></div>
+            <div th:if="${user.email != null}"><dt>이메일</dt><dd th:text="${user.email}"></dd></div>
+            <div th:if="${user.userUuid != null}"><dt>사용자 UUID</dt><dd class="mono" th:text="${user.userUuid}"></dd></div>
+            <div th:if="${user.loginId != null}"><dt>로그인 ID</dt><dd th:text="${user.loginId}"></dd></div>
+            <div th:if="${user.status != null}"><dt>계정 상태</dt><dd th:text="${user.status}"></dd></div>
+            <div th:if="${user.enrollment != null}"><dt>재학 상태</dt><dd th:text="${user.enrollment}"></dd></div>
+            <div th:if="${user.birthDate != null}"><dt>생년월일</dt><dd th:text="${user.birthDate}"></dd></div>
+            <div th:if="${user.festivalRoles != null}"><dt>축제 권한</dt><dd th:text="${user.festivalRoles}"></dd></div>
+            <div th:if="${user.studentFeePaid != null}"><dt>학생회비</dt><dd th:text="${!user.schoolVerified ? '학생인증 필요' : (user.studentFeePaid ? '납부' : '미납부')}"></dd></div>
+            <div th:if="${user.wristband != null}"><dt>입장 팔찌</dt><dd th:text="${user.wristband.issued ? '지급 완료' : (user.wristband.schoolVerified ? '미지급' : '학생 인증 후 지급 여부 확인 필요')}"></dd></div>
+        </dl>

@@ -155,6 +155,23 @@ class UserDirectoryTests {
         mvc.perform(get("/admin/qr/users")).andExpect(redirectedUrl("/admin/login"));
     }
 
+    @Test void defaultPageAndNextPageEachFetchFiftyDifferentMembers() throws Exception {
+        for (int i = 0; i < 105; i++) member(FestivalRole.USER, false, false);
+        Cookie admin = new Cookie("festivalAdminAccess", "ADMIN");
+        mvc.perform(get("/admin/qr/users").cookie(admin))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("전체 105명 중 1–50명 · 1 / 3페이지")))
+                .andExpect(content().string(containsString("page=1&amp;size=50")));
+        mvc.perform(get("/admin/qr/users").cookie(admin).param("page", "1").param("size", "50"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("전체 105명 중 51–100명 · 2 / 3페이지")))
+                .andExpect(content().string(containsString("page=2&amp;size=50")));
+        @SuppressWarnings("unchecked") ArgumentCaptor<List<UUID>> ids = ArgumentCaptor.forClass(List.class);
+        verify(profiles, times(2)).getProfiles(ids.capture());
+        assertThat(ids.getAllValues().get(0)).hasSize(50);
+        assertThat(ids.getAllValues().get(1)).hasSize(50).doesNotContainAnyElementsOf(ids.getAllValues().get(0));
+    }
+
     @Test void profileFailureIsNotRenderedAsAnEmptyOrDeletedMemberList() throws Exception {
         member(FestivalRole.USER, false, false);
         when(profiles.getProfiles(anyList())).thenThrow(new SsoException(503, "unavailable"));

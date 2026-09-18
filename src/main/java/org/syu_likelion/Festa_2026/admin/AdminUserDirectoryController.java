@@ -27,7 +27,7 @@ public class AdminUserDirectoryController {
                 @RequestParam(required = false) Boolean verified,
                 @RequestParam(required = false) Boolean paid,
                 @RequestParam(defaultValue = "0") int page,
-                @RequestParam(defaultValue = "100") int size,
+                @RequestParam(defaultValue = "50") int size,
                 HttpServletRequest request, HttpServletResponse response, Model model) {
         response.setHeader("Cache-Control", "no-store");
         if (cookies.readAccessToken(request) == null) return "redirect:/admin/login";

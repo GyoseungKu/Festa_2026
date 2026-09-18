@@ -230,6 +230,19 @@ button { cursor: pointer; }
 .user-search-result-list { display: grid; gap: 12px; margin-top: 14px; }
 .user-search-result-list > article { padding: 0 18px; border: 1px solid var(--line); border-radius: 13px; background: rgba(255,255,255,.03); }
 .user-search-result-list .profile-grid { margin-top: 0; }
+.user-search-summary { display: flex; align-items: center; gap: 12px; padding: 16px 0; cursor: pointer; list-style: none; }
+.user-search-summary::-webkit-details-marker { display: none; }
+.user-search-summary::before { content: '▸'; flex-shrink: 0; }
+.user-search-details[open] > .user-search-summary::before { content: '▾'; }
+.user-search-summary:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; border-radius: 6px; }
+.user-search-identity { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; min-width: 0; overflow-wrap: anywhere; }
+.user-search-identity > span { color: var(--muted); font-size: .88rem; }
+.user-search-toggle { margin-left: auto; flex-shrink: 0; font-size: .8rem; color: var(--muted); }
+.user-search-details:not([open]) .when-open, .user-search-details[open] .when-closed { display: none; }
+.user-search-details[open] { padding-bottom: 16px; }
+@media (max-width: 600px) {
+    .user-search-identity { flex-direction: column; gap: 4px; }
+}
 .user-role-form { display: flex; align-items: end; flex-wrap: wrap; gap: 10px; padding: 14px 0 16px; border-top: 1px solid var(--line); }
 .user-role-form label { display: grid; gap: 5px; min-width: 180px; color: var(--muted); font-size: .75rem; font-weight: 700; }
 .user-role-form select { min-height: 40px; color: inherit; border: 1px solid var(--line); border-radius: 9px; padding: 8px 10px; background: var(--surface); }

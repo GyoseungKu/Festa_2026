@@ -45,7 +45,7 @@ JSON은 `/admin/v3/api-docs`, YAML은 `/admin/v3/api-docs.yaml`, UI 설정은 `/
 | 쿼리 | 기본값 | 의미 |
 |---|---|---|
 | `page` | `0` | 0부터 시작하는 페이지. 음수는 0, 최대 1,000,000으로 보정 |
-| `size` | `100` | 1–100으로 보정. 화면에서는 20·50·100명 선택 |
+| `size` | `50` | 1–100으로 보정. 화면에서는 20·50·100명 선택 |
 | `role` | 생략 | ADMIN 이상 전용. USER·STAFF·ADMIN·SUPER_ADMIN은 관리 권한, BOOTH_MANAGER는 겸임 여부 |
 | `verified` | 생략 | true: 학생 인증 완료, false: 미인증·회수. 생략하면 전체 |
 | `paid` | 생략 | true: 학생 인증 완료 및 납부 확인, false: 미납부·미인증. 생략하면 전체 |

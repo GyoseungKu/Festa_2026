@@ -82,6 +82,7 @@ Authorization: Bearer ACCESS_TOKEN
 - `memberNames`: 1–100개, 항목 최대 100자
 - `teamName`: 최대 150자
 - `description`: 최대 5000자
+- DB의 `festival_performances.description`은 `TEXT`로 저장합니다. 기존 DB에서 `Data too long for column 'description'`이 발생하면 [컬럼 변경 SQL](performance-description-migration.sql)로 현재 타입을 확인하고 작은 컬럼을 확장해야 합니다. API 입력 제한은 그대로 유지됩니다.
 - 일반 `links`: 최대 3개
 - 이미지와 동영상: 종류별로 링크와 업로드 파일을 합해 최대 3개
 - 링크는 `http` 또는 `https` URL만 허용
