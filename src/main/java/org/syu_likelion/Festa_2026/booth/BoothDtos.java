@@ -1,5 +1,6 @@
 package org.syu_likelion.Festa_2026.booth;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
@@ -21,7 +22,9 @@ public final class BoothDtos {
             @NotBlank @Size(max = 150) String name,
             @NotBlank @Size(max = 150) String operator,
             @NotBlank @Size(max = 5000) String description,
+            @Schema(description = "시간대 없는 운영 시작 시각(HH:mm:ss).", example = "10:00:00")
             @NotNull LocalTime opensAt,
+            @Schema(description = "시간대 없는 운영 종료 시각(HH:mm:ss).", example = "18:00:00")
             @NotNull LocalTime closesAt,
             boolean stampEnabled,
             @Size(max = 100) List<@NotNull UUID> managerUuids) { }

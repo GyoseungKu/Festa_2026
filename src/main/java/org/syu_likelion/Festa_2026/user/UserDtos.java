@@ -1,6 +1,8 @@
 package org.syu_likelion.Festa_2026.user;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -23,18 +25,18 @@ public final class UserDtos {
             String email,
             String ssoRole,
             String status,
-            String name,
-            String phone,
-            String studentNo,
-            String department,
-            Integer grade,
-            String enrollment,
-            LocalDate birthDate,
+            @Schema(types = {"string", "null"}) String name,
+            @Schema(types = {"string", "null"}) String phone,
+            @Schema(types = {"string", "null"}) String studentNo,
+            @Schema(types = {"string", "null"}) String department,
+            @Schema(types = {"integer", "null"}, format = "int32") Integer grade,
+            @Schema(types = {"string", "null"}) String enrollment,
+            @Schema(types = {"string", "null"}, format = "date") LocalDate birthDate,
             LocalDateTime createdAt,
             LocalDateTime updatedAt,
             Set<FestivalRole> festivalRoles,
             SchoolVerificationStatus schoolVerificationStatus,
-            Instant schoolVerifiedAt, Boolean studentFeePaid) {
+            @Schema(types = {"string", "null"}, format = "date-time") Instant schoolVerifiedAt, Boolean studentFeePaid) {
 
         public MeResponse {
             // 기존 SSO 응답에는 축제 전용 납부 필드가 없다.
@@ -78,6 +80,7 @@ public final class UserDtos {
             @Size(max = 100) String department,
             @Min(1) @Max(6) Integer grade,
             Enrollment enrollment) {
+        @JsonIgnore
         public boolean isEmpty() {
             return phone == null && department == null && grade == null && enrollment == null;
         }

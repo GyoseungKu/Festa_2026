@@ -6,7 +6,6 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import java.util.Map;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,6 +29,7 @@ import org.syu_likelion.Festa_2026.bamboo.BambooDtos.BambooRenameRequest;
 import org.syu_likelion.Festa_2026.bamboo.BambooDtos.BambooSettingsRequest;
 import org.syu_likelion.Festa_2026.bamboo.BambooDtos.BambooSettingsResponse;
 import org.syu_likelion.Festa_2026.bamboo.BambooDtos.BambooStatusChangeRequest;
+import org.syu_likelion.Festa_2026.bamboo.BambooDtos.BambooStatusChangeResponse;
 import org.syu_likelion.Festa_2026.user.UserController;
 
 /**
@@ -66,13 +66,13 @@ public class BambooAdminController {
     @Operation(summary = "메시지 상태 일괄 변경",
             description = "VISIBLE로 관리자 차단을 해제하거나 BLOCKED·DELETED로 원문을 가립니다. 신고 5회 이상은 차단 해제 후에도 HIDDEN입니다. 기존 HIDDEN 요청은 BLOCKED로 처리합니다. 물리 삭제는 없습니다. STAFF 이상.")
     @SecurityRequirement(name = "bearerAuth")
-    ResponseEntity<Map<String, Integer>> changeStatus(
+    ResponseEntity<BambooStatusChangeResponse> changeStatus(
             @Valid @RequestBody BambooStatusChangeRequest body,
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
             @Parameter(hidden = true) HttpServletRequest request) {
         AuthorizedResult<Integer> result = admin.changeStatus(BearerTokens.require(authorization),
                 cookies.readRefreshToken(request), body.ids(), body.status());
-        return ResponseEntity.ok().headers(headers(result)).body(Map.of("changed", result.body()));
+        return ResponseEntity.ok().headers(headers(result)).body(new BambooStatusChangeResponse(result.body()));
     }
 
     @PostMapping("/messages/{id}/mute-author")

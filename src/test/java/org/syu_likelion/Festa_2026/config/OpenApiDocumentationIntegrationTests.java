@@ -129,6 +129,41 @@ class OpenApiDocumentationIntegrationTests {
         var chatProperties = (Map<String, Map<String, Object>>) schemas.get("BambooMessageResponse").get("properties");
         assertThat((List<String>) chatProperties.get("content").get("type")).contains("null", "string");
         assertThat((String) chatProperties.get("content").get("description")).contains("HIDDEN", "BLOCKED");
+        var profileProperties = (Map<String, Object>) schemas.get("ProfileUpdateRequest").get("properties");
+        assertThat(profileProperties).containsOnlyKeys("phone", "department", "grade", "enrollment");
+        var profile = new org.syu_likelion.Festa_2026.user.UserDtos.ProfileUpdateRequest("01012345678", null, null, null);
+        assertThat(mapper.readValue(mapper.writeValueAsBytes(profile), Map.class)).doesNotContainKey("empty");
+        assertThat(profile.isEmpty()).isFalse();
+        assertThat(new org.syu_likelion.Festa_2026.user.UserDtos.ProfileUpdateRequest(null, null, null, null).isEmpty()).isTrue();
+        var meProperties = (Map<String, Map<String, Object>>) schemas.get("MeResponse").get("properties");
+        for (String field : List.of("name", "phone", "studentNo", "department", "grade", "enrollment", "birthDate", "schoolVerifiedAt")) {
+            assertThat((List<String>) meProperties.get(field).get("type")).as("MeResponse.%s accepts null", field).contains("null");
+        }
+        assertThat(meProperties).containsKey("schoolVerified");
+        var mineProperties = (Map<String, Map<String, Object>>) schemas.get("MyBirthdayMessageResponse").get("properties");
+        assertThat((List<String>) mineProperties.get("message").get("type")).contains("object", "null");
+        assertThat(mineProperties.get("message")).doesNotContainKey("$ref").containsKey("properties");
+        assertThat(mapper.readValue(mapper.writeValueAsBytes(
+                new org.syu_likelion.Festa_2026.birthday.BirthdayMessageDtos.MyBirthdayMessageResponse(false, null)), Map.class))
+                .containsEntry("written", false).containsEntry("message", null);
+        for (var entry : Map.of("BambooStatusChangeResponse", "changed", "BambooCursorResponse", "cursor").entrySet()) {
+            assertThat((Map<String, Object>) schemas.get(entry.getKey()).get("properties")).containsOnlyKeys(entry.getValue());
+        }
+        var changedResponse = (Map<String, Map<String, Object>>) paths.get("/api/admin/bamboo/messages").get("patch").get("responses");
+        assertThat(mapper.writeValueAsString(changedResponse.get("200"))).contains("#/components/schemas/BambooStatusChangeResponse");
+        var cursorResponse = (Map<String, Map<String, Object>>) paths.get("/admin/bamboo/cursor").get("get").get("responses");
+        assertThat(mapper.writeValueAsString(cursorResponse.get("200"))).contains("#/components/schemas/BambooCursorResponse");
+        assertThat(mapper.readValue(mapper.writeValueAsBytes(
+                new org.syu_likelion.Festa_2026.bamboo.BambooDtos.BambooStatusChangeResponse(2)), Map.class)).containsExactlyEntriesOf(Map.of("changed", 2));
+        assertThat(mapper.readValue(mapper.writeValueAsBytes(
+                new org.syu_likelion.Festa_2026.bamboo.BambooDtos.BambooCursorResponse(3)), Map.class)).containsExactlyEntriesOf(Map.of("cursor", 3));
+        var eventProperties = (Map<String, Map<String, Object>>) schemas.get("FrontendEventRequest").get("properties");
+        assertThat((String) eventProperties.get("targetId").get("description")).contains("필수", "생략/null");
+        assertThat((String) eventProperties.get("durationMs").get("description")).contains("PAGE_LEAVE", "43200000");
+        assertThat((String) eventProperties.get("occurredAt").get("description")).contains("24시간", "5분");
+        var boothProperties = (Map<String, Map<String, Object>>) schemas.get("BoothMutationRequest").get("properties");
+        assertThat(boothProperties.get("opensAt")).containsEntry("example", "10:00:00");
+        assertThat(boothProperties.get("closesAt")).containsEntry("example", "18:00:00");
         var qrProperties = (Map<String, Object>) schemas.get("QrUserView").get("properties");
         assertThat(qrProperties).doesNotContainKeys("wristband", "managementRole");
         assertThat(paths.get("/api/auth/token/refresh").get("post").get("security"))

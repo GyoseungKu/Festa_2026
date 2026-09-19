@@ -50,6 +50,10 @@ public final class BambooDtos {
     public record BambooAdminPageResponse(List<BambooAdminMessageResponse> items, int page, int size,
                                           long totalElements, int totalPages) { }
 
+    public record BambooStatusChangeResponse(int changed) { }
+
+    public record BambooCursorResponse(long cursor) { }
+
     public record BambooStatusChangeRequest(
             @NotNull @Size(min = 1, max = 100) List<@NotNull @Positive Long> ids,
             @NotNull BambooMessageStatus status) { }

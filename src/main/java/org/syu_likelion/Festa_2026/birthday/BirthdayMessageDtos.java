@@ -1,6 +1,7 @@
 package org.syu_likelion.Festa_2026.birthday;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import java.time.Instant;
 import java.util.List;
@@ -18,7 +19,9 @@ public final class BirthdayMessageDtos {
                                           Instant createdAt) { }
     public record BirthdayMessagePageResponse(List<BirthdayMessageResponse> items, int page, int size,
                                               long totalElements, int totalPages) { }
-    public record MyBirthdayMessageResponse(boolean written, BirthdayMessageResponse message) { }
+    public record MyBirthdayMessageResponse(boolean written,
+            @Schema(description = "작성한 활성 쪽지가 없으면 written=false이며 message는 null입니다.", types = {"object", "null"}, schemaResolution = Schema.SchemaResolution.INLINE)
+            BirthdayMessageResponse message) { }
     public record HeartResponse(Long messageId, long heartCount, boolean heartedByMe) { }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)

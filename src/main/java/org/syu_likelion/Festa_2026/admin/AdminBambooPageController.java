@@ -9,7 +9,6 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -23,6 +22,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.syu_likelion.Festa_2026.admin.AdminAccessService.AdminIdentity;
 import org.syu_likelion.Festa_2026.auth.AuthorizedSsoExecutor.AuthorizedResult;
 import org.syu_likelion.Festa_2026.bamboo.BambooAdminService;
+import org.syu_likelion.Festa_2026.bamboo.BambooDtos.BambooCursorResponse;
 import org.syu_likelion.Festa_2026.bamboo.BambooMessageStatus;
 import org.syu_likelion.Festa_2026.bamboo.BambooService;
 import org.syu_likelion.Festa_2026.error.ApiException;
@@ -92,10 +92,10 @@ public class AdminBambooPageController {
     @ResponseBody
     @Tag(name = "Admin Console", description = "관리자 웹 로그인 쿠키로 인증하는 운영 화면용 JSON API")
     @Operation(summary = "대나무숲 관리자 변경 커서 조회", description = "관리자 웹 로그인 쿠키와 STAFF 이상 권한이 필요합니다. 메시지 변경 여부를 확인할 수 있는 현재 cursor를 반환합니다. 인증 또는 권한 확인에 실패하면 401을 반환합니다.")
-    ResponseEntity<Map<String, Long>> cursor(HttpServletRequest request, HttpServletResponse response) {
+    ResponseEntity<BambooCursorResponse> cursor(HttpServletRequest request, HttpServletResponse response) {
         AdminIdentity admin = staffOrNull(request, response);
         if (admin == null) return ResponseEntity.status(401).build();
-        return ResponseEntity.ok(Map.of("cursor", bamboo.currentCursor()));
+        return ResponseEntity.ok(new BambooCursorResponse(bamboo.currentCursor()));
     }
 
     @PostMapping("/participants/mute")
