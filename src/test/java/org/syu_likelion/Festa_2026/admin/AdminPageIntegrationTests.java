@@ -110,8 +110,8 @@ class AdminPageIntegrationTests {
         String sidebar = html.substring(html.indexOf("<aside"), html.indexOf("</aside>"));
         assertThat(sidebar).contains("href=\"/admin/stamps\"").doesNotContain("href=\"/admin/sponsors\"");
         assertThat(sidebar).containsPattern("(?s)<a[^>]*href=\"/admin\"[^>]*aria-current=\"page\"");
-        assertThat(html).contains("/images/festa.png", "alt=\"Make a Wish\"", "href=\"#admin-content\"", "id=\"admin-content\"")
-                .doesNotContain("/images/Logo.webp", "th:replace=");
+        assertThat(html).contains("/admin/assets/images/festa.png", "alt=\"Make a Wish\"", "href=\"#admin-content\"", "id=\"admin-content\"")
+                .doesNotContain("/admin/assets/images/Logo.webp", "th:replace=");
     }
     @Test
     void dashboardCountAndSidebarMatchAllowedCardsForEveryRoleCombination() throws Exception {
@@ -371,10 +371,11 @@ class AdminPageIntegrationTests {
     }
 
     @Test
-    void legacyFaviconPathRedirectsToSvg() throws Exception {
+    void serverFaviconDoesNotClaimFrontendRootPath() throws Exception {
+        mvc.perform(get("/admin/assets/images/favicon.svg"))
+                .andExpect(status().isOk());
         mvc.perform(get("/favicon.ico"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/images/favicon.svg"));
+                .andExpect(status().isNotFound());
     }
 
     @Test

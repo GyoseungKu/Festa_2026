@@ -6,7 +6,7 @@
 
 ## 적용 내용
 
-- `/images/festa.png`를 로그인과 사이드바에 표시합니다. 원본 비율과 대체 텍스트를 유지합니다.
+- `/admin/assets/images/festa.png`를 로그인과 사이드바에 표시합니다. 원본 비율과 대체 텍스트를 유지합니다.
 - 공통 계정 정보와 로그아웃 POST는 `admin/fragments/sidebar.html`에서 제공합니다. 별도 `admin/fragments/header.html`은 사용하지 않습니다.
 - 기본 컴포넌트 CSS 위에 중첩되던 과거 포스터 테마를 제거했습니다. 현재 관리자 색상은 `admin-console.css`에서 관리합니다.
 - 대시보드의 학생회비 카드 구조와 좁은 화면의 카드 열 수를 수정했습니다.

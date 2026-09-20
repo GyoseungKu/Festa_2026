@@ -56,7 +56,6 @@ import org.syu_likelion.Festa_2026.user.UserDtos.MeResponse;
 import org.syu_likelion.Festa_2026.user.UserService;
 
 @SpringBootTest(properties = {
-        "temporary-auth-ui.enabled=true",
         "school-sso.enabled=true",
         "school-sso.client-id=festa-2026",
         "school-sso.client-secret=test-school-secret",
@@ -64,7 +63,7 @@ import org.syu_likelion.Festa_2026.user.UserService;
         "school-sso.callback-url=https://festa.syu-likelion.org/auth/sso/callback",
         "school-sso.issuer=https://www.syu.ac.kr",
         "school-sso.audience=festa-2026",
-        "school-sso.return-url=https://festa.syu-likelion.org/temporary-auth",
+        "school-sso.return-url=https://festa.syu-likelion.org/auth/school/result",
         "school-sso.read-timeout=2s",
         "spring.datasource.url=jdbc:h2:mem:school-sso-tests;MODE=MySQL;DB_CLOSE_DELAY=-1"
 })
@@ -107,7 +106,7 @@ class SchoolSsoIntegrationTests {
 
         mvc.perform(get("/auth/sso/callback").session(session)
                         .param("state", state).param("code", code))
-                .andExpect(redirectedUrl("https://festa.syu-likelion.org/temporary-auth?schoolSso=success"));
+                .andExpect(redirectedUrl("https://festa.syu-likelion.org/auth/school/result?schoolSso=success"));
 
         mvc.perform(get("/api/auth/school/profile").session(session))
                 .andExpect(status().isOk())
@@ -160,7 +159,7 @@ class SchoolSsoIntegrationTests {
 
         mvc.perform(get("/auth/sso/callback").session(session)
                         .param("state", state).param("code", code))
-                .andExpect(redirectedUrl("https://festa.syu-likelion.org/temporary-auth?schoolVerification=success"));
+                .andExpect(redirectedUrl("https://festa.syu-likelion.org/auth/school/result?schoolVerification=success"));
 
         ArgumentCaptor<SchoolAcademicProfile> profile = ArgumentCaptor.forClass(SchoolAcademicProfile.class);
         org.mockito.Mockito.verify(festivalUsers).verifySchool(org.mockito.ArgumentMatchers.eq(userUuid), profile.capture());
@@ -185,7 +184,7 @@ class SchoolSsoIntegrationTests {
 
         mvc.perform(get("/auth/sso/callback").session(session)
                         .param("state", state).param("code", "valid-one-time-code"))
-                .andExpect(redirectedUrl("https://festa.syu-likelion.org/temporary-auth?schoolVerification=pending_approval"));
+                .andExpect(redirectedUrl("https://festa.syu-likelion.org/auth/school/result?schoolVerification=pending_approval"));
 
         assertThat(verificationRequests.findByUserUuid(userUuid)).get().satisfies(request -> {
             assertThat(request.getCurrentName()).isEqualTo("다른이름");
@@ -217,7 +216,7 @@ class SchoolSsoIntegrationTests {
 
         mvc.perform(get("/auth/sso/callback").session(session)
                         .param("state", state).param("code", "valid-one-time-code"))
-                .andExpect(redirectedUrl("https://festa.syu-likelion.org/temporary-auth?schoolVerification=department_update_required"));
+                .andExpect(redirectedUrl("https://festa.syu-likelion.org/auth/school/result?schoolVerification=department_update_required"));
         mvc.perform(get("/api/users/me/school-verification/department").session(session)
                         .header("Authorization", "Bearer access-token"))
                 .andExpect(status().isOk())
@@ -267,7 +266,7 @@ class SchoolSsoIntegrationTests {
         mvc.perform(get("/auth/sso/callback")
                         .param("state", "untrusted-state").param("code", "untrusted-code"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("https://festa.syu-likelion.org/temporary-auth?schoolSso=invalid_state"));
+                .andExpect(redirectedUrl("https://festa.syu-likelion.org/auth/school/result?schoolSso=invalid_state"));
         assertThat(REQUESTS).isEmpty();
     }
 
@@ -278,10 +277,10 @@ class SchoolSsoIntegrationTests {
 
         mvc.perform(get("/auth/sso/callback").session(session)
                         .param("state", state).param("error", "access_denied"))
-                .andExpect(redirectedUrl("https://festa.syu-likelion.org/temporary-auth?schoolSso=access_denied"));
+                .andExpect(redirectedUrl("https://festa.syu-likelion.org/auth/school/result?schoolSso=access_denied"));
         mvc.perform(get("/auth/sso/callback").session(session)
                         .param("state", state).param("code", "valid-one-time-code"))
-                .andExpect(redirectedUrl("https://festa.syu-likelion.org/temporary-auth?schoolSso=invalid_state"));
+                .andExpect(redirectedUrl("https://festa.syu-likelion.org/auth/school/result?schoolSso=invalid_state"));
         assertThat(REQUESTS).isEmpty();
     }
 
@@ -291,7 +290,7 @@ class SchoolSsoIntegrationTests {
         String state = stateFromSessionRedirect(session);
 
         mvc.perform(get("/auth/sso/callback").session(session).param("state", state))
-                .andExpect(redirectedUrl("https://festa.syu-likelion.org/temporary-auth?schoolSso=failed"));
+                .andExpect(redirectedUrl("https://festa.syu-likelion.org/auth/school/result?schoolSso=failed"));
         assertThat(REQUESTS).isEmpty();
     }
 
@@ -305,10 +304,10 @@ class SchoolSsoIntegrationTests {
 
         mvc.perform(get("/auth/sso/callback").session(session)
                         .param("state", "wrong-state").param("code", "code"))
-                .andExpect(redirectedUrl("https://festa.syu-likelion.org/temporary-auth?schoolSso=invalid_state"));
+                .andExpect(redirectedUrl("https://festa.syu-likelion.org/auth/school/result?schoolSso=invalid_state"));
         mvc.perform(get("/auth/sso/callback").session(session)
                         .param("state", state).param("code", "code"))
-                .andExpect(redirectedUrl("https://festa.syu-likelion.org/temporary-auth?schoolSso=invalid_state"));
+                .andExpect(redirectedUrl("https://festa.syu-likelion.org/auth/school/result?schoolSso=invalid_state"));
         assertThat(REQUESTS).isEmpty();
     }
 
@@ -319,53 +318,20 @@ class SchoolSsoIntegrationTests {
 
         mvc.perform(get("/auth/sso/callback").session(session)
                         .param("state", state).param("code", "invalid-issuer"))
-                .andExpect(redirectedUrl("https://festa.syu-likelion.org/temporary-auth?schoolSso=failed"));
+                .andExpect(redirectedUrl("https://festa.syu-likelion.org/auth/school/result?schoolSso=failed"));
         mvc.perform(get("/api/auth/school/profile").session(session))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("SCHOOL_SSO_VERIFICATION_REQUIRED"));
     }
 
     @Test
-    void temporaryPageDisplaysVerifiedCallbackProfileAndClearsItWithCsrf() throws Exception {
-        MockHttpSession session = authorizeSession();
-        String state = stateFromSessionRedirect(session);
-        mvc.perform(get("/auth/sso/callback").session(session)
-                        .param("state", state).param("code", "valid-one-time-code"))
-                .andExpect(redirectedUrl("https://festa.syu-likelion.org/temporary-auth?schoolSso=success"));
-        mvc.perform(get("/temporary-auth").session(session).param("schoolSso", "success"))
-                .andExpect(status().isOk())
-                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().string("Cache-Control", "no-store"))
-                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().string("Referrer-Policy", "no-referrer"))
-                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().string(org.hamcrest.Matchers.containsString("학교홍길동")))
-                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().string(org.hamcrest.Matchers.containsString("20260001")))
-                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().string(org.hamcrest.Matchers.containsString("컴퓨터공학과")))
-                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("test-school-secret"))));
-        mvc.perform(post("/temporary-auth/clear").session(session)).andExpect(status().isForbidden());
-        mvc.perform(post("/temporary-auth/clear").session(session)
-                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()))
-                .andExpect(redirectedUrl("/temporary-auth"));
-        mvc.perform(get("/api/auth/school/profile").session(session)).andExpect(status().isBadRequest());
-        org.mockito.Mockito.verifyNoInteractions(authService, festivalUsers);
-    }
-
-    @Test
-    void temporaryPageShowsStartLinkAndDoesNotTrustForgedSuccess() throws Exception {
-        for (String path : List.of("/temporary-auth", "/syu-sso-test")) {
-            mvc.perform(get(path))
-                    .andExpect(status().isOk())
-                    .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().string(
-                            org.hamcrest.Matchers.containsString("href=\"/api/auth/school/authorize\"")));
+    void backendDoesNotServeRemovedTestPagesOrReactResultPage() throws Exception {
+        for (String path : List.of("/temporary-auth", "/syu-sso-test", "/css/temporary-auth.css", "/auth/school/result")) {
+            mvc.perform(get(path)).andExpect(status().isNotFound());
         }
-        mvc.perform(get("/temporary-auth").param("schoolSso", "success"))
-                .andExpect(status().isOk())
-                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().string(
-                        org.hamcrest.Matchers.containsString("학적정보가 없거나 만료되었습니다")));
-        mvc.perform(get("/temporary-auth").param("schoolSso", "access_denied"))
-                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().string(
-                        org.hamcrest.Matchers.containsString("정보 제공에 동의하지 않아")));
-        mvc.perform(get("/temporary-auth").param("schoolSso", "invalid_state"))
-                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().string(
-                        org.hamcrest.Matchers.containsString("브라우저 세션이 일치하지 않습니다")));
+        mvc.perform(post("/temporary-auth/clear")
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()))
+                .andExpect(status().isNotFound());
     }
 
     private MockHttpSession authorizeSession() throws Exception {

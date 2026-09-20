@@ -53,21 +53,12 @@ https://festa.syu-likelion.org/auth/sso/callback
 callback 처리 후 브라우저는 프런트 경로로 돌아옵니다.
 
 ```text
-https://festa.syu-likelion.org/temporary-auth
+https://festa.syu-likelion.org/auth/school/result
 ```
 
-프런트 완성 전에는 `TEMPORARY_AUTH_UI_ENABLED=true`(기본값)로 백엔드 테스트 화면을 사용합니다. `/temporary-auth`와 `/syu-sso-test`가 같은 화면을 제공합니다.
+인증 결과 화면은 React가 제공합니다. `SYU_SSO_RETURN_URL`을 해당 화면의 절대 HTTPS URL로 설정하세요. 기본 경로는 `/auth/school/result`입니다. 기존 배포 설정이 예전 테스트 화면을 가리키면 이 값도 변경해야 합니다.
 
-1. 학교에 등록된 콜백과 같은 도메인에서 `https://festa.syu-likelion.org/syu-sso-test`를 엽니다.
-2. **학교 학생 인증하기**를 눌러 학교 로그인·정보 제공 동의 화면으로 이동합니다.
-3. 완료 후 `SYU_SSO_RETURN_URL`의 `/temporary-auth`로 돌아오면 이름·학번·학과·동의 대상·유효 기간을 확인합니다.
-4. 실패 시 동의 거부·세션 만료 등의 결과 메시지를 확인합니다. **임시 학적정보 지우기**로 세션의 학적정보를 삭제할 수 있습니다.
-
-이 버튼은 기존 회원가입용 학적정보 조회 흐름을 사용합니다. Festa 회원가입이나 기존 계정에 학생 인증 저장은 수행하지 않습니다. 기존 계정 인증 API에서 이 화면으로 돌아온 경우에는 결과 상태만 표시합니다. 로그인과 학과 변경 확인 등 계정 인증의 나머지 단계는 아래 API 설명을 따릅니다.
-
-`SCHOOL_SSO_ENABLED=true`와 학교 발급 설정이 필요합니다. 임시 UI를 켜는 설정과 학교 SSO 연동 설정은 별개입니다. 콜백·복귀·테스트 페이지가 같은 브라우저 세션을 공유해야 하며, 프록시도 해당 경로를 백엔드로 전달해야 합니다.
-
-프런트 완성 후에는 `TEMPORARY_AUTH_UI_ENABLED=false`로 임시 UI를 끄고 프런트 라우터가 `/temporary-auth`의 callback 결과를 처리하도록 전환합니다.
+학교에 등록된 `/auth/sso/callback`은 백엔드로, `/auth/school/result`는 React로 전달합니다. `/auth/**` 전체를 백엔드로 전달하지 않습니다. `SCHOOL_SSO_ENABLED=true`와 학교 발급 자격증명은 실제 연동에 계속 필요합니다.
 
 ## 3. 전체 흐름 구분
 
@@ -80,7 +71,7 @@ https://festa.syu-likelion.org/temporary-auth
 → 학교 로그인 및 개인정보 제공 동의
 → 학교가 Festa callback 호출
 → Festa가 state, code, JWT 검증
-→ /temporary-auth?schoolSso=success
+→ /auth/school/result?schoolSso=success
 → GET /api/auth/school/profile
 → 검증된 이름·학번·학과 표시
 → POST /api/auth/signup (academicInfoSource=SCHOOL_SSO)
@@ -97,7 +88,7 @@ https://festa.syu-likelion.org/temporary-auth
 → 학교 로그인 및 개인정보 제공 동의
 → 학교가 Festa callback 호출
 → 기존 회원정보와 학교정보 비교
-→ /temporary-auth?schoolVerification=<결과>
+→ /auth/school/result?schoolVerification=<결과>
 → 결과별 UI 처리
 ```
 
@@ -385,7 +376,7 @@ DELETE /api/auth/school/profile
 
 ## 6. callback 전용 프런트 라우트 예시
 
-하나의 `/temporary-auth` 라우트에서 두 쿼리를 구분합니다.
+하나의 `/auth/school/result` 라우트에서 두 쿼리를 구분합니다.
 
 ```ts
 async function handleSchoolSsoCallback() {
@@ -464,7 +455,7 @@ callback 내부의 Code/JWT 오류는 대부분 `schoolSso=failed` 또는 `schoo
 
 - [ ] `MANUAL`/`SCHOOL_SSO` 선택 UI
 - [ ] 학교 인증 시작은 `window.location.assign()` 사용
-- [ ] `/temporary-auth?schoolSso=...` 라우트 처리
+- [ ] `/auth/school/result?schoolSso=...` 라우트 처리
 - [ ] 성공 후 `/api/auth/school/profile` 조회
 - [ ] 학교 필드는 읽기 전용 표시
 - [ ] 가입 요청에도 학교 프로필의 세 필드를 그대로 포함
@@ -477,7 +468,7 @@ callback 내부의 Code/JWT 오류는 대부분 `schoolSso=failed` 또는 `schoo
 - [ ] `/api/users/me`에서 학생 인증 상태 표시
 - [ ] 인증 URL 발급 POST에 Bearer와 쿠키 포함
 - [ ] 응답의 `authorizeUrl`로 이동
-- [ ] `/temporary-auth?schoolVerification=...` 결과 전체 처리
+- [ ] `/auth/school/result?schoolVerification=...` 결과 전체 처리
 - [ ] 성공 후 내 정보 갱신
 - [ ] 학과 불일치 비교·확인 UI
 - [ ] 승인 대기 안내
@@ -501,7 +492,7 @@ callback 내부의 Code/JWT 오류는 대부분 `schoolSso=failed` 또는 `schoo
 
 ## 학교 학과명 통일 규칙
 
-학교 SSO 학적정보는 백엔드에서 아래 규칙으로 학과명을 변환한 뒤 세션에 보관합니다. 학적정보 조회·회원가입·기존 회원의 학과 비교·학과 변경 확인·관리자 승인에는 변환된 값이 사용됩니다. 임시 테스트 페이지에서도 변환된 학과명이 표시됩니다.
+학교 SSO 학적정보는 백엔드에서 아래 규칙으로 학과명을 변환한 뒤 세션에 보관합니다. 학적정보 조회·회원가입·기존 회원의 학과 비교·학과 변경 확인·관리자 승인에는 변환된 값이 사용됩니다.
 
 | 학교 SSO 학과 값 | 서비스 학과 값 |
 |---|---|

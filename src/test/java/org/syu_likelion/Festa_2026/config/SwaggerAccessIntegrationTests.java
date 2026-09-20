@@ -81,12 +81,8 @@ class SwaggerAccessIntegrationTests {
 
     @ParameterizedTest
     @ValueSource(strings = {"/swagger-ui.html", "/swagger-ui/index.html"})
-    void legacyUiLinksRedirectThroughProtectedEntry(String path) throws Exception {
-        mvc.perform(get(path).param("url", "https://example.org/ignored.json"))
-                .andExpect(redirectedUrl("/admin/swagger-ui.html"))
-                .andExpect(header().string("Cache-Control", "no-store"));
-        when(admins.authenticateForSwagger(null, null)).thenThrow(new ApiException(HttpStatus.UNAUTHORIZED, "ADMIN_LOGIN_REQUIRED", "login"));
-        mvc.perform(get("/admin/swagger-ui.html")).andExpect(redirectedUrl("/admin/login?next=swagger"));
+    void legacyUiPathsAreNoLongerClaimedByBackend(String path) throws Exception {
+        mvc.perform(get(path)).andExpect(status().isNotFound());
     }
 
     private Cookie access() { return new Cookie("festivalAdminAccess", "docs"); }

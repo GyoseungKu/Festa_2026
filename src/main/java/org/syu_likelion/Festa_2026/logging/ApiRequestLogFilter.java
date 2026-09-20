@@ -135,6 +135,7 @@ public class ApiRequestLogFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) {
         if (!properties.enabled() || "OPTIONS".equalsIgnoreCase(request.getMethod())) return true;
         String path = request.getRequestURI();
+        if (path.startsWith("/admin/assets/")) return true;
         return !(path.equals("/admin") || path.startsWith("/admin/") || path.startsWith("/api/"));
     }
 

@@ -30,22 +30,13 @@ public class SwaggerAccessFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain chain) throws ServletException, IOException {
         String path = UrlPathHelper.defaultInstance.getPathWithinApplication(request);
-        boolean legacy = path.equals("/swagger-ui.html") || path.startsWith("/swagger-ui/")
-                || path.startsWith("/v3/api-docs") || path.startsWith("/webjars/swagger-ui/");
         boolean docs = path.equals("/admin/swagger-ui.html") || path.startsWith("/admin/swagger-ui/")
                 || path.startsWith("/admin/v3/api-docs");
-        if (!legacy && !docs) {
+        if (!docs) {
             chain.doFilter(request, response);
             return;
         }
         response.setHeader("Cache-Control", "no-store");
-        if (legacy) {
-            if (path.equals("/swagger-ui.html") || path.equals("/swagger-ui/index.html")) {
-                response.sendRedirect(request.getContextPath() + "/admin/swagger-ui.html");
-            }
-            else response.setStatus(404);
-            return;
-        }
         boolean page = path.equals("/admin/swagger-ui.html") || path.equals("/admin/swagger-ui/index.html");
         try {
             var authenticated = admins.authenticateForSwagger(cookies.readAccessToken(request), cookies.readRefreshToken(request));

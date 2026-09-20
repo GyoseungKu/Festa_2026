@@ -15,7 +15,7 @@
 
 로그인 화면과 인증 처리는 기존 관리자 로그인 하나를 사용합니다. `next=swagger`는 로그인 후 Swagger로 돌아가기 위한 값입니다. 이미 관리자에 로그인했다면 다시 로그인할 필요가 없습니다. STAFF·BOOTH_MANAGER는 관리자 로그인은 가능하지만 Swagger 접근 시 403으로 거부됩니다.
 
-명세 JSON은 `/admin/v3/api-docs`, YAML은 `/admin/v3/api-docs.yaml`입니다. 이전 `/swagger-ui.html`, `/swagger-ui/index.html`은 새 UI로 이동하고 `/v3/api-docs`는 제공하지 않습니다. 미인증 명세 요청은 401, 허용되지 않는 역할은 403입니다.
+명세 JSON은 `/admin/v3/api-docs`, YAML은 `/admin/v3/api-docs.yaml`입니다. 이전 `/swagger-ui.html`, `/swagger-ui/index.html`, `/v3/api-docs` 경로는 제공하지 않습니다. 미인증 명세 요청은 401, 허용되지 않는 역할은 403입니다.
 
 ## 2. 실제 테스트 순서
 

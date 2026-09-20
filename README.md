@@ -580,7 +580,7 @@ Nginx 뒤에서 실제 클라이언트 IP를 기록하려면 외부가 보낸 �
 서버는 `server.forward-headers-strategy=native`로 `X-Forwarded-Proto`/`X-Forwarded-Host`를 반영하므로, 아래처럼 Nginx가 외부 헤더를 덮어써야 리다이렉트 URL이 HTTPS로 생성됩니다.
 
 ```nginx
-location / {
+location ~ ^/(?:api(?:/|$)|admin(?:/|$)|terms(?:/|$)|auth/sso/callback$) {
     proxy_pass http://127.0.0.1:8888;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
@@ -591,32 +591,21 @@ location / {
 }
 ```
 
-학교 SSO 콜백 후 복귀 주소는 운영에서 `SYU_SSO_RETURN_URL=https://festa.syu-likelion.org/temporary-auth`처럼 절대 HTTPS URL로 설정합니다. 프런트 완성 전에는 백엔드 임시 테스트 페이지를 사용할 수 있습니다.
+학교 SSO 콜백 후 복귀 주소는 `SYU_SSO_RETURN_URL=https://festa.syu-likelion.org/auth/school/result`처럼 React 결과 화면의 절대 HTTPS URL로 설정합니다. `/auth/sso/callback`은 백엔드, `/auth/school/result`는 React로 전달합니다.
 
 학교 SSO의 세부전공은 회원정보 비교·저장 전에 학부명으로 통일합니다. 인공지능·컴퓨터·항공관광 계열의 지정 전공, 자유전공 포함 값, 건축학과의 연제 표기에 대한 [학과 변환 규칙](docs/frontend-school-sso.md#학교-학과명-통일-규칙)을 적용합니다.
 
-### 임시 학교 인증 테스트 페이지
-
-- 접속: `/temporary-auth` 또는 `/syu-sso-test`
-- `TEMPORARY_AUTH_UI_ENABLED=true`가 기본값입니다. 프런트가 이 경로를 처리하기 시작하면 `false`로 끕니다.
-- **학교 학생 인증하기** → 학교 로그인·정보 제공 동의 → 기존 `/auth/sso/callback` → 테스트 페이지에서 이름·학번·학과·유효 기간 확인 순서입니다.
-- 회원가입이나 기존 계정 학생 인증 저장 없이 학교 링크와 학적정보 수신을 확인합니다. 임시 학적정보는 현재 브라우저 세션에만 보관되며 화면에서 지울 수 있습니다.
-- 실제 테스트는 `SCHOOL_SSO_ENABLED=true`, 학교 발급 자격증명 및 학교에 등록된 콜백 주소가 필요합니다. 인증 후 복귀 주소는 이 백엔드가 처리하는 `/temporary-auth`로 연결해야 합니다.
-- 운영 주소: `https://festa.syu-likelion.org/syu-sso-test`. 배포 및 프록시에서 `/temporary-auth`, `/syu-sso-test`와 관련 정적 리소스를 백엔드로 전달해야 합니다.
-- 로컬에서 시작한 후 운영 콜백으로 돌아오면 세션이 달라집니다. 학교에 등록된 콜백과 같은 도메인의 테스트 페이지에서 시작하세요.
-
-[학교 SSO 테스트·프런트 연동 안내](docs/frontend-school-sso.md)를 참고하세요.
+[학교 SSO 프런트 연동 안내](docs/frontend-school-sso.md)를 참고하세요. React에서 결과 쿼리를 처리하고 API로 실제 인증 상태를 확인해야 합니다.
 
 Actuator는 기본적으로 `127.0.0.1:9091`에서 `health`, `prometheus`만 노출합니다. `/admin/system`의 최근 5분 그래프는 해당 브라우저 메모리에만 유지되며, 다중 인스턴스 통합 모니터링은 외부 Prometheus/Grafana 구성이 필요합니다.
 
 ## Swagger / OpenAPI
 
 - Swagger UI: `http://localhost:8888/admin/swagger-ui.html`
-- 기존 `/swagger-ui.html`, `/swagger-ui/index.html` 주소도 위 화면으로 이동합니다.
 - OpenAPI JSON: `http://localhost:8888/admin/v3/api-docs`
 - OpenAPI YAML: `http://localhost:8888/admin/v3/api-docs.yaml`
 
-Swagger 화면과 명세(JSON·YAML·설정)는 SSO 로그인 후 축제 권한 `ADMIN`, `SUPER_ADMIN`만 열 수 있습니다. `USER`, `BOOTH_MANAGER`, `STAFF`만 보유한 사용자는 접근할 수 없습니다. `/admin/swagger-ui.html` 접속 시 기존 로그인 폼(`/admin/login?next=swagger`)을 거쳐 문서로 돌아옵니다. 관리자 업무 화면의 권한은 별도로 유지합니다. 미인증 명세 요청은 401, 권한 부족은 403을 반환하며 요청마다 SSO 인증과 현재 축제 권한을 확인합니다. 허용 목록은 [AdminAccessService](src/main/java/org/syu_likelion/Festa_2026/admin/AdminAccessService.java)의 `SWAGGER_ALLOWED_ROLES`에서 관리하며 하위 권한 항목은 주석 처리되어 있습니다. 기존 `/swagger-ui.html`은 새 화면 주소로 이동하며 `/v3/api-docs` 등 이전 명세 경로는 제공하지 않습니다. 프록시는 `/admin/**`를 백엔드로 전달해야 합니다. Swagger의 **Authorize**는 문서 열람 로그인과 별도로 API 실행용 Bearer Token을 입력하는 기능입니다.
+Swagger 화면과 명세(JSON·YAML·설정)는 SSO 로그인 후 축제 권한 `ADMIN`, `SUPER_ADMIN`만 열 수 있습니다. `USER`, `BOOTH_MANAGER`, `STAFF`만 보유한 사용자는 접근할 수 없습니다. `/admin/swagger-ui.html` 접속 시 기존 로그인 폼(`/admin/login?next=swagger`)을 거쳐 문서로 돌아옵니다. 관리자 업무 화면의 권한은 별도로 유지합니다. 미인증 명세 요청은 401, 권한 부족은 403을 반환하며 요청마다 SSO 인증과 현재 축제 권한을 확인합니다. 허용 목록은 [AdminAccessService](src/main/java/org/syu_likelion/Festa_2026/admin/AdminAccessService.java)의 `SWAGGER_ALLOWED_ROLES`에서 관리하며 하위 권한 항목은 주석 처리되어 있습니다. 루트 `/swagger-ui.html`, `/swagger-ui/**`, `/v3/api-docs` 경로는 제공하지 않습니다. 프록시는 `/admin/**`를 백엔드로 전달해야 합니다. Swagger의 **Authorize**는 문서 열람 로그인과 별도로 API 실행용 Bearer Token을 입력하는 기능입니다.
 
 Swagger UI의 **Authorize**에는 SSO Access Token 원문만 입력합니다. `Bearer ` 접두사는 Swagger UI가 추가합니다.
 

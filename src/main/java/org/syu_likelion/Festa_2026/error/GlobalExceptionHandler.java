@@ -119,8 +119,8 @@ public class GlobalExceptionHandler {
                 .body(ApiError.of("METHOD_NOT_ALLOWED", "지원하지 않는 HTTP 메서드입니다."));
     }
 
-    @ExceptionHandler(NoResourceFoundException.class)
-    ResponseEntity<ApiError> handleMissingResource(NoResourceFoundException exception) {
+    @ExceptionHandler({NoResourceFoundException.class, org.springframework.web.servlet.NoHandlerFoundException.class})
+    ResponseEntity<ApiError> handleMissingResource(Exception exception) {
         return ResponseEntity.status(404).body(ApiError.of("NOT_FOUND", "요청한 리소스를 찾을 수 없습니다."));
     }
 

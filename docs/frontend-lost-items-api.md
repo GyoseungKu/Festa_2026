@@ -104,7 +104,7 @@ type LostItemMutation = {
 
 PATCH도 `title`, `content`, `status`가 필수이고 `pinned`를 생략하면 false가 됩니다. `data`에는 유지할 값도 포함합니다. 파일 크기·인증 필터·전체 요청 제한은 [업로드 규약](api-upload-limits.md)을 참고합니다.
 
-`authorName`은 작성 당시 저장한 이름입니다. SSO 프로필 변경·탈퇴로 자동 갱신되지 않으며, 축제 서비스 이용 정보 삭제에서는 별도로 `알 수 없음`으로 익명화됩니다.
+`authorName`은 작성 당시 저장한 이름입니다. SSO 프로필 변경이나 SSO에서 직접 수행한 탈퇴로 자동 갱신되지 않으며, 축제 서비스 이용 정보 삭제 또는 홈페이지의 `DELETE /api/users/me`를 통한 SSO 탈퇴에서는 별도로 `알 수 없음`으로 익명화됩니다.
 
 발견장소는 공지 JSON의 `foundLocation`으로 전달합니다(별도 multipart 파트가 아님). 목록·상세·관리 응답에 포함됩니다. 수정 시 생략하거나 빈 값으로 보내면 기존 발견장소를 지웁니다. 내용에 적힌 기존 장소는 자동 추출하지 않습니다. DB에는 `lost_item_notices.found_location`(nullable, 200자)을 추가합니다.
 

@@ -12,6 +12,7 @@ import org.syu_likelion.Festa_2026.logging.ApiRequestLogProperties;
 import org.syu_likelion.Festa_2026.analytics.FrontendAnalyticsProperties;
 import org.syu_likelion.Festa_2026.monitoring.MonitoringProperties;
 import org.syu_likelion.Festa_2026.auth.WelcomeEmailProperties;
+import org.syu_likelion.Festa_2026.auth.WithdrawalEmailProperties;
 import org.syu_likelion.Festa_2026.schoolsso.SchoolSsoProperties;
 
 @Configuration
@@ -19,7 +20,7 @@ import org.syu_likelion.Festa_2026.schoolsso.SchoolSsoProperties;
 @EnableConfigurationProperties({SsoProperties.class, AuthProperties.class, QrProperties.class,
         AdminProperties.class, R2Properties.class, ApiRequestLogProperties.class,
         FrontendAnalyticsProperties.class, MonitoringProperties.class, WelcomeEmailProperties.class,
-        SchoolSsoProperties.class})
+        SchoolSsoProperties.class, WithdrawalEmailProperties.class})
 public class AppConfig {
     @Bean
     Clock clock() {

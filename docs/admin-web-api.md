@@ -23,7 +23,7 @@
 
 JSON은 `/admin/v3/api-docs`, YAML은 `/admin/v3/api-docs.yaml`, UI 설정은 `/admin/v3/api-docs/swagger-config`입니다. 화면·정적 리소스·명세 모두 요청마다 SSO 인증과 Swagger 허용 권한을 확인하고 `Cache-Control: no-store`를 적용합니다. 미로그인 UI는 `/admin/login?next=swagger`로 이동하고, 미인증 명세 요청은 401, 권한 부족은 403입니다. SSO 토큰 폐기 시 관리자 쿠키도 정리합니다.
 
-기존 `/swagger-ui.html`과 `/swagger-ui/index.html` 링크는 인증이 적용된 `/admin/swagger-ui.html`로 이동합니다. 이전 명세(`/v3/api-docs` 등)와 이전 정적 리소스 경로는 404입니다. 문서 열람에는 관리자 쿠키가 필요하고 Swagger의 `Authorize`에는 실제 `/api/**` 호출에 사용할 Bearer Token을 별도로 입력합니다.
+기존 루트 `/swagger-ui.html`과 `/swagger-ui/index.html` 경로는 제공하지 않습니다. 이전 명세(`/v3/api-docs` 등)와 이전 정적 리소스 경로는 404입니다. 문서 열람에는 관리자 쿠키가 필요하고 Swagger의 `Authorize`에는 실제 `/api/**` 호출에 사용할 Bearer Token을 별도로 입력합니다.
 
 ## 웹 화면 전용 JSON
 
@@ -163,3 +163,38 @@ DB에서 필터·정렬(id 내림차순)·페이지 제한을 먼저 적용하�
 | GET | `/admin/timetable/{id}/edit` | [AdminTimetablePageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminTimetablePageController.java) |
 | POST | `/admin/timetable/{id}` | [AdminTimetablePageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminTimetablePageController.java) |
 | POST | `/admin/timetable/{id}/delete` | [AdminTimetablePageController](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminTimetablePageController.java) |
+
+## React와 서버 경로 분리
+
+서버 페이지의 CSS·JS·이미지는 `/admin/assets/**`, QR 라이브러리는 `/admin/assets/webjars/jsqr/1.4.0/dist/jsQR.js`에서 제공합니다. 약관 페이지도 이 리소스를 사용합니다. 로그인 화면·약관에 필요한 정적 리소스는 공개이며 Swagger UI 리소스(`/admin/swagger-ui/**`)에는 기존 인증을 유지합니다. 모든 WebJar를 공개하지 않습니다.
+
+루트 `/css/**`, `/js/**`, `/images/**`, `/webjars/**`, `/favicon.ico`와 이전 Swagger 별칭은 백엔드가 제공하지 않습니다. 메일 배너는 기존 클래스패스 파일을 CID 첨부하므로 HTTP 경로 변경의 영향을 받지 않습니다.
+
+Nginx는 아래 경로만 백엔드로 전달하고 나머지는 React 빌드에서 제공합니다. 아래 예시는 같은 도메인·루트 배포 기준이며 `root`는 실제 프런트 빌드 경로로 변경합니다. 백엔드 `proxy_pass` 뒤에 URI를 붙이지 않아 원래 경로를 보존합니다. 다른 정규식 location을 추가할 때는 우선순위를 확인합니다.
+
+```nginx
+root /srv/Make-A-Wish_FE/dist;
+index index.html;
+
+location ~ ^/(?:api(?:/|$)|admin(?:/|$)|terms(?:/|$)|auth/sso/callback$) {
+    proxy_pass http://127.0.0.1:8888;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header Forwarded "";
+}
+
+location /assets/ {
+    try_files $uri =404;
+}
+
+location / {
+    try_files $uri $uri/ /index.html;
+}
+```
+
+`/auth/sso/callback`은 백엔드가 처리하고 `/auth/school/result`는 React가 처리합니다. `/auth/**` 전체를 백엔드로 보내지 않습니다. 기존 프록시의 `/images`, `/css`, `/js`, `/webjars`, `/favicon.ico`, 이전 Swagger 별칭 분기는 제거합니다. `/actuator/**`는 이 공개 서버 분기에 포함하지 않습니다.
+
+Nginx 동작 기준: [location](https://nginx.org/en/docs/http/ngx_http_core_module.html#location), [proxy_pass](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_pass).

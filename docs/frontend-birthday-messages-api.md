@@ -142,7 +142,7 @@ DELETE /api/admin/birthday-messages/{id}
 
 ## 관리자 응답 세부 구조
 
-관리자 원본 프로필은 조회 시 SSO에서 가져오지만 공개 `author`의 마스킹 이름·학번·학과는 작성 당시 스냅샷입니다. SSO 변경·탈퇴만으로 공개 값이 갱신되지는 않습니다. 축제 이용 정보 삭제 시에는 별도로 익명화됩니다.
+관리자 원본 프로필은 조회 시 SSO에서 가져오지만 공개 `author`의 마스킹 이름·학번·학과는 작성 당시 스냅샷입니다. SSO 프로필 변경이나 SSO에서 직접 수행한 탈퇴만으로 공개 값이 갱신되지는 않습니다. 축제 이용 정보 삭제 또는 홈페이지의 `DELETE /api/users/me`를 통한 SSO 탈퇴 시에는 별도로 익명화됩니다.
 
 관리자 목록의 `items`에는 `id`, `content`, `heartCount`, `createdAt`, `author: AdminUserView`가 들어가고 `mine`, `heartedByMe`는 없습니다. 하트 목록은 다음 구조입니다.
 

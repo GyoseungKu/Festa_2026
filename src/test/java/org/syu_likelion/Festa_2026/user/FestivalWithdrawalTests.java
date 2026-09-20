@@ -28,6 +28,8 @@ class FestivalWithdrawalTests {
     @Autowired BambooSequence sequence;
     @Autowired MockMvc mvc;
     @MockitoBean SsoAuthClient sso;
+    @MockitoBean org.syu_likelion.Festa_2026.auth.WithdrawalEmailService emails;
+
 
     @Test void deletesOnlyOwnUserAndPreservesAnonymousPostsAcrossRelinking() throws Exception {
         UUID id = UUID.randomUUID(), other = UUID.randomUUID();
@@ -81,6 +83,123 @@ class FestivalWithdrawalTests {
     @Test void missingBearerCannotDelete() throws Exception {
         mvc.perform(delete("/api/users/me/festival")).andExpect(status().isUnauthorized());
         verifyNoInteractions(sso);
+    }
+
+    @Test void festivalWithdrawalSendsOnceAfterCommitAndPreservesSso() throws Exception {
+        UUID id = UUID.randomUUID();
+        profiles.linkAndGetProfile(id);
+        when(sso.getMe("local-delete")).thenReturn(recipient(id));
+        doAnswer(call -> {
+            assertThat(users.findByUserUuid(id)).isEmpty();
+            assertThat(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
+            return null;
+        }).when(emails).sendLater(eq(id), anyString(), anyString(), any());
+        for (int i = 0; i < 2; i++) {
+            mvc.perform(delete("/api/users/me/festival").header("Authorization", "Bearer local-delete"))
+                    .andExpect(status().isNoContent());
+        }
+        verify(emails).sendLater(id, "student@example.com", "홍길동",
+                org.syu_likelion.Festa_2026.auth.WithdrawalEmailService.Kind.FESTIVAL);
+        verify(sso, never()).withdraw(anyString());
+        assertThat(users.findByUserUuid(id)).isEmpty();
+    }
+
+    @Test void ssoWithdrawalAlsoDeletesFestivalAndSendsAfterCommit() throws Exception {
+        UUID id = UUID.randomUUID();
+        profiles.linkAndGetProfile(id);
+        when(sso.getMe("sso-delete")).thenReturn(recipient(id));
+        doAnswer(call -> {
+            assertThat(users.findByUserUuid(id)).isEmpty();
+            assertThat(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
+            return null;
+        }).when(emails).sendLater(eq(id), anyString(), anyString(), any());
+        var session = new org.springframework.mock.web.MockHttpSession();
+        mvc.perform(delete("/api/users/me").session(session).header("Authorization", "Bearer sso-delete"))
+                .andExpect(status().isNoContent()).andExpect(header().exists("Set-Cookie"));
+        assertThat(session.isInvalid()).isTrue();
+        assertThat(users.findByUserUuid(id)).isEmpty();
+        verify(sso).withdraw("sso-delete");
+        verify(emails).sendLater(id, "student@example.com", "홍길동",
+                org.syu_likelion.Festa_2026.auth.WithdrawalEmailService.Kind.SSO);
+    }
+
+    @Test void upstreamFailureRollsBackFestivalDeletionAndSendsNothing() throws Exception {
+        UUID id = UUID.randomUUID();
+        profiles.linkAndGetProfile(id);
+        when(sso.getMe("failed-delete")).thenReturn(recipient(id));
+        doThrow(new org.syu_likelion.Festa_2026.sso.SsoException(503, "unavailable"))
+                .when(sso).withdraw("failed-delete");
+        mvc.perform(delete("/api/users/me").header("Authorization", "Bearer failed-delete"))
+                .andExpect(status().is5xxServerError());
+        assertThat(users.findByUserUuid(id)).isPresent();
+        verifyNoInteractions(emails);
+    }
+
+    @Test void lastSuperAdminCannotWithdrawSsoOrSendEmail() throws Exception {
+        UUID id = UUID.randomUUID();
+        FestivalUser user = new FestivalUser(id);
+        user.changeManagementRole(FestivalRole.SUPER_ADMIN);
+        users.saveAndFlush(user);
+        when(sso.getMe("last-admin")).thenReturn(recipient(id));
+        try {
+            for (String path : java.util.List.of("/api/users/me", "/api/users/me/festival")) {
+                mvc.perform(delete(path).header("Authorization", "Bearer last-admin"))
+                        .andExpect(status().isConflict());
+            }
+            verify(sso, never()).withdraw(anyString());
+            verifyNoInteractions(emails);
+            assertThat(users.findByUserUuid(id)).isPresent();
+        } finally {
+            users.deleteById(user.getId());
+        }
+    }
+
+    @Test void ssoWithdrawalWorksWithoutLocalUserAndDoesNotRecreateOne() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(sso.getMe("sso-only")).thenReturn(recipient(id));
+        mvc.perform(delete("/api/users/me").header("Authorization", "Bearer sso-only"))
+                .andExpect(status().isNoContent());
+        verify(sso).withdraw("sso-only");
+        verify(emails).sendLater(id, "student@example.com", "홍길동",
+                org.syu_likelion.Festa_2026.auth.WithdrawalEmailService.Kind.SSO);
+        assertThat(users.findByUserUuid(id)).isEmpty();
+    }
+
+    @Test void expiredTokenDuringSsoWithdrawalRollsBackThenRetriesWithRefreshedToken() throws Exception {
+        UUID id = UUID.randomUUID();
+        profiles.linkAndGetProfile(id);
+        when(sso.getMe("old-delete-token")).thenReturn(recipient(id));
+        when(sso.getMe("new-delete-token")).thenReturn(recipient(id));
+        doThrow(new org.syu_likelion.Festa_2026.sso.SsoException(401, "expired"))
+                .when(sso).withdraw("old-delete-token");
+        when(sso.refresh("withdraw-refresh")).thenReturn(new org.syu_likelion.Festa_2026.sso.SsoResult<>(
+                new org.syu_likelion.Festa_2026.auth.AuthDtos.TokenResponse("new-delete-token"), "rotated-refresh"));
+        mvc.perform(delete("/api/users/me").header("Authorization", "Bearer old-delete-token")
+                        .cookie(new jakarta.servlet.http.Cookie("festivalRefreshToken", "withdraw-refresh")))
+                .andExpect(status().isNoContent());
+        verify(sso).withdraw("old-delete-token");
+        verify(sso).withdraw("new-delete-token");
+        assertThat(users.findByUserUuid(id)).isEmpty();
+        verify(emails).sendLater(id, "student@example.com", "홍길동",
+                org.syu_likelion.Festa_2026.auth.WithdrawalEmailService.Kind.SSO);
+    }
+
+    @Test void failedAuthenticationDoesNotDeleteOrSend() throws Exception {
+        UUID id = UUID.randomUUID();
+        profiles.linkAndGetProfile(id);
+        when(sso.getMe("invalid-delete")).thenThrow(new org.syu_likelion.Festa_2026.sso.SsoException(401, "invalid"));
+        for (String path : java.util.List.of("/api/users/me", "/api/users/me/festival")) {
+            mvc.perform(delete(path).header("Authorization", "Bearer invalid-delete"))
+                    .andExpect(status().isUnauthorized());
+        }
+        assertThat(users.findByUserUuid(id)).isPresent();
+        verify(sso, never()).withdraw(anyString());
+        verifyNoInteractions(emails);
+    }
+
+    private static UserDtos.MeResponse recipient(UUID id) {
+        return new UserDtos.MeResponse(id, "login", "student@example.com", null, null,
+                "홍길동", null, null, null, null, null, null, null, null, null);
     }
 
     private static byte[] bytes(UUID id) {

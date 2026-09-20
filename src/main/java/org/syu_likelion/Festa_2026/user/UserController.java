@@ -35,9 +35,9 @@ public class UserController {
     public static final String REFRESHED_ACCESS_TOKEN = "X-Access-Token";
     private final UserService userService;
     private final TokenCookieManager cookies;
-    private final FestivalWithdrawalService withdrawal;
+    private final AccountWithdrawalService withdrawal;
 
-    public UserController(UserService userService, TokenCookieManager cookies, FestivalWithdrawalService withdrawal) {
+    public UserController(UserService userService, TokenCookieManager cookies, AccountWithdrawalService withdrawal) {
         this.userService = userService;
         this.cookies = cookies;
         this.withdrawal = withdrawal;
@@ -114,12 +114,11 @@ public class UserController {
     @DeleteMapping("/festival")
     @ApiResponse(responseCode = "204", description = "처리 완료, 응답 본문 없음", content = @Content)
     @Operation(summary = "축제 서비스 이용 정보 삭제",
-            description = "SSO 계정은 유지하고 본인의 축제 사용자 정보와 개인 연결 데이터를 삭제합니다. 게시글과 투표 기록은 작성자를 알 수 없음으로 익명화하여 보존합니다. 성공 후 Access Token을 버리고 로그인 화면으로 이동하세요. 다시 로그인하면 신규 사용자로 연결됩니다.")
+            description = "SSO 계정은 유지하고 본인의 축제 사용자 정보와 개인 연결 데이터를 삭제합니다. 게시글과 투표 기록은 작성자를 알 수 없음으로 익명화하여 보존합니다. 성공 후 Access Token을 버리고 로그인 화면으로 이동하세요. 다시 로그인하면 별도 가입 없이 신규 축제 사용자로 연결됩니다. 완료 후 SSO 계정 유지 안내 메일을 비동기로 발송합니다.")
     ResponseEntity<Void> withdrawFestival(
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
             @Parameter(hidden = true) HttpServletRequest request) {
-        withdrawal.withdraw(userService.authenticateForWithdrawal(BearerTokens.require(authorization),
-                cookies.readRefreshToken(request)));
+        withdrawal.withdrawFestival(BearerTokens.require(authorization), cookies.readRefreshToken(request));
         if (request.getSession(false) != null) request.getSession(false).invalidate();
         return ResponseEntity.noContent().header(TokenCookieManager.SET_COOKIE, cookies.clear()).build();
     }
@@ -127,11 +126,12 @@ public class UserController {
     @DeleteMapping
     @ApiResponse(responseCode = "204", description = "처리 완료, 응답 본문 없음", content = @Content)
     @Operation(summary = "SSO 계정 탈퇴",
-            description = "SSO 계정 자체를 탈퇴 처리하고 Refresh Token 쿠키를 삭제합니다. 축제 사이트만 탈퇴하는 API가 아닙니다.")
+            description = "축제 이용 정보를 삭제·익명화하고 SSO 계정도 탈퇴 처리합니다. 마지막 SUPER_ADMIN은 권한 이전 후 가능합니다. 성공 후 세션·Refresh Token 쿠키를 제거하고 통합 탈퇴 안내 메일을 비동기로 발송합니다. 메일 실패는 완료된 탈퇴를 취소하지 않습니다.")
     ResponseEntity<Void> withdraw(
                                   @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
                                   @Parameter(hidden = true) HttpServletRequest servletRequest) {
-        userService.withdraw(BearerTokens.require(authorization), cookies.readRefreshToken(servletRequest));
+        withdrawal.withdrawSso(BearerTokens.require(authorization), cookies.readRefreshToken(servletRequest));
+        if (servletRequest.getSession(false) != null) servletRequest.getSession(false).invalidate();
         return ResponseEntity.noContent().header(TokenCookieManager.SET_COOKIE, cookies.clear()).build();
     }
 

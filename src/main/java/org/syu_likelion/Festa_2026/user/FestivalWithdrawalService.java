@@ -21,13 +21,21 @@ public class FestivalWithdrawalService {
         this.em = em; this.users = users; this.sequence = sequence; this.fees = fees;
     }
 
-    public void withdraw(UUID userUuid) {
+    public boolean withdraw(UUID userUuid) {
+        return withdraw(userUuid, () -> { });
+    }
+
+    /** Run upstream withdrawal only after local validation and SQL flush; upstream failure rolls back local changes. */
+    boolean withdraw(UUID userUuid, Runnable beforeCommit) {
         // The sequence owns the transaction so anonymized names also reach polling clients after commit.
-        sequence.writeBatchInOrder(next -> {
+        return sequence.writeBatchInOrder(next -> {
             fees.lock();
             List<FestivalUser> superAdmins = users.findAllByManagementRoleForUpdate(FestivalRole.SUPER_ADMIN);
             FestivalUser user = users.findByUserUuidForUpdate(userUuid).orElse(null);
-            if (user == null) return null;
+            if (user == null) {
+                beforeCommit.run();
+                return false;
+            }
             if (user.getManagementRole() == FestivalRole.SUPER_ADMIN && superAdmins.size() <= 1)
                 throw new ApiException(HttpStatus.CONFLICT, "LAST_SUPER_ADMIN_REQUIRED",
                         "마지막 SUPER_ADMIN은 권한을 다른 사용자에게 넘긴 후 서비스 정보를 삭제할 수 있습니다.");
@@ -66,7 +74,8 @@ public class FestivalWithdrawalService {
             users.delete(user);
             em.flush();
             em.clear();
-            return null;
+            beforeCommit.run();
+            return true;
         });
     }
 

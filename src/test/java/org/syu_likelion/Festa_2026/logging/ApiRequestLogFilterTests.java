@@ -84,7 +84,7 @@ class ApiRequestLogFilterTests {
         ApiRequestLogFilter filter = new ApiRequestLogFilter(properties(false), writer,
                 Clock.fixed(NOW, ZoneOffset.UTC));
 
-        filter.doFilter(new MockHttpServletRequest("GET", "/images/Logo.webp"),
+        filter.doFilter(new MockHttpServletRequest("GET", "/admin/assets/images/festa.png"),
                 new MockHttpServletResponse(), (request, response) -> { });
         filter.doFilter(new MockHttpServletRequest("OPTIONS", "/api/performances"),
                 new MockHttpServletResponse(), (request, response) -> { });

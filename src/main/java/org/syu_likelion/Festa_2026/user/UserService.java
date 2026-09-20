@@ -86,15 +86,6 @@ public class UserService {
         return executor.execute(access, refresh, token -> { client.changePassword(token, request); return null; });
     }
 
-    public AuthorizedResult<Void> withdraw(String access, String refresh) {
-        return executor.execute(access, refresh, token -> { client.withdraw(token); return null; });
-    }
-
-    public java.util.UUID authenticateForWithdrawal(String access, String refresh) {
-        // Verify with SSO without creating a local user or sending a welcome email.
-        return executor.execute(access, refresh, client::getMe).body().userUuid();
-    }
-
     private AuthorizedResult<MeResponse> withRoles(AuthorizedResult<MeResponse> result) {
         MeResponse me = result.body();
         ApiRequestContext.markAuthenticatedUser(me.userUuid());
