@@ -57,6 +57,7 @@ import org.syu_likelion.Festa_2026.user.UserService;
 
 @SpringBootTest(properties = {
         "school-sso.enabled=true",
+        "temporary-auth-ui.enabled=true",
         "school-sso.client-id=festa-2026",
         "school-sso.client-secret=test-school-secret",
         "school-sso.authorize-url=https://www.syu.ac.kr/festa-sso/authorize",
@@ -113,6 +114,12 @@ class SchoolSsoIntegrationTests {
                 .andExpect(jsonPath("$.name").value("학교홍길동"))
                 .andExpect(jsonPath("$.studentNo").value("20260001"))
                 .andExpect(jsonPath("$.department").value(department));
+
+        mvc.perform(get("/temporary-auth").session(session)).andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
+                        .string(org.hamcrest.Matchers.containsString("학교홍길동")))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                        .string("Cache-Control", "no-store"));
 
         mvc.perform(post("/api/auth/signup").session(session).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"loginId\":\"festival01\",\"password\":\"Password123!\","+
@@ -325,13 +332,17 @@ class SchoolSsoIntegrationTests {
     }
 
     @Test
-    void backendDoesNotServeRemovedTestPagesOrReactResultPage() throws Exception {
-        for (String path : List.of("/temporary-auth", "/syu-sso-test", "/css/temporary-auth.css", "/auth/school/result")) {
-            mvc.perform(get(path)).andExpect(status().isNotFound());
+    void temporaryPagesAreRestoredWithoutTakingOverReactResultPage() throws Exception {
+        for (String path : List.of("/temporary-auth", "/syu-sso-test", "/admin/assets/css/temporary-auth.css")) {
+            mvc.perform(get(path)).andExpect(status().isOk());
         }
+        mvc.perform(get("/auth/school/result")).andExpect(status().isNotFound());
+        mvc.perform(get("/temporary-auth").param("schoolSso", "success"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.model()
+                        .attributeDoesNotExist("profile"));
         mvc.perform(post("/temporary-auth/clear")
                         .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()))
-                .andExpect(status().isNotFound());
+                .andExpect(redirectedUrl("/temporary-auth"));
     }
 
     private MockHttpSession authorizeSession() throws Exception {

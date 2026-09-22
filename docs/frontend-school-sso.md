@@ -419,7 +419,23 @@ POST /api/auth/token/refresh
 
 그 다음 `/api/users/me` 또는 학과 불일치 API를 호출합니다.
 
+위 토큰 복구는 **이미 로그인한 사용자의 학생 인증 흐름**에만 해당합니다. 회원가입 전 학교 인증(`schoolSso=success`)에서는 Refresh Token이 없어도 정상이며, `credentials: "include"`로 `/api/auth/school/profile`을 조회합니다. 이때 `/api/auth/token/refresh`의 401을 학교 인증 실패로 처리하거나 학적정보 조회의 선행 조건으로 삼지 마세요. `schoolSso=failed` 또는 `schoolVerification=failed`는 별도로 처리합니다.
+
+학교 코드 교환은 백엔드가 학교 토큰 URL에 Basic 인증과 form-urlencoded `code`, `redirect_uri`를 전송하는 요청입니다. `/api/auth/token/refresh`는 통합 SSO 로그인 갱신이므로 별개입니다. 학교에 등록한 `redirect_uri`는 백엔드 `/auth/sso/callback`이고 인증 완료 후 프런트 복귀 주소(`SYU_SSO_RETURN_URL`)와 구분합니다.
+
+현재 학교 토큰 교환 응답의 400·401은 모두 `SCHOOL_SSO_CODE_INVALID`로 변환됩니다. 따라서 이 오류 코드만으로 일회용 코드 만료·재사용인지 클라이언트 인증/등록정보 문제인지 확정할 수 없습니다. 같은 시각의 `School SSO endpoint=token status=...`와 callback 오류 로그를 함께 확인하고, 필요하면 학교 측에서 거절 사유를 확인해야 합니다. 인증 코드·토큰·Basic 인증값·clientSecret은 로그나 문의에 포함하지 마세요.
+
 ## 7. 세션·쿠키·로컬 개발 주의사항
+
+### 임시 테스트 페이지
+
+`/temporary-auth` (별칭 `/syu-sso-test`)에서 기존 프런트와 독립적으로 학교 인증 결과를 확인할 수 있습니다. `TEMPORARY_AUTH_UI_ENABLED=false`로 비활성화할 수 있으며 비교 테스트를 위해 기본 활성화했습니다.
+
+1. 운영 도메인에서 테스트 페이지를 열고 ‘학교 학생 인증하기’를 누릅니다.
+2. 새 탭에서 학교 인증을 완료합니다. 기존 콜백·프런트 복귀 주소 설정은 그대로 사용합니다.
+3. 원래 테스트 탭에서 ‘인증 결과 다시 확인’을 누릅니다. 계정 가입 전 같은 브라우저의 세션에 저장된 학적정보를 표시합니다.
+
+테스트 페이지는 통합 SSO 토큰 갱신을 호출하지 않습니다. 학적정보가 표시되면 그 시도의 학교 코드 교환·JWT 검증·세션 저장은 성공한 것입니다. 정보가 없으면 callback 오류와 세션 유지 여부를 확인합니다. URL에 `schoolSso=success`를 직접 붙이는 것만으로 인증 성공으로 취급하지 않습니다. 페이지는 `no-store`로 제공하며 비밀키·인증 코드·토큰은 표시하지 않습니다.
 
 학교 SSO의 `state`와 임시 학적정보는 Festa 서버의 `JSESSIONID` 세션에 저장됩니다.
 
