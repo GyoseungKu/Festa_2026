@@ -2,7 +2,7 @@
 
 [문서 목차](README.md) · [프런트 연동 시작하기](frontend-getting-started.md)
 
-공연 조회와 관리는 모두 Bearer 인증이 필요합니다. 공개 시각(`publishedAt`) 전에도 공연은 조회되며, 식별 정보는 TBA로 숨깁니다. 공개 시각부터 실제 정보를 반환합니다.
+공연 목록·상세 조회는 로그인 없이 가능합니다. 등록·수정·삭제·미디어 관리는 Bearer 인증과 ADMIN 이상 권한이 필요합니다. 공개 시각(`publishedAt`) 전에도 공연은 조회되며, 식별 정보는 TBA로 숨깁니다. 공개 시각부터 실제 정보를 반환합니다.
 
 ## 타입
 
@@ -44,10 +44,10 @@ type Performance = {
 ```http
 GET /api/performances
 GET /api/performances/{id}
-Authorization: Bearer ACCESS_TOKEN
 ```
 
 - 목록은 공연 시작 시각 오름차순입니다.
+- 조회 요청에는 Authorization 헤더와 쿠키가 필요하지 않으며 토큰 갱신도 수행하지 않습니다. 응답은 `Cache-Control: no-store`입니다.
 - 공개 전 공연도 목록에 포함되며 상세 조회는 `200`입니다. 존재하지 않는 공연만 `404 PERFORMANCE_NOT_FOUND`입니다.
 - 목록 응답은 `Performance[]`, 상세 응답은 `Performance`입니다.
 

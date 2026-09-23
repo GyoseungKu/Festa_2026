@@ -103,6 +103,19 @@ class OpenApiDocumentationIntegrationTests {
                 }
             }
         }
+        for (String endpoint : List.of("/api/performances", "/api/performances/{id}",
+                "/api/timetable", "/api/timetable/{id}")) {
+            assertThat(paths.get(endpoint).get("get").get("security"))
+                    .as("%s is public", endpoint).isNull();
+            for (var operation : paths.get(endpoint).entrySet()) {
+                if (!operation.getKey().equals("get")) {
+                    assertThat(operation.getValue().get("security"))
+                            .isEqualTo(List.of(Map.of("bearerAuth", List.of())));
+                }
+            }
+        }
+        assertThat(paths.get("/api/timetable/admin").get("get").get("security"))
+                .isEqualTo(List.of(Map.of("bearerAuth", List.of())));
         // Compare the maintained Markdown inventory with generated runtime mappings, not a fixed count.
         Set<String> actualEndpoints = new TreeSet<>();
         paths.forEach((path, operations) -> operations.keySet().forEach(verb ->

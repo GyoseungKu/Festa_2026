@@ -32,16 +32,14 @@ public class TimetableService {
         this.clock = clock;
     }
 
-    public AuthorizedResult<List<ScheduleResponse>> list(String access, String refresh) {
-        var auth = users.getMe(access, refresh);
+    public List<ScheduleResponse> list() {
         Instant now = clock.instant();
-        return rotated(auth, repository.findAllByOrderByStartsAtAscIdAsc().stream()
-                .map(item -> response(item, false, now)).toList());
+        return repository.findAllByOrderByStartsAtAscIdAsc().stream()
+                .map(item -> response(item, false, now)).toList();
     }
 
-    public AuthorizedResult<ScheduleResponse> detail(Long id, String access, String refresh) {
-        var auth = users.getMe(access, refresh);
-        return rotated(auth, response(find(id), false, clock.instant()));
+    public ScheduleResponse detail(Long id) {
+        return response(find(id), false, clock.instant());
     }
 
     public AuthorizedResult<List<ScheduleResponse>> listAdmin(String access, String refresh) {

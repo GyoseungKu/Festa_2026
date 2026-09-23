@@ -43,19 +43,18 @@ class PerformanceServiceTests {
 
     @Test
     void listIncludesUnpublishedPerformanceAsTba() {
-        authenticateAs(FestivalRole.USER);
         FestivalPerformance visible = entity(NOW.minusSeconds(1));
         FestivalPerformance hidden = entity(NOW.plusSeconds(1));
         hidden.addMedia(PerformanceMedia.linked(PerformanceMediaKind.IMAGE, "https://example.com/secret.jpg"));
         hidden.addMedia(PerformanceMedia.linked(PerformanceMediaKind.VIDEO, "https://example.com/secret.mp4"));
         when(repository.findAllByOrderByStartsAtAsc()).thenReturn(List.of(visible, hidden));
 
-        var result = service.listVisible("access", "refresh");
+        var result = service.listVisible();
 
-        assertThat(result.body()).hasSize(2);
-        assertThat(result.body().getFirst().teamName()).isEqualTo("천보 밴드");
-        assertThat(result.body().getFirst().published()).isTrue();
-        var tba = result.body().get(1);
+        assertThat(result).hasSize(2);
+        assertThat(result.getFirst().teamName()).isEqualTo("천보 밴드");
+        assertThat(result.getFirst().published()).isTrue();
+        var tba = result.get(1);
         assertThat(tba.teamName()).isEqualTo("TBA");
         assertThat(tba.description()).isEmpty();
         assertThat(tba.memberNames()).isEmpty();
@@ -67,37 +66,35 @@ class PerformanceServiceTests {
         assertThat(tba.endsAt()).isEqualTo(hidden.getEndsAt());
         assertThat(tba.category()).isEqualTo(hidden.getCategory());
         verify(repository).findAllByOrderByStartsAtAsc();
+        org.mockito.Mockito.verifyNoInteractions(users);
     }
 
     @Test
-    void publicDetailIsMaskedForEveryRoleWhileAdminViewKeepsOriginal() {
+    void publicDetailIsMaskedWithoutAuthenticationWhileAdminViewKeepsOriginal() {
         var hidden = entity(NOW.plusNanos(1));
         when(repository.findById(1L)).thenReturn(java.util.Optional.of(hidden));
-        for (FestivalRole role : FestivalRole.values()) {
-            authenticateAs(role);
-            var body = service.getVisible(1L, "access", null).body();
-            assertThat(body.teamName()).isEqualTo("TBA");
-            assertThat(body.description()).isEmpty();
-            assertThat(body.memberNames()).isEmpty();
-            assertThat(body.links()).isEmpty();
-            assertThat(body.published()).isFalse();
-        }
+        var body = service.getVisible(1L);
+        assertThat(body.teamName()).isEqualTo("TBA");
+        assertThat(body.description()).isEmpty();
+        assertThat(body.memberNames()).isEmpty();
+        assertThat(body.links()).isEmpty();
+        assertThat(body.published()).isFalse();
+        org.mockito.Mockito.verifyNoInteractions(users);
         assertThat(service.getAdmin(1L).teamName()).isEqualTo(hidden.getTeamName());
     }
 
     @Test
     void detailRevealsOriginalExactlyAtPublicationTimeAndMissingIdRemains404() {
-        authenticateAs(FestivalRole.USER);
         var visible = entity(NOW);
         visible.addMedia(PerformanceMedia.linked(PerformanceMediaKind.IMAGE, "https://example.com/team.jpg"));
         when(repository.findById(1L)).thenReturn(java.util.Optional.of(visible));
-        var body = service.getVisible(1L, "access", null).body();
+        var body = service.getVisible(1L);
         assertThat(body.published()).isTrue();
         assertThat(body.teamName()).isEqualTo(visible.getTeamName());
         assertThat(body.description()).isEqualTo(visible.getDescription());
         assertThat(body.memberNames()).isEqualTo(visible.getMemberNames());
         assertThat(body.images()).hasSize(1);
-        assertThatThrownBy(() -> service.getVisible(99L, "access", null))
+        assertThatThrownBy(() -> service.getVisible(99L))
                 .isInstanceOfSatisfying(ApiException.class, exception -> {
                     assertThat(exception.status().value()).isEqualTo(404);
                     assertThat(exception.code()).isEqualTo("PERFORMANCE_NOT_FOUND");

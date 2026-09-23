@@ -62,27 +62,88 @@ class TimetableIntegrationTests {
         Long teamId = team(NOW.minusSeconds(1));
         var item = timetable.createAs(ACTOR, request("비밀팀의 무대", NOW.plusSeconds(1), teamId));
         authenticate(FestivalRole.USER);
-        mvc.perform(get("/api/timetable").header("Authorization", "Bearer access"))
+        mvc.perform(get("/api/timetable"))
                 .andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"))
-                .andExpect(header().string("X-Access-Token", "rotated"))
+                .andExpect(header().doesNotExist("X-Access-Token"))
                 .andExpect(jsonPath("$[0].title").value("TBA"))
                 .andExpect(jsonPath("$[0].startsAt").value(NOW.plusSeconds(3600).toString()))
                 .andExpect(jsonPath("$[0].endsAt").value(NOW.plusSeconds(7200).toString()))
                 .andExpect(jsonPath("$[0].performance").isEmpty())
                 .andExpect(jsonPath("$[0].published").value(false));
-        mvc.perform(get("/api/timetable/{id}", item.id()).header("Authorization", "Bearer access"))
+        mvc.perform(get("/api/timetable/{id}", item.id()))
                 .andExpect(jsonPath("$.title").value("TBA")).andExpect(jsonPath("$.performance").isEmpty());
         when(clock.instant()).thenReturn(NOW.plusSeconds(1));
-        mvc.perform(get("/api/timetable/{id}", item.id()).header("Authorization", "Bearer access"))
+        mvc.perform(get("/api/timetable/{id}", item.id()))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.title").value("비밀팀의 무대"))
                 .andExpect(jsonPath("$.published").value(true))
                 .andExpect(jsonPath("$.performance.id").value(teamId));
     }
 
     @Test
+    void publicPerformanceEndpointsMaskAndRevealWithoutAuthentication() throws Exception {
+        Long id = team(NOW.plusSeconds(1));
+        mvc.perform(get("/api/performances"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].teamName").value("TBA"))
+                .andExpect(jsonPath("$[0].memberNames").isEmpty())
+                .andExpect(jsonPath("$[0].images").isEmpty())
+                .andExpect(jsonPath("$[0].videos").isEmpty());
+        mvc.perform(get("/api/performances/{id}", id))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.teamName").value("TBA"));
+        when(clock.instant()).thenReturn(NOW.plusSeconds(1));
+        mvc.perform(get("/api/performances/{id}", id))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.teamName").value("비밀팀"))
+                .andExpect(jsonPath("$.published").value(true));
+        mvc.perform(get("/api/performances"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$[0].teamName").value("비밀팀"));
+        mvc.perform(get("/api/performances/{id}", Long.MAX_VALUE)).andExpect(status().isNotFound());
+        org.mockito.Mockito.verifyNoInteractions(users);
+    }
+
+    @Test
+    void publicReadsIgnoreStaleCredentialsWithoutCallingSso() throws Exception {
+        Long id = team(NOW);
+        var item = timetable.createAs(ACTOR, request("공개 무대", NOW, id));
+        for (String path : List.of("/api/performances", "/api/performances/" + id,
+                "/api/timetable", "/api/timetable/" + item.id())) {
+            mvc.perform(get(path).header("Authorization", "Bearer expired"))
+                    .andExpect(status().isOk())
+                    .andExpect(header().string("Cache-Control", "no-store"))
+                    .andExpect(header().doesNotExist("X-Access-Token"))
+                    .andExpect(header().doesNotExist("Set-Cookie"));
+        }
+        org.mockito.Mockito.verifyNoInteractions(users);
+    }
+
+    @Test
+    void anonymousUsersCannotReadAdminScheduleOrMutateSchedulesAndPerformances() throws Exception {
+        Long id = team(NOW);
+        var item = timetable.createAs(ACTOR, request("공개 무대", NOW, id));
+        mvc.perform(get("/api/timetable/admin")).andExpect(status().isUnauthorized());
+        mvc.perform(post("/api/timetable").contentType(MediaType.APPLICATION_JSON)
+                .content(body(NOW, NOW.plusSeconds(1), null))).andExpect(status().isUnauthorized());
+        mvc.perform(patch("/api/timetable/{id}", item.id()).contentType(MediaType.APPLICATION_JSON)
+                .content(body(NOW, NOW.plusSeconds(1), null))).andExpect(status().isUnauthorized());
+        mvc.perform(delete("/api/timetable/{id}", item.id())).andExpect(status().isUnauthorized());
+        String performanceBody = """
+                {"category":"CLUB","teamName":"팀","memberNames":["멤버"],
+                 "startsAt":"2026-09-15T10:00:00Z","endsAt":"2026-09-15T11:00:00Z",
+                 "description":"소개","links":[],"imageUrls":[],"videoUrls":[],
+                 "publishedAt":"2026-09-15T09:00:00Z"}
+                """;
+        mvc.perform(post("/api/performances").contentType(MediaType.APPLICATION_JSON)
+                .content(performanceBody)).andExpect(status().isUnauthorized());
+        mvc.perform(patch("/api/performances/{id}", id).contentType(MediaType.APPLICATION_JSON)
+                .content(performanceBody)).andExpect(status().isUnauthorized());
+        mvc.perform(delete("/api/performances/{id}", id)).andExpect(status().isUnauthorized());
+        assertThat(schedules.count()).isEqualTo(1);
+        assertThat(teams.count()).isEqualTo(1);
+    }
+
+    @Test
     void unreleasedPerformanceStaysHiddenAfterSchedulePublicationAndAdminsSeeIt() throws Exception {
         var item = timetable.createAs(ACTOR, request("초청 무대", NOW, team(NOW.plusSeconds(60))));
-        mvc.perform(get("/api/timetable/{id}", item.id()).header("Authorization", "Bearer access"))
+        mvc.perform(get("/api/timetable/{id}", item.id()))
                 .andExpect(jsonPath("$.title").value("초청 무대"))
                 .andExpect(jsonPath("$.performance").isEmpty());
         mvc.perform(get("/api/timetable/admin").header("Authorization", "Bearer access"))
@@ -126,7 +187,7 @@ class TimetableIntegrationTests {
         mvc.perform(delete("/api/timetable/{id}", id).header("Authorization", "Bearer access"))
                 .andExpect(status().isNoContent());
         assertThat(teams.existsById(teamId)).isTrue();
-        mvc.perform(get("/api/timetable/{id}", id).header("Authorization", "Bearer access"))
+        mvc.perform(get("/api/timetable/{id}", id))
                 .andExpect(status().isNotFound());
     }
 
@@ -143,7 +204,7 @@ class TimetableIntegrationTests {
         mvc.perform(post("/api/timetable").header("Authorization", "Bearer access")
                 .contentType(MediaType.APPLICATION_JSON).content(body(NOW, NOW.plusSeconds(1), Long.MAX_VALUE)))
                 .andExpect(status().isNotFound());
-        mvc.perform(get("/api/timetable")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/timetable")).andExpect(status().isOk());
         assertThat(schedules.count()).isZero();
     }
 
@@ -162,7 +223,7 @@ class TimetableIntegrationTests {
         var later = timetable.createAs(ACTOR, request("폐회식", NOW, null));
         var first = timetable.createAs(ACTOR, new MutationRequest("개회식", NOW, NOW.plusSeconds(1), NOW, null));
         var second = timetable.createAs(ACTOR, new MutationRequest("안내", NOW, NOW.plusSeconds(2), NOW, null));
-        assertThat(timetable.list("access", null).body()).extracting(TimetableDtos.ScheduleResponse::id)
+        assertThat(timetable.list()).extracting(TimetableDtos.ScheduleResponse::id)
                 .containsExactly(first.id(), second.id(), later.id());
     }
 

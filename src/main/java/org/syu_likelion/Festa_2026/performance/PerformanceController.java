@@ -33,7 +33,6 @@ import org.syu_likelion.Festa_2026.user.UserController;
 @RestController
 @RequestMapping("/api/performances")
 @Tag(name = "Performance", description = "축제 무대 공연팀과 공개 일정 관리")
-@SecurityRequirement(name = "bearerAuth")
 public class PerformanceController {
     private final PerformanceService performances;
     private final TokenCookieManager cookies;
@@ -45,25 +44,21 @@ public class PerformanceController {
 
     @GetMapping
     @Operation(summary = "공연팀 목록 조회 (공개 전 TBA)",
-            description = "로그인 후 전체 공연을 시작순으로 조회합니다. 공개 전에는 teamName=TBA, description=빈 문자열, memberNames·links·images·videos=빈 배열이며 published=false입니다. ID·분류·시간은 유지합니다. 관리자 토큰도 같은 공개 규칙을 적용합니다.")
-    ResponseEntity<List<PerformanceResponse>> list(
-            @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
-            @Parameter(hidden = true) HttpServletRequest request) {
-        return response(performances.listVisible(BearerTokens.require(authorization),
-                cookies.readRefreshToken(request)));
+            description = "로그인 없이 전체 공연을 시작순으로 조회합니다. 공개 전에는 teamName=TBA, description=빈 문자열, memberNames·links·images·videos=빈 배열이며 published=false입니다. ID·분류·시간은 유지합니다. 관리자 토큰도 같은 공개 규칙을 적용합니다.")
+    ResponseEntity<List<PerformanceResponse>> list() {
+        return ResponseEntity.ok().cacheControl(org.springframework.http.CacheControl.noStore())
+                .body(performances.listVisible());
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "공연팀 상세 조회 (공개 전 TBA)",
-            description = "공개 전에도 200으로 반환하되 목록과 동일하게 TBA 및 빈 소개·구성원·링크·미디어로 숨깁니다. 공개 시각부터 실제 정보를 반환하며, 존재하지 않는 ID만 404입니다.")
-    ResponseEntity<PerformanceResponse> detail(
-            @PathVariable Long id,
-            @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
-            @Parameter(hidden = true) HttpServletRequest request) {
-        return response(performances.getVisible(id, BearerTokens.require(authorization),
-                cookies.readRefreshToken(request)));
+            description = "로그인 없이 조회합니다. 공개 전에도 200으로 반환하되 목록과 동일하게 TBA 및 빈 소개·구성원·링크·미디어로 숨깁니다. 공개 시각부터 실제 정보를 반환하며, 존재하지 않는 ID만 404입니다.")
+    ResponseEntity<PerformanceResponse> detail(@PathVariable Long id) {
+        return ResponseEntity.ok().cacheControl(org.springframework.http.CacheControl.noStore())
+                .body(performances.getVisible(id));
     }
 
+    @SecurityRequirement(name = "bearerAuth")
     @PostMapping
     @ApiResponse(responseCode = "201", description = "생성 완료", useReturnTypeSchema = true)
     @Operation(summary = "공연팀 등록",
@@ -79,6 +74,7 @@ public class PerformanceController {
                 .body(result.body());
     }
 
+    @SecurityRequirement(name = "bearerAuth")
     @PatchMapping("/{id}")
     @Operation(summary = "공연팀 수정",
             description = "ADMIN 또는 SUPER_ADMIN이 기본 정보와 링크 첨부를 수정합니다. 기존 업로드 파일은 유지됩니다.")
@@ -91,6 +87,7 @@ public class PerformanceController {
                 cookies.readRefreshToken(request), body));
     }
 
+    @SecurityRequirement(name = "bearerAuth")
     @PostMapping(value = "/{id}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "공연팀 이미지 파일 업로드",
             description = "ADMIN 또는 SUPER_ADMIN이 이미지 파일을 추가합니다. 링크와 파일을 합해 최대 3개입니다.")
@@ -102,6 +99,7 @@ public class PerformanceController {
                 BearerTokens.require(authorization), cookies.readRefreshToken(request)));
     }
 
+    @SecurityRequirement(name = "bearerAuth")
     @PostMapping(value = "/{id}/videos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "공연팀 동영상 파일 업로드",
             description = "ADMIN 또는 SUPER_ADMIN이 동영상 파일을 추가합니다. 링크와 파일을 합해 최대 3개입니다.")
@@ -113,6 +111,7 @@ public class PerformanceController {
                 BearerTokens.require(authorization), cookies.readRefreshToken(request)));
     }
 
+    @SecurityRequirement(name = "bearerAuth")
     @DeleteMapping("/{id}/media/{mediaId}")
     @Operation(summary = "공연팀 미디어 삭제",
             description = "ADMIN 또는 SUPER_ADMIN이 등록된 이미지 또는 동영상 한 개를 삭제합니다.")
@@ -124,6 +123,7 @@ public class PerformanceController {
                 cookies.readRefreshToken(request)));
     }
 
+    @SecurityRequirement(name = "bearerAuth")
     @DeleteMapping("/{id}")
     @ApiResponse(responseCode = "204", description = "처리 완료, 응답 본문 없음", content = @Content)
     @Operation(summary = "공연팀 삭제",

@@ -30,7 +30,6 @@ import org.syu_likelion.Festa_2026.user.UserController;
 @RestController
 @RequestMapping("/api/timetable")
 @Tag(name = "Timetable", description = "타임테이블 일정과 공개 시각 관리")
-@SecurityRequirement(name = "bearerAuth")
 public class TimetableController {
     private final TimetableService timetable;
     private final TokenCookieManager cookies;
@@ -42,15 +41,14 @@ public class TimetableController {
 
     @GetMapping
     @Operation(summary = "타임테이블 일정 목록 조회",
-            description = "로그인 후 시작순 조회. 공개 전에도 시간은 반환하며 제목은 TBA, 공연팀은 null입니다.")
-    ResponseEntity<List<ScheduleResponse>> list(
-            @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
-            @Parameter(hidden = true) HttpServletRequest request) {
-        return response(timetable.list(BearerTokens.require(authorization),
-                cookies.readRefreshToken(request)));
+            description = "로그인 없이 시작순 조회. 공개 전에도 시간은 반환하며 제목은 TBA, 공연팀은 null입니다.")
+    ResponseEntity<List<ScheduleResponse>> list() {
+        return ResponseEntity.ok().cacheControl(org.springframework.http.CacheControl.noStore())
+                .body(timetable.list());
     }
 
     @GetMapping("/admin")
+    @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "관리자 전체 일정 조회", description = "ADMIN 이상. 공개 전 일정명과 공연팀 연결을 포함합니다.")
     ResponseEntity<List<ScheduleResponse>> adminList(
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
@@ -60,15 +58,13 @@ public class TimetableController {
 
     @GetMapping("/{id}")
     @Operation(summary = "타임테이블 일정 상세 조회",
-            description = "공개 전에는 제목이 TBA이고 공연팀 연결 정보는 숨깁니다.")
-    ResponseEntity<ScheduleResponse> detail(
-            @PathVariable Long id,
-            @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
-            @Parameter(hidden = true) HttpServletRequest request) {
-        return response(timetable.detail(id, BearerTokens.require(authorization),
-                cookies.readRefreshToken(request)));
+            description = "로그인 없이 조회합니다. 공개 전에는 제목이 TBA이고 공연팀 연결 정보는 숨깁니다.")
+    ResponseEntity<ScheduleResponse> detail(@PathVariable Long id) {
+        return ResponseEntity.ok().cacheControl(org.springframework.http.CacheControl.noStore())
+                .body(timetable.detail(id));
     }
 
+    @SecurityRequirement(name = "bearerAuth")
     @PostMapping
     @ApiResponse(responseCode = "201", description = "생성 완료", useReturnTypeSchema = true)
     @Operation(summary = "일정 등록",
@@ -84,6 +80,7 @@ public class TimetableController {
                 .body(result.body());
     }
 
+    @SecurityRequirement(name = "bearerAuth")
     @PatchMapping("/{id}")
     @Operation(summary = "일정 수정",
             description = "ADMIN 이상이 전체 필드를 전달해 수정합니다. performanceId가 null이면 연결을 해제합니다.")
@@ -96,6 +93,7 @@ public class TimetableController {
                 cookies.readRefreshToken(request), body));
     }
 
+    @SecurityRequirement(name = "bearerAuth")
     @DeleteMapping("/{id}")
     @ApiResponse(responseCode = "204", description = "처리 완료, 응답 본문 없음", content = @Content)
     @Operation(summary = "일정 삭제",

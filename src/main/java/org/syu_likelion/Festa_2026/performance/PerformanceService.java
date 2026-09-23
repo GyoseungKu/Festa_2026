@@ -41,18 +41,16 @@ public class PerformanceService {
     }
 
     @Transactional(readOnly = true)
-    public AuthorizedResult<List<PerformanceResponse>> listVisible(String accessToken, String refreshToken) {
-        AuthorizedResult<MeResponse> authenticated = users.getMe(accessToken, refreshToken);
+    public List<PerformanceResponse> listVisible() {
         Instant now = clock.instant();
         List<PerformanceResponse> body = repository.findAllByOrderByStartsAtAsc()
                 .stream().map(item -> toPublicResponse(item, now)).toList();
-        return rotated(authenticated, body);
+        return body;
     }
 
     @Transactional(readOnly = true)
-    public AuthorizedResult<PerformanceResponse> getVisible(Long id, String accessToken, String refreshToken) {
-        AuthorizedResult<MeResponse> authenticated = users.getMe(accessToken, refreshToken);
-        return rotated(authenticated, toPublicResponse(find(id), clock.instant()));
+    public PerformanceResponse getVisible(Long id) {
+        return toPublicResponse(find(id), clock.instant());
     }
 
     @Transactional

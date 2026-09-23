@@ -6,12 +6,12 @@
 
 ## 인증과 경로
 
-모든 API는 Bearer 인증이 필요합니다. 토큰 갱신 방식은 [공통 규약](frontend-api-common.md)을 따릅니다.
+일반 목록·상세 조회는 로그인 없이 가능하며 Authorization 헤더와 쿠키가 필요하지 않습니다. 일반 조회에서는 토큰 갱신을 수행하지 않습니다. 관리자 조회와 등록·수정·삭제는 Bearer 인증이 필요하며 토큰 갱신 방식은 [공통 규약](frontend-api-common.md)을 따릅니다.
 
 | 메서드 | 경로 | 권한 | 동작 |
 |---|---|---|---|
-| GET | `/api/timetable` | 로그인 | 모든 일정, 시작 시각·ID 오름차순 |
-| GET | `/api/timetable/{id}` | 로그인 | 일정 하나 조회 |
+| GET | `/api/timetable` | 비로그인 가능 | 모든 일정, 시작 시각·ID 오름차순 |
+| GET | `/api/timetable/{id}` | 비로그인 가능 | 일정 하나 조회 |
 | GET | `/api/timetable/admin` | ADMIN 이상 | 미공개 일정명과 공연팀 연결을 포함한 전체 조회 |
 | POST | `/api/timetable` | ADMIN 이상 | 일정 등록, 201 |
 | PATCH | `/api/timetable/{id}` | ADMIN 이상 | 일정 수정, 200 |

@@ -41,7 +41,7 @@ API를 추가·변경하면 이 색인과 도메인 문서를 함께 수정합�
 
 ## Timetable
 
-[타임테이블 연동 문서](frontend-timetable-api.md). 모든 요청은 Bearer 인증이 필요하며 관리 요청은 ADMIN 이상입니다.
+[타임테이블 연동 문서](frontend-timetable-api.md). 일반 목록·상세 조회는 비로그인도 가능합니다. 관리자 조회와 관리 요청은 Bearer 인증 및 ADMIN 이상 권한이 필요합니다.
 
 | 메서드 | 경로 | 성공 코드·본문 | 요청 본문 |
 |---|---|---|---|
@@ -212,7 +212,7 @@ API를 추가·변경하면 이 색인과 도메인 문서를 함께 수정합�
 
 ## Performance
 
-[연동 문서](frontend-performances-api.md)
+[연동 문서](frontend-performances-api.md). 목록·상세 조회는 비로그인도 가능합니다. 관리 요청은 Bearer 인증 및 ADMIN 이상 권한이 필요합니다.
 
 | 메서드 | 경로 | 성공 코드·본문 | 요청 본문 |
 |---|---|---|---|
