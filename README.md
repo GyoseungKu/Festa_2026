@@ -52,7 +52,7 @@
 
 - Java 21
 - Spring Boot 4.1, Spring MVC, Security, Validation, Thymeleaf
-- Spring Data JPA, MySQL/MariaDB
+- Spring Data JPA, MySQL
 - Cloudflare R2 및 AWS SDK for Java 2.x
 - Springdoc OpenAPI 3
 - Micrometer, Actuator, Prometheus
@@ -108,7 +108,7 @@ SSO의 `ssoRole`과 축제 운영 권한은 별개입니다.
 ### 요구사항
 
 - JDK 21
-- MySQL 8 또는 MariaDB
+- MySQL 8
 - 사용 가능한 SSO OAuth Client
 - 학생 인증을 사용할 경우 학교 SSO OAuth Client와 JWKS 엔드포인트
 - Cloudflare R2 버킷

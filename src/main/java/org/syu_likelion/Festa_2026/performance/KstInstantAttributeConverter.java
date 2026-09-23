@@ -8,7 +8,7 @@ import java.time.ZoneId;
 
 /**
  * Keeps the domain/API type as {@link Instant} while storing a KST wall-clock
- * value in MariaDB DATETIME columns.
+ * value in MySQL DATETIME columns.
  */
 @Converter
 public class KstInstantAttributeConverter implements AttributeConverter<Instant, LocalDateTime> {
