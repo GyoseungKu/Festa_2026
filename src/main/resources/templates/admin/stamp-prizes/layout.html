@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" th:fragment="page(title, active, content)">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${title + ' | 천보축전 관리자'}">스탬프 상품 지급</title>
+    <link rel="icon" type="image/svg+xml" th:href="@{/admin/assets/images/favicon.svg}">
+    <link rel="stylesheet" th:href="@{/admin/assets/css/admin.css}">
+    <link rel="stylesheet" th:href="@{/admin/assets/css/admin-console.css}">
+    <link rel="stylesheet" th:href="@{/admin/assets/css/admin-stamp-prizes.css}">
+    <script defer th:src="@{/admin/assets/webjars/jsqr/1.4.0/dist/jsQR.js}"></script>
+    <script defer th:src="@{/admin/assets/js/admin-qr.js}"></script>
+</head>
+<body class="admin-page stamp-prize-page">
+<a class="skip-link" href="#admin-content">본문으로 건너뛰기</a>
+<div class="admin-layout">
+    <aside th:replace="~{admin/fragments/sidebar :: sidebar}"></aside>
+    <div class="admin-workspace">
+        <main id="admin-content" tabindex="-1" class="admin-main prize-main">
+            <nav class="breadcrumb" aria-label="현재 위치"><a th:href="@{/admin}">관리자 홈</a><span>/</span><a th:href="@{/admin/stamps}">스탬프 지급 관리</a><span>/</span><strong th:text="${title}">상품 지급</strong></nav>
+            <header class="prize-heading">
+                <div><p class="eyebrow">STAMP REWARD</p><h1 th:text="${title}">스탬프 상품 지급</h1><p>사용자를 확인하고, 서로 다른 부스의 스탬프 6개 이상을 모았으면 상품을 지급합니다.</p></div>
+                <nav class="prize-tabs" aria-label="상품 지급 메뉴">
+                    <a th:href="@{/admin/stamps/prizes}" th:attr="aria-current=${active == 'issue' ? 'page' : null}">조회·지급</a>
+                    <a th:href="@{/admin/stamps/prizes/manage}" th:attr="aria-current=${active == 'history' ? 'page' : null}">지급 관리·이력</a>
+                </nav>
+            </header>
+            <p class="alert alert-error" role="alert" th:if="${error}" th:text="${error}"></p>
+            <p class="alert alert-success" role="status" th:if="${message}" th:text="${message}"></p>
+            <div class="prize-content" th:insert="${content}"></div>
+        </main>
+        <div th:replace="~{admin/fragments/footer :: footer(true)}"></div>
+    </div>
+</div>
+</body></html>

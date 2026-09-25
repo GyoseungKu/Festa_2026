@@ -1,36 +1,18 @@
 <!doctype html>
-<html lang="ko" xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>스탬프 상품 지급 | 천보축전 관리자</title>
-    <link rel="icon" type="image/svg+xml" th:href="@{/admin/assets/images/favicon.svg}">
-    <link rel="stylesheet" th:href="@{/admin/assets/css/admin.css}">
-    <link rel="stylesheet" th:href="@{/admin/assets/css/admin-console.css}">
-    <script defer th:src="@{/admin/assets/webjars/jsqr/1.4.0/dist/jsQR.js}"></script>
-    <script defer th:src="@{/admin/assets/js/admin-qr.js}"></script>
-</head>
-<body class="admin-page">
-<a class="skip-link" href="#admin-content">본문으로 건너뛰기</a>
-<div class="admin-layout"><aside th:replace="~{admin/fragments/sidebar :: sidebar}"></aside>
-<div class="admin-workspace"><main id="admin-content" tabindex="-1" class="admin-main qr-page">
-    <nav class="breadcrumb" aria-label="현재 위치"><a th:href="@{/admin}">관리자 홈</a><span>/</span><a th:href="@{/admin/stamps}">스탬프 지급 관리</a><span>/</span><strong>상품 지급</strong></nav>
-    <section class="page-heading"><div><h1>스탬프 상품 지급</h1><p>서로 다른 부스 스탬프 6개 이상을 모은 사용자에게 상품을 한 번만 지급합니다.</p></div></section>
-    <div class="alert alert-error" role="alert" th:if="${error}" th:text="${error}"></div>
-    <div class="alert alert-success" role="status" th:if="${message}" th:text="${message}"></div>
-    <nav class="camera-actions" aria-label="상품 지급 메뉴"><a class="button button-primary" th:href="@{/admin/stamps/prizes}">상품 지급</a><a class="button button-secondary" th:href="@{/admin/stamps/prizes/manage}">상품 지급 이력</a></nav>
-    <section class="panel">
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" th:replace="~{admin/stamp-prizes/layout :: page('상품 지급 상세', 'history', ~{::content})}">
+<body><div th:fragment="content" class="prize-stack">
+    <section class="panel prize-stack">
         <h2>상품 지급 상세</h2>
         <dl class="profile-grid"><div><dt>수령자</dt><dd th:text="${record.name}"></dd></div><div><dt>학번</dt><dd th:text="${record.studentNo ?: '-'}"></dd></div><div><dt>학과</dt><dd th:text="${record.department ?: '-'}"></dd></div><div><dt>상태</dt><dd th:text="${record.issued ? '지급 완료' : '지급 철회'}"></dd></div><div><dt>최근 지급 관리자</dt><dd th:text="${record.grantedByName}"></dd></div><div><dt>최근 지급 시각</dt><dd th:text="${#temporals.format(record.grantedAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm:ss')} + ' KST'"></dd></div></dl>
         <a class="button button-secondary" th:href="@{/admin/stamps/prizes/users/{uuid}(uuid=${record.userUuid})}">사용자 스탬프판 다시 확인</a>
-        <form th:if="${record.issued}" method="post" th:action="@{/admin/stamps/prizes/records/{id}/revoke(id=${record.id})}" onsubmit="return confirm('실물 상품 회수 여부를 확인했나요? 사유를 기록하고 지급을 철회합니다.');">
+        <form class="prize-form prize-revoke" th:if="${record.issued}" method="post" th:action="@{/admin/stamps/prizes/records/{id}/revoke(id=${record.id})}" onsubmit="return confirm('실물 상품 회수 여부를 확인했나요? 사유를 기록하고 지급을 철회합니다.');">
             <input type="hidden" name="version" th:value="${record.version}">
             <label class="field-group"><span>철회 사유</span><textarea name="reason" required maxlength="500" rows="3" placeholder="오지급 등 철회 사유를 입력해 주세요."></textarea></label>
             <button class="button button-danger" type="submit">상품 지급 철회</button>
         </form>
     </section>
-    <section class="panel"><h2>지급·철회 이력</h2>
-        <div class="stamp-table-wrap"><table class="stamp-table"><thead><tr><th>처리</th><th>방식</th><th>관리자</th><th>처리 시각</th><th>지급 당시 스탬프</th><th>사유</th></tr></thead><tbody><tr th:each="event : ${events.content}"><td th:text="${event.action.name() == 'GRANT' ? '지급' : '철회'}"></td><td th:text="${event.method.name() == 'QR' ? 'QR' : '직접 조회'}"></td><td th:text="${event.actorName}"></td><td th:text="${#temporals.format(event.occurredAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm:ss')}"></td><td th:text="${event.stampCount}"></td><td th:text="${event.reason ?: '-'}"></td></tr></tbody></table></div>
-        <nav class="camera-actions" th:if="${events.totalPages > 1}" aria-label="상세 처리 이력 페이지"><a class="button button-secondary" th:if="${events.hasPrevious()}" th:href="@{/admin/stamps/prizes/records/{id}(id=${record.id},page=${events.number - 1})}">이전</a><span th:text="|${events.number + 1} / ${events.totalPages} 페이지|"></span><a class="button button-secondary" th:if="${events.hasNext()}" th:href="@{/admin/stamps/prizes/records/{id}(id=${record.id},page=${events.number + 1})}">다음</a></nav>
+    <section class="panel prize-stack"><h2>지급·철회 이력</h2>
+        <div class="prize-table-wrap"><table class="prize-table"><thead><tr><th>처리</th><th>방식</th><th>관리자</th><th>처리 시각</th><th>지급 당시 스탬프</th><th>사유</th></tr></thead><tbody><tr th:each="event : ${events.content}"><td th:text="${event.action.name() == 'GRANT' ? '지급' : '철회'}"></td><td th:text="${event.method.name() == 'QR' ? 'QR' : '직접 조회'}"></td><td th:text="${event.actorName}"></td><td th:text="${#temporals.format(event.occurredAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm:ss')}"></td><td th:text="${event.stampCount}"></td><td th:text="${event.reason ?: '-'}"></td></tr></tbody></table></div>
+        <nav class="prize-actions prize-pagination" th:if="${events.totalPages > 1}" aria-label="상세 처리 이력 페이지"><a class="button button-secondary" th:if="${events.hasPrevious()}" th:href="@{/admin/stamps/prizes/records/{id}(id=${record.id},page=${events.number - 1})}">이전</a><span th:text="|${events.number + 1} / ${events.totalPages} 페이지|"></span><a class="button button-secondary" th:if="${events.hasNext()}" th:href="@{/admin/stamps/prizes/records/{id}(id=${record.id},page=${events.number + 1})}">다음</a></nav>
     </section>
-</main><div th:replace="~{admin/fragments/footer :: footer(true)}"></div></div></div>
-</body></html>
+</div></body></html>
