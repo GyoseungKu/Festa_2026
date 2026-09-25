@@ -79,7 +79,7 @@ class SponsorTests {
     @Test void boothDeletionRetainsSponsorAndClearsLink() {
         var booth = booths.createAs(actor, new BoothDtos.BoothMutationRequest(
                 BigDecimal.ZERO, BigDecimal.ZERO, "협찬 부스", "운영", "소개",
-                LocalTime.of(9,0), LocalTime.of(18,0), false, List.of()), List.of(), List.of());
+                LocalTime.of(9,0), LocalTime.of(18,0), false, List.of(), BoothCategory.GENERAL), List.of(), List.of());
         var item = service.save(null, actor, "협찬사", "소개", booth.booth().id(), image());
         assertThat(item.boothName()).isEqualTo("협찬 부스");
         booths.deleteAs(booth.booth().id());

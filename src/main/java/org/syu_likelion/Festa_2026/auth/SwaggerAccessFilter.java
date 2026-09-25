@@ -13,7 +13,7 @@ import org.syu_likelion.Festa_2026.admin.AdminCookieManager;
 import org.syu_likelion.Festa_2026.error.ApiException;
 import org.syu_likelion.Festa_2026.sso.SsoException;
 
-/** Protect both the documentation UI and its raw specifications with live SSO authorization. */
+/** Keep Swagger protected, except for the public JSON specification used for type generation. */
 public class SwaggerAccessFilter extends OncePerRequestFilter {
     private final AdminAccessService admins;
     private final AdminCookieManager cookies;
@@ -37,6 +37,10 @@ public class SwaggerAccessFilter extends OncePerRequestFilter {
             return;
         }
         response.setHeader("Cache-Control", "no-store");
+        if (path.equals("/admin/v3/api-docs") && "GET".equals(request.getMethod())) {
+            chain.doFilter(request, response);
+            return;
+        }
         boolean page = path.equals("/admin/swagger-ui.html") || path.equals("/admin/swagger-ui/index.html");
         try {
             var authenticated = admins.authenticateForSwagger(cookies.readAccessToken(request), cookies.readRefreshToken(request));

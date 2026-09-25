@@ -21,9 +21,9 @@
 
 허용 권한은 [AdminAccessService](../src/main/java/org/syu_likelion/Festa_2026/admin/AdminAccessService.java)의 `SWAGGER_ALLOWED_ROLES`에서 관리합니다. `USER`, `BOOTH_MANAGER`, `STAFF` 항목은 주석 처리되어 있습니다. 로그인 화면·인증·쿠키 발급은 기존 관리자 로그인 하나로 통합되어 있으며 `next=swagger`는 로그인 후 이동할 목적지만 지정합니다. Swagger 요청마다 별도 허용 목록을 검사하므로 STAFF·BOOTH_MANAGER는 관리자 로그인에 성공해도 Swagger에서 403을 받습니다. Swagger 권한 부족 때문에 유효한 관리자 로그인 쿠키를 삭제하지 않습니다.
 
-JSON은 `/admin/v3/api-docs`, YAML은 `/admin/v3/api-docs.yaml`, UI 설정은 `/admin/v3/api-docs/swagger-config`입니다. 화면·정적 리소스·명세 모두 요청마다 SSO 인증과 Swagger 허용 권한을 확인하고 `Cache-Control: no-store`를 적용합니다. 미로그인 UI는 `/admin/login?next=swagger`로 이동하고, 미인증 명세 요청은 401, 권한 부족은 403입니다. SSO 토큰 폐기 시 관리자 쿠키도 정리합니다.
+JSON은 `/admin/v3/api-docs`, YAML은 `/admin/v3/api-docs.yaml`, UI 설정은 `/admin/v3/api-docs/swagger-config`입니다. `GET /admin/v3/api-docs`만 로그인 없이 공개하여 프론트 타입 생성에 사용합니다. 나머지 화면·정적 리소스·YAML·UI 설정은 요청마다 SSO 인증과 Swagger 허용 권한을 확인합니다. 모든 문서 응답에 `Cache-Control: no-store`를 적용합니다. 미로그인 UI는 `/admin/login?next=swagger`로 이동하고, 공개 JSON 이외의 미인증 명세 요청은 401, 권한 부족은 403입니다. SSO 토큰 폐기 시 관리자 쿠키도 정리합니다.
 
-기존 루트 `/swagger-ui.html`과 `/swagger-ui/index.html` 경로는 제공하지 않습니다. 이전 명세(`/v3/api-docs` 등)와 이전 정적 리소스 경로는 404입니다. 문서 열람에는 관리자 쿠키가 필요하고 Swagger의 `Authorize`에는 실제 `/api/**` 호출에 사용할 Bearer Token을 별도로 입력합니다.
+기존 루트 `/swagger-ui.html`과 `/swagger-ui/index.html` 경로는 제공하지 않습니다. 이전 명세(`/v3/api-docs` 등)와 이전 정적 리소스 경로는 404입니다. Swagger UI 열람에는 관리자 쿠키가 필요하고 Swagger의 `Authorize`에는 실제 `/api/**` 호출에 사용할 Bearer Token을 별도로 입력합니다.
 
 ## 웹 화면 전용 JSON
 

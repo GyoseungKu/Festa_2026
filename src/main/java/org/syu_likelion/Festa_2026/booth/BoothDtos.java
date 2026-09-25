@@ -27,7 +27,8 @@ public final class BoothDtos {
             @Schema(description = "시간대 없는 운영 종료 시각(HH:mm:ss).", example = "18:00:00")
             @NotNull LocalTime closesAt,
             boolean stampEnabled,
-            @Size(max = 100) List<@NotNull UUID> managerUuids) { }
+            @Size(max = 100) List<@NotNull UUID> managerUuids,
+            @NotNull BoothCategory category) { }
 
     public record BoothMediaOrderRequest(
             @NotEmpty List<@NotNull Long> mediaIds,
@@ -39,14 +40,14 @@ public final class BoothDtos {
     public record BoothSummaryResponse(Long id, BigDecimal latitude, BigDecimal longitude,
                                        String name, String operator, LocalTime opensAt, LocalTime closesAt,
                                        boolean stampEnabled, BoothMediaResponse representativeMedia,
-                                       boolean favorited) { }
+                                       boolean favorited, BoothCategory category) { }
 
     public record BoothDetailResponse(Long id, BigDecimal latitude, BigDecimal longitude,
                                       String name, String operator, String description,
                                       LocalTime opensAt, LocalTime closesAt, boolean stampEnabled,
                                       List<BoothMediaResponse> media,
                                       BoothMediaResponse representativeMedia, boolean favorited,
-                                      Instant createdAt, Instant updatedAt) { }
+                                      Instant createdAt, Instant updatedAt, BoothCategory category) { }
 
     public record BoothAdminResponse(BoothDetailResponse booth, List<UUID> managerUuids) { }
 }

@@ -3,6 +3,8 @@ package org.syu_likelion.Festa_2026.booth;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -43,6 +45,10 @@ public class FestivalBooth {
     @Column(nullable = false, length = 150)
     private String operator;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, columnDefinition = "varchar(32) default 'GENERAL'")
+    private BoothCategory category = BoothCategory.GENERAL;
+
     @Column(nullable = false, columnDefinition = "TEXT")
     private String description;
 
@@ -78,19 +84,20 @@ public class FestivalBooth {
 
     FestivalBooth(BigDecimal latitude, BigDecimal longitude, String name, String operator,
                   String description, LocalTime opensAt, LocalTime closesAt,
-                  boolean stampEnabled, Set<FestivalUser> managers, UUID actorUuid) {
+                  boolean stampEnabled, Set<FestivalUser> managers, UUID actorUuid, BoothCategory category) {
         update(latitude, longitude, name, operator, description, opensAt, closesAt,
-                stampEnabled, managers, actorUuid);
+                stampEnabled, managers, actorUuid, category);
         createdBy = actorUuid;
     }
 
     void update(BigDecimal latitude, BigDecimal longitude, String name, String operator,
                 String description, LocalTime opensAt, LocalTime closesAt,
-                boolean stampEnabled, Set<FestivalUser> managers, UUID actorUuid) {
+                boolean stampEnabled, Set<FestivalUser> managers, UUID actorUuid, BoothCategory category) {
         this.latitude = latitude;
         this.longitude = longitude;
         this.name = name;
         this.operator = operator;
+        this.category = java.util.Objects.requireNonNull(category);
         this.description = description;
         this.opensAt = opensAt;
         this.closesAt = closesAt;
@@ -116,6 +123,7 @@ public class FestivalBooth {
     public BigDecimal getLatitude() { return latitude; }
     public BigDecimal getLongitude() { return longitude; }
     public String getName() { return name; }
+    public BoothCategory getCategory() { return category; }
     public String getOperator() { return operator; }
     public String getDescription() { return description; }
     public LocalTime getOpensAt() { return opensAt; }

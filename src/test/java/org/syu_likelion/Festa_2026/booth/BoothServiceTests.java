@@ -49,6 +49,7 @@ class BoothServiceTests {
         when(booths.findAllByOrderByNameAsc()).thenReturn(List.of(entity(Set.of())));
         var result = service.list(null, null);
         assertThat(result.body()).hasSize(1);
+        assertThat(result.body().getFirst().category()).isEqualTo(BoothCategory.PHOTO_BOOTH);
         assertThat(result.body().getFirst().name()).isEqualTo("멋사 부스");
         assertThat(result.body().getFirst().stampEnabled()).isTrue();
         assertThat(result.body().getFirst().favorited()).isFalse();
@@ -70,9 +71,36 @@ class BoothServiceTests {
         when(festivalUsers.findAllByUserUuidIn(List.of(MANAGER_1, MANAGER_2))).thenReturn(List.of(first, second));
         when(booths.saveAndFlush(any())).thenAnswer(invocation -> invocation.getArgument(0));
         var result = service.createAs(USER_ID, request(List.of(MANAGER_1, MANAGER_2)), List.of(), List.of());
+        assertThat(result.booth().category()).isEqualTo(BoothCategory.FOOD_TRUCK);
         assertThat(result.managerUuids()).containsExactlyInAnyOrder(MANAGER_1, MANAGER_2);
         assertThat(first.getRoles()).contains(FestivalRole.BOOTH_MANAGER);
         assertThat(second.getRoles()).contains(FestivalRole.BOOTH_MANAGER);
+    }
+
+    @Test void categoryUpdateIsVisibleInDetailAndFavoriteList() {
+        FestivalBooth booth = entity(Set.of());
+        when(booths.findById(7L)).thenReturn(java.util.Optional.of(booth));
+        when(booths.saveAndFlush(booth)).thenReturn(booth);
+
+        var updated = service.updateAs(7L, USER_ID, request(List.of()));
+        assertThat(updated.booth().category()).isEqualTo(BoothCategory.FOOD_TRUCK);
+        assertThat(service.detail(7L, null, null).body().category()).isEqualTo(BoothCategory.FOOD_TRUCK);
+
+        authenticate(FestivalRole.USER);
+        when(favorites.findBoothsByUserUuid(USER_ID)).thenReturn(List.of(booth));
+        var favorite = service.myFavorites("access", "refresh").body().getFirst();
+        assertThat(favorite.category()).isEqualTo(BoothCategory.FOOD_TRUCK);
+        assertThat(favorite.favorited()).isTrue();
+    }
+
+    @Test void categoryIsRequiredForMutation() {
+        BoothMutationRequest valid = request(List.of());
+        BoothMutationRequest missing = new BoothMutationRequest(valid.latitude(), valid.longitude(),
+                valid.name(), valid.operator(), valid.description(), valid.opensAt(), valid.closesAt(),
+                valid.stampEnabled(), valid.managerUuids(), null);
+        assertThatThrownBy(() -> service.createAs(USER_ID, missing, List.of(), List.of()))
+                .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code()).isEqualTo("INVALID_BOOTH"));
+        verify(booths, never()).saveAndFlush(any());
     }
 
     @Test void ordinaryUserCannotUseManagementApi() {
@@ -93,7 +121,7 @@ class BoothServiceTests {
 
     @Test void closingTimeMustBeLaterThanOpeningTime() {
         BoothMutationRequest invalid = new BoothMutationRequest(BigDecimal.valueOf(37.64), BigDecimal.valueOf(127.1),
-                "부스", "운영자", "설명", LocalTime.NOON, LocalTime.NOON, true, List.of());
+                "부스", "운영자", "설명", LocalTime.NOON, LocalTime.NOON, true, List.of(), BoothCategory.GENERAL);
         assertThatThrownBy(() -> service.createAs(USER_ID, invalid, List.of(), List.of()))
                 .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code()).isEqualTo("INVALID_BOOTH_HOURS"));
     }
@@ -118,11 +146,11 @@ class BoothServiceTests {
 
     private BoothMutationRequest request(List<UUID> managers) {
         return new BoothMutationRequest(new BigDecimal("37.6432000"), new BigDecimal("127.1059000"),
-                "멋사 부스", "멋쟁이사자처럼", "부스 설명", LocalTime.of(10, 0), LocalTime.of(18, 0), true, managers);
+                "멋사 부스", "멋쟁이사자처럼", "부스 설명", LocalTime.of(10, 0), LocalTime.of(18, 0), true, managers, BoothCategory.FOOD_TRUCK);
     }
     private FestivalBooth entity(Set<FestivalUser> managers) {
         return new FestivalBooth(new BigDecimal("37.6432000"), new BigDecimal("127.1059000"), "멋사 부스",
-                "멋쟁이사자처럼", "부스 설명", LocalTime.of(10, 0), LocalTime.of(18, 0), true, managers, USER_ID);
+                "멋쟁이사자처럼", "부스 설명", LocalTime.of(10, 0), LocalTime.of(18, 0), true, managers, USER_ID, BoothCategory.PHOTO_BOOTH);
     }
     private void authenticate(FestivalRole role) {
         MeResponse me = new MeResponse(USER_ID, "user", "user@example.com", "USER", "ACTIVE", null, null,

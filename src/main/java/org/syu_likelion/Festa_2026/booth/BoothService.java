@@ -103,7 +103,7 @@ public class BoothService {
         Normalized n = normalize(request);
         Set<FestivalUser> managers = managers(n.managerUuids());
         FestivalBooth booth = new FestivalBooth(n.latitude(), n.longitude(), n.name(), n.operator(),
-                n.description(), n.opensAt(), n.closesAt(), n.stampEnabled(), managers, actor);
+                n.description(), n.opensAt(), n.closesAt(), n.stampEnabled(), managers, actor, n.category());
         managers.forEach(user -> user.addRole(FestivalRole.BOOTH_MANAGER));
         List<StoredFile> stored = new ArrayList<>();
         boolean rollbackCleanup = TransactionalFileActions.deleteOnRollback(() -> deleteStored(stored));
@@ -134,7 +134,7 @@ public class BoothService {
         Set<FestivalUser> newManagers = managers(n.managerUuids());
         newManagers.forEach(user -> user.addRole(FestivalRole.BOOTH_MANAGER));
         booth.update(n.latitude(), n.longitude(), n.name(), n.operator(), n.description(), n.opensAt(),
-                n.closesAt(), n.stampEnabled(), newManagers, actor);
+                n.closesAt(), n.stampEnabled(), newManagers, actor, n.category());
         BoothAdminResponse response = admin(booths.saveAndFlush(booth));
         oldManagers.stream().filter(user -> !newManagers.contains(user)).forEach(this::removeManagerRoleIfUnused);
         return response;
@@ -249,7 +249,7 @@ public class BoothService {
     }
 
     private Normalized normalize(BoothMutationRequest r) {
-        if (r == null || r.latitude() == null || r.longitude() == null || r.opensAt() == null || r.closesAt() == null)
+        if (r == null || r.category() == null || r.latitude() == null || r.longitude() == null || r.opensAt() == null || r.closesAt() == null)
             throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_BOOTH", "필수 부스 정보를 입력해 주세요.");
         if (r.latitude().compareTo(java.math.BigDecimal.valueOf(-90)) < 0 || r.latitude().compareTo(java.math.BigDecimal.valueOf(90)) > 0
                 || r.longitude().compareTo(java.math.BigDecimal.valueOf(-180)) < 0 || r.longitude().compareTo(java.math.BigDecimal.valueOf(180)) > 0)
@@ -259,7 +259,7 @@ public class BoothService {
         return new Normalized(r.latitude(), r.longitude(), text(r.name(), 150, "부스 이름"),
                 text(r.operator(), 150, "운영 주체"), text(r.description(), 5000, "부스 설명"),
                 r.opensAt(), r.closesAt(), r.stampEnabled(),
-                r.managerUuids() == null ? List.of() : r.managerUuids().stream().distinct().toList());
+                r.managerUuids() == null ? List.of() : r.managerUuids().stream().distinct().toList(), r.category());
     }
     private String text(String value, int max, String field) {
         String cleaned = value == null ? "" : value.trim();
@@ -299,7 +299,7 @@ public class BoothService {
     private BoothSummaryResponse summary(FestivalBooth booth, boolean liked) {
         return new BoothSummaryResponse(booth.getId(), booth.getLatitude(), booth.getLongitude(), booth.getName(),
                 booth.getOperator(), booth.getOpensAt(), booth.getClosesAt(), booth.isStampEnabled(),
-                representative(booth), liked);
+                representative(booth), liked, booth.getCategory());
     }
     private BoothDetailResponse detail(FestivalBooth booth, boolean liked) {
         List<BoothMediaResponse> media = media(booth);
@@ -307,7 +307,7 @@ public class BoothService {
                 booth.getOperator(), booth.getDescription(), booth.getOpensAt(), booth.getClosesAt(),
                 booth.isStampEnabled(), media,
                 media.stream().filter(BoothMediaResponse::representative).findFirst().orElse(null), liked,
-                booth.getCreatedAt(), booth.getUpdatedAt());
+                booth.getCreatedAt(), booth.getUpdatedAt(), booth.getCategory());
     }
     private BoothAdminResponse admin(FestivalBooth booth) {
         return new BoothAdminResponse(detail(booth, false), booth.getManagers().stream().map(FestivalUser::getUserUuid).toList());
@@ -330,5 +330,5 @@ public class BoothService {
     }
     private record Normalized(java.math.BigDecimal latitude, java.math.BigDecimal longitude, String name,
                               String operator, String description, java.time.LocalTime opensAt,
-                              java.time.LocalTime closesAt, boolean stampEnabled, List<UUID> managerUuids) { }
+                              java.time.LocalTime closesAt, boolean stampEnabled, List<UUID> managerUuids, BoothCategory category) { }
 }

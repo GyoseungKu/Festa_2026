@@ -164,6 +164,8 @@ SELECT 'festival_booth_stamps' AS table_name, 'granted_by' AS column_name, 'bina
 UNION ALL
 SELECT 'festival_booth_stamps' AS table_name, 'id' AS column_name, 'bigint' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
+SELECT 'festival_booths' AS table_name, 'category' AS column_name, 'varchar(32)' AS expected_type, 'NO' AS expected_nullable
+UNION ALL
 SELECT 'festival_booths' AS table_name, 'closes_at' AS column_name, 'time(0)' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
 SELECT 'festival_booths' AS table_name, 'created_at' AS column_name, 'datetime(6)' AS expected_type, 'NO' AS expected_nullable

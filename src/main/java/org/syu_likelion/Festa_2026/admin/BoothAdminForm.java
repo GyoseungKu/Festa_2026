@@ -1,6 +1,7 @@
 package org.syu_likelion.Festa_2026.admin;
 
 import java.math.BigDecimal;
+import org.syu_likelion.Festa_2026.booth.BoothCategory;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,6 +16,7 @@ public class BoothAdminForm {
     private BigDecimal longitude;
     private String name;
     private String operator;
+    private BoothCategory category = BoothCategory.GENERAL;
     private String description;
     @DateTimeFormat(pattern = "HH:mm") private LocalTime opensAt;
     @DateTimeFormat(pattern = "HH:mm") private LocalTime closesAt;
@@ -35,6 +37,7 @@ public class BoothAdminForm {
         BoothAdminForm form = new BoothAdminForm();
         var booth = response.booth();
         form.latitude = booth.latitude(); form.longitude = booth.longitude(); form.name = booth.name();
+        form.category = booth.category();
         form.operator = booth.operator(); form.description = booth.description();
         form.opensAt = booth.opensAt(); form.closesAt = booth.closesAt();
         form.stampEnabled = booth.stampEnabled();
@@ -45,11 +48,13 @@ public class BoothAdminForm {
     }
     public BoothMutationRequest toRequest() {
         return new BoothMutationRequest(latitude, longitude, name, operator, description, opensAt, closesAt, stampEnabled,
-                managerUuids == null ? List.of() : managerUuids);
+                managerUuids == null ? List.of() : managerUuids, category);
     }
     public BigDecimal getLatitude() { return latitude; } public void setLatitude(BigDecimal v) { latitude = v; }
     public BigDecimal getLongitude() { return longitude; } public void setLongitude(BigDecimal v) { longitude = v; }
     public String getName() { return name; } public void setName(String v) { name = v; }
+    public BoothCategory getCategory() { return category; }
+    public void setCategory(BoothCategory category) { this.category = category; }
     public String getOperator() { return operator; } public void setOperator(String v) { operator = v; }
     public String getDescription() { return description; } public void setDescription(String v) { description = v; }
     public LocalTime getOpensAt() { return opensAt; } public void setOpensAt(LocalTime v) { opensAt = v; }

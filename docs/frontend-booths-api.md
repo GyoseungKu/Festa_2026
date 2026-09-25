@@ -6,6 +6,7 @@
 
 - [핵심 정책](#핵심-정책)
 - [프런트 타입](#프런트-타입)
+- [카테고리와 지도 핀](#카테고리와-지도-핀)
 - [전체 부스 핀 조회](#전체-부스-핀-조회)
 - [부스 상세 조회](#부스-상세-조회)
 - [찜](#찜)
@@ -26,6 +27,8 @@
 ## 프런트 타입
 
 ```ts
+type BoothCategory = "PHOTO_BOOTH" | "GENERAL" | "FOOD_TRUCK" | "STUDENT_COUNCIL" | "CAMPUS";
+
 type BoothMediaKind = "IMAGE" | "VIDEO";
 
 type BoothMedia = {
@@ -42,6 +45,7 @@ type BoothSummary = {
   longitude: number;
   name: string;
   operator: string;
+  category: BoothCategory;
   opensAt: string;
   closesAt: string;
   stampEnabled: boolean;
@@ -56,6 +60,20 @@ type BoothDetail = BoothSummary & {
   updatedAt: string;
 };
 ```
+
+## 카테고리와 지도 핀
+
+| `category` | 의미 | 지도 핀 |
+|---|---|---|
+| `PHOTO_BOOTH` | 포토부스 | 포토부스 |
+| `GENERAL` | 일반부스(동아리 등) | 일반부스 |
+| `FOOD_TRUCK` | 푸드트럭 | 푸드트럭 |
+| `STUDENT_COUNCIL` | 학생회·팔찌배부존 | 학생회·팔찌배부존 |
+| `CAMPUS` | 교내 기관·부서 운영 부스 | 일반부스 |
+
+목록·상세·내 찜 목록에 `category`가 포함됩니다. 전체 탭은 카테고리 조건 없이, 북마크 탭은 `favorited`로, 나머지 탭은 `category`로 프론트에서 필터링합니다. 목록 API에 카테고리 쿼리 파라미터는 없습니다. 내 위치는 별도 마커이며 부스 카테고리에 포함하지 않습니다.
+
+기존 부스는 스키마 변경 시 `GENERAL`로 초기화되므로 관리자가 실제 분류에 맞게 수정해야 합니다. `ddl-auto=update` 환경에서는 컬럼이 자동 추가되며, 수동 변경 환경에서는 [카테고리 스키마](booth-category-schema.sql)를 먼저 적용합니다.
 
 ## 전체 부스 핀 조회
 
@@ -74,6 +92,7 @@ Authorization: Bearer ACCESS_TOKEN  # 선택
     "longitude": 127.1059,
     "name": "멋사 체험 부스",
     "operator": "멋쟁이사자처럼",
+    "category": "GENERAL",
     "opensAt": "10:00:00",
     "closesAt": "18:00:00",
     "stampEnabled": true,
@@ -107,6 +126,7 @@ Authorization: Bearer ACCESS_TOKEN  # 선택
   "longitude": 127.1059,
   "name": "멋사 체험 부스",
   "operator": "멋쟁이사자처럼",
+  "category": "GENERAL",
   "description": "체험 설명",
   "opensAt": "10:00:00",
   "closesAt": "18:00:00",
@@ -171,6 +191,7 @@ POST와 PATCH는 같은 전체 입력 DTO를 사용합니다. PATCH에 변경할
 |---|---|
 | `latitude`, `longitude` | 필수 숫자, 각각 -90–90 / -180–180 |
 | `name`, `operator` | 필수, 각각 최대 150자, 공백만 입력 불가 |
+| `category` | 필수, 위 enum 문자열 중 하나; PATCH에서도 현재 값 또는 변경할 값 전송 |
 | `description` | 필수, 최대 5000자, 공백만 입력 불가 |
 | `opensAt`, `closesAt` | 필수 `LocalTime`, 종료가 시작보다 늦어야 함; 자정을 넘는 범위 불가 |
 | `stampEnabled` | boolean, 생략하면 false; 유지하려면 현재 값 전송 |
@@ -188,6 +209,7 @@ POST와 PATCH는 같은 전체 입력 DTO를 사용합니다. PATCH에 변경할
   "longitude": 127.1059,
   "name": "멋사 체험 부스",
   "operator": "멋쟁이사자처럼",
+  "category": "GENERAL",
   "description": "체험 설명",
   "opensAt": "10:00:00",
   "closesAt": "18:00:00",

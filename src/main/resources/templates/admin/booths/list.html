@@ -20,7 +20,7 @@
     <section class="empty-panel" th:if="${#lists.isEmpty(booths)}"><strong>등록된 부스가 없습니다.</strong><p>첫 부스를 등록해 축제 지도를 구성해 주세요.</p></section>
     <section class="performance-list" th:unless="${#lists.isEmpty(booths)}">
         <article class="performance-admin-card" th:each="item : ${booths}" th:with="booth=${item.booth}">
-            <div class="performance-card-top"><span class="category-chip" th:text="${booth.stampEnabled ? '스탬프 지급 부스' : '스탬프 미지급 부스'}">부스 유형</span><span class="media-count" th:text="|미디어 ${#lists.size(booth.media)}개|">미디어</span></div>
+            <div class="performance-card-top"><span class="category-chip" th:text="${booth.category.label}">카테고리</span><span class="category-chip" th:text="${booth.stampEnabled ? '스탬프 지급 부스' : '스탬프 미지급 부스'}">부스 유형</span><span class="media-count" th:text="|미디어 ${#lists.size(booth.media)}개|">미디어</span></div>
             <h2 th:text="${booth.name}">부스명</h2><p class="member-summary" th:text="${booth.operator}">운영 주체</p>
             <dl class="performance-meta">
                 <div><dt>좌표</dt><dd th:text="|${booth.latitude}, ${booth.longitude}|">좌표</dd></div>

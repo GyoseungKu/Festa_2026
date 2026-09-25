@@ -6,16 +6,17 @@
 
 | 목적 | 인증 방식 | 시작 경로 |
 |---|---|---|
-| Swagger 문서 열람 | `/admin` 전용 HttpOnly 쿠키 | `/admin/swagger-ui.html` → `/admin/login?next=swagger` |
+| OpenAPI JSON·타입 생성 | 인증 없음 | `GET /admin/v3/api-docs` |
+| Swagger UI 열람 | `/admin` 전용 HttpOnly 쿠키 | `/admin/swagger-ui.html` → `/admin/login?next=swagger` |
 | 사용자 REST API 실행 | SSO Access Token을 Bearer 헤더로 전송 | `POST /api/auth/login` |
 | 사용자 Access Token 갱신 | `/api` 전용 Refresh 쿠키 | `POST /api/auth/token/refresh` |
 | 관리자 HTML 폼 | 관리자 쿠키와 CSRF | `/admin/login` |
 
-문서 열람은 축제 권한 `ADMIN`, `SUPER_ADMIN`만 허용합니다. `USER`, `BOOTH_MANAGER`, `STAFF`만 보유한 사용자는 접근할 수 없습니다. 문서에 접근할 수 있어도 개별 API의 학생 인증 등 추가 조건을 통과한 것은 아닙니다. 허용 목록은 `AdminAccessService.SWAGGER_ALLOWED_ROLES`에서 관리합니다.
+Swagger UI 열람은 축제 권한 `ADMIN`, `SUPER_ADMIN`만 허용합니다. `USER`, `BOOTH_MANAGER`, `STAFF`만 보유한 사용자는 접근할 수 없습니다. 문서에 접근할 수 있어도 개별 API의 학생 인증 등 추가 조건을 통과한 것은 아닙니다. 허용 목록은 `AdminAccessService.SWAGGER_ALLOWED_ROLES`에서 관리합니다.
 
 로그인 화면과 인증 처리는 기존 관리자 로그인 하나를 사용합니다. `next=swagger`는 로그인 후 Swagger로 돌아가기 위한 값입니다. 이미 관리자에 로그인했다면 다시 로그인할 필요가 없습니다. STAFF·BOOTH_MANAGER는 관리자 로그인은 가능하지만 Swagger 접근 시 403으로 거부됩니다.
 
-명세 JSON은 `/admin/v3/api-docs`, YAML은 `/admin/v3/api-docs.yaml`입니다. 이전 `/swagger-ui.html`, `/swagger-ui/index.html`, `/v3/api-docs` 경로는 제공하지 않습니다. 미인증 명세 요청은 401, 허용되지 않는 역할은 403입니다.
+명세 JSON의 `GET /admin/v3/api-docs`는 로그인 없이 조회할 수 있습니다. 프론트 `npm run gen:api`의 스펙 주소는 `https://festa.syu-likelion.org/admin/v3/api-docs`로 설정합니다. YAML(`/admin/v3/api-docs.yaml`)과 UI 설정(`/admin/v3/api-docs/swagger-config`), Swagger UI는 기존 관리자 인증이 필요하며 미인증 요청은 401(UI는 로그인 이동), 권한 부족은 403입니다. 이전 `/swagger-ui.html`, `/swagger-ui/index.html`, `/v3/api-docs` 경로는 제공하지 않습니다.
 
 ## 2. 실제 테스트 순서
 

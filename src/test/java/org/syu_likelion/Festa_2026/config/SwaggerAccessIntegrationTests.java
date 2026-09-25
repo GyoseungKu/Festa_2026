@@ -1,6 +1,7 @@
 package org.syu_likelion.Festa_2026.config;
 
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -28,11 +29,28 @@ class SwaggerAccessIntegrationTests {
     @MockitoBean AdminAccessService admins;
 
     @ParameterizedTest
-    @ValueSource(strings = {"/admin/v3/api-docs", "/admin/v3/api-docs.yaml", "/admin/v3/api-docs/swagger-config",
+    @ValueSource(strings = {"/admin/v3/api-docs/", "/admin/v3/api-docs.yaml", "/admin/v3/api-docs/swagger-config",
             "/admin/swagger-ui/swagger-initializer.js", "/admin/swagger-ui/swagger-ui.css"})
     void anonymousCannotReadSpecificationsOrAssets(String path) throws Exception {
         when(admins.authenticateForSwagger(null, null)).thenThrow(new ApiException(HttpStatus.UNAUTHORIZED, "ADMIN_LOGIN_REQUIRED", "login"));
         mvc.perform(get(path)).andExpect(status().isUnauthorized()).andExpect(header().string("Cache-Control", "no-store"));
+    }
+
+    @Test void anonymousCanReadOnlyTheExactJsonSpecification() throws Exception {
+        mvc.perform(get("/admin/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.openapi").isString())
+                .andExpect(jsonPath("$.paths").isMap())
+                .andExpect(header().string("Cache-Control", "no-store"));
+        verifyNoInteractions(admins);
+    }
+
+    @Test void publicSpecificationIgnoresStaleAdminCookies() throws Exception {
+        mvc.perform(get("/admin/v3/api-docs").cookie(access()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.openapi").isString())
+                .andExpect(header().doesNotExist("Set-Cookie"));
+        verifyNoInteractions(admins);
     }
 
     @Test void anonymousUiRedirectsToLogin() throws Exception {
@@ -57,7 +75,7 @@ class SwaggerAccessIntegrationTests {
     @ParameterizedTest
     @ValueSource(strings = {"/admin/swagger-ui.html", "/admin/swagger-ui/index.html",
             "/admin/swagger-ui/swagger-initializer.js", "/admin/swagger-ui/swagger-ui.css",
-            "/admin/v3/api-docs", "/admin/v3/api-docs.yaml", "/admin/v3/api-docs/swagger-config"})
+            "/admin/v3/api-docs/", "/admin/v3/api-docs.yaml", "/admin/v3/api-docs/swagger-config"})
     void insufficientRoleCannotReadUiSpecificationsOrAssets(String path) throws Exception {
         when(admins.authenticateForSwagger("docs", null)).thenThrow(
                 new ApiException(HttpStatus.FORBIDDEN, "SWAGGER_ROLE_REQUIRED", "forbidden"));
@@ -67,9 +85,9 @@ class SwaggerAccessIntegrationTests {
 
     @Test void revokedAuthenticationIsCheckedAgainAndCookiesAreCleared() throws Exception {
         allow(FestivalRole.ADMIN);
-        mvc.perform(get("/admin/v3/api-docs").cookie(access())).andExpect(status().isOk());
+        mvc.perform(get("/admin/v3/api-docs/swagger-config").cookie(access())).andExpect(status().isOk());
         when(admins.authenticateForSwagger("docs", null)).thenThrow(new SsoException(401, "revoked"));
-        mvc.perform(get("/admin/v3/api-docs").cookie(access())).andExpect(status().isUnauthorized())
+        mvc.perform(get("/admin/v3/api-docs/swagger-config").cookie(access())).andExpect(status().isUnauthorized())
                 .andExpect(cookie().maxAge("festivalAdminAccess", 0)).andExpect(cookie().maxAge("festivalAdminRefresh", 0));
     }
 

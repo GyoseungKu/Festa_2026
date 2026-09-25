@@ -94,6 +94,7 @@ public class AdminBoothPageController {
     }
     private void formModel(Model model, AdminIdentity admin, BoothAdminForm form, BoothAdminResponse booth, boolean editing) {
         common(model, admin); model.addAttribute("form", form); model.addAttribute("booth", booth);
+        model.addAttribute("categories", org.syu_likelion.Festa_2026.booth.BoothCategory.values());
         model.addAttribute("editing", editing); model.addAttribute("managerCandidates", managers.candidates());
         model.addAttribute("selectedManagers", new HashSet<>(form.getManagerUuids() == null ? List.of() : form.getManagerUuids()));
     }

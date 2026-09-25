@@ -29,7 +29,7 @@ class BoothMediaPersistenceTests {
         transactions.executeWithoutResult(status -> {
             FestivalBooth booth = new FestivalBooth(new BigDecimal("37.6432000"),
                     new BigDecimal("127.1059000"), "정렬 테스트 부스", "테스트 운영팀", "설명",
-                    LocalTime.of(10, 0), LocalTime.of(18, 0), false, Set.of(), ACTOR);
+                    LocalTime.of(10, 0), LocalTime.of(18, 0), false, Set.of(), ACTOR, BoothCategory.CAMPUS);
             booth.addMedia(new BoothMedia(BoothMediaKind.IMAGE, "https://cdn.test/one.webp", "one", "one.webp"));
             booth.addMedia(new BoothMedia(BoothMediaKind.VIDEO, "https://cdn.test/two.mp4", "two", "two.mp4"));
             FestivalBooth saved = repository.saveAndFlush(booth);
@@ -43,6 +43,7 @@ class BoothMediaPersistenceTests {
 
         transactions.executeWithoutResult(status -> {
             FestivalBooth reloaded = repository.findById(boothId.get()).orElseThrow();
+            assertThat(reloaded.getCategory()).isEqualTo(BoothCategory.CAMPUS);
             assertThat(reloaded.getMedia()).extracting(BoothMedia::getId)
                     .containsExactly(videoId, imageId);
             assertThat(reloaded.getMedia()).extracting(BoothMedia::isRepresentative)

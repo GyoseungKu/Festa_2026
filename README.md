@@ -634,7 +634,7 @@ Actuator는 기본적으로 `127.0.0.1:9091`에서 `health`, `prometheus`만 노
 - OpenAPI JSON: `http://localhost:8888/admin/v3/api-docs`
 - OpenAPI YAML: `http://localhost:8888/admin/v3/api-docs.yaml`
 
-Swagger 화면과 명세(JSON·YAML·설정)는 SSO 로그인 후 축제 권한 `ADMIN`, `SUPER_ADMIN`만 열 수 있습니다. `USER`, `BOOTH_MANAGER`, `STAFF`만 보유한 사용자는 접근할 수 없습니다. `/admin/swagger-ui.html` 접속 시 기존 로그인 폼(`/admin/login?next=swagger`)을 거쳐 문서로 돌아옵니다. 관리자 업무 화면의 권한은 별도로 유지합니다. 미인증 명세 요청은 401, 권한 부족은 403을 반환하며 요청마다 SSO 인증과 현재 축제 권한을 확인합니다. 허용 목록은 [AdminAccessService](src/main/java/org/syu_likelion/Festa_2026/admin/AdminAccessService.java)의 `SWAGGER_ALLOWED_ROLES`에서 관리하며 하위 권한 항목은 주석 처리되어 있습니다. 루트 `/swagger-ui.html`, `/swagger-ui/**`, `/v3/api-docs` 경로는 제공하지 않습니다. 프록시는 `/admin/**`를 백엔드로 전달해야 합니다. Swagger의 **Authorize**는 문서 열람 로그인과 별도로 API 실행용 Bearer Token을 입력하는 기능입니다.
+명세 JSON의 `GET /admin/v3/api-docs`는 로그인 없이 공개하며 프론트 타입 생성에 사용합니다. Swagger 화면과 YAML·설정은 SSO 로그인 후 축제 권한 `ADMIN`, `SUPER_ADMIN`만 열 수 있습니다. `USER`, `BOOTH_MANAGER`, `STAFF`만 보유한 사용자는 접근할 수 없습니다. `/admin/swagger-ui.html` 접속 시 기존 로그인 폼(`/admin/login?next=swagger`)을 거쳐 문서로 돌아옵니다. 관리자 업무 화면의 권한은 별도로 유지합니다. 공개 JSON 이외의 미인증 명세 요청은 401, 권한 부족은 403을 반환하며 요청마다 SSO 인증과 현재 축제 권한을 확인합니다. 허용 목록은 [AdminAccessService](src/main/java/org/syu_likelion/Festa_2026/admin/AdminAccessService.java)의 `SWAGGER_ALLOWED_ROLES`에서 관리하며 하위 권한 항목은 주석 처리되어 있습니다. 루트 `/swagger-ui.html`, `/swagger-ui/**`, `/v3/api-docs` 경로는 제공하지 않습니다. 프록시는 `/admin/**`를 백엔드로 전달해야 합니다. Swagger의 **Authorize**는 문서 열람 로그인과 별도로 API 실행용 Bearer Token을 입력하는 기능입니다.
 
 Swagger UI의 **Authorize**에는 SSO Access Token 원문만 입력합니다. `Bearer ` 접두사는 Swagger UI가 추가합니다.
 
