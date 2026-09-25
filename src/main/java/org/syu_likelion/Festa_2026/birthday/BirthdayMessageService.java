@@ -33,15 +33,20 @@ public class BirthdayMessageService {
     }
 
     @Transactional(readOnly = true)
-    public BirthdayMessagePageResponse list(UUID viewerUuid, BirthdayMessageSort order, int page, int size) {
+    public BirthdayMessagePageResponse list(UUID viewerUuid, BirthdayMessageSort order, int page, int size, Long seed) {
         int safePage = Math.max(0, page);
         int safeSize = Math.max(1, Math.min(size, MAX_PAGE_SIZE));
-        Page<BirthdayMessage> result = messages.findAll(PageRequest.of(safePage, safeSize, sort(order)));
+        BirthdayMessageSort selectedOrder = order == null ? BirthdayMessageSort.RANDOM : order;
+        Long selectedSeed = selectedOrder == BirthdayMessageSort.RANDOM
+                ? (seed == null ? java.util.concurrent.ThreadLocalRandom.current().nextLong(1L << 53) : seed) : null;
+        Page<BirthdayMessage> result = selectedSeed == null
+                ? messages.findAll(PageRequest.of(safePage, safeSize, sort(selectedOrder)))
+                : randomPage(safePage, safeSize, selectedSeed);
         Set<Long> hearted = heartedMessageIds(result.getContent(), viewerUuid);
         List<BirthdayMessageResponse> items = result.getContent().stream()
                 .map(message -> toResponse(message, viewerUuid, hearted.contains(message.getId()))).toList();
         return new BirthdayMessagePageResponse(items, result.getNumber(), result.getSize(),
-                result.getTotalElements(), result.getTotalPages());
+                result.getTotalElements(), result.getTotalPages(), selectedSeed);
     }
 
     @Transactional(readOnly = true)
@@ -61,10 +66,15 @@ public class BirthdayMessageService {
 
     @Transactional
     public BirthdayMessageResponse createAs(UUID authorUuid, String content, String department,
-                                            String studentNo, String name) {
+                                            String studentNo, String name, Integer designNo) {
+        int selectedDesign = designNo == null ? 1 : designNo;
+        if (selectedDesign < 1) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_BIRTHDAY_MESSAGE_DESIGN",
+                    "쪽지 디자인 번호는 1 이상이어야 합니다.");
+        }
         String normalized = normalizeContent(content);
         BirthdayMessage message = new BirthdayMessage(authorUuid, normalized, cleanOptional(department),
-                maskStudentNo(studentNo), maskName(name));
+                maskStudentNo(studentNo), maskName(name), selectedDesign);
         try {
             return toResponse(messages.saveAndFlush(message), authorUuid, false);
         } catch (DataIntegrityViolationException duplicate) {
@@ -120,6 +130,7 @@ public class BirthdayMessageService {
     public Page<BirthdayMessage> listEntities(BirthdayMessageSort order, int page, int size) {
         int safePage = Math.max(0, page);
         int safeSize = Math.max(1, Math.min(size, MAX_PAGE_SIZE));
+        if (order == BirthdayMessageSort.RANDOM) return randomPage(safePage, safeSize, 0L);
         return messages.findAll(PageRequest.of(safePage, safeSize, sort(order)));
     }
 
@@ -158,12 +169,27 @@ public class BirthdayMessageService {
         return new BirthdayMessageResponse(message.getId(), message.getContent(),
                 new PublicAuthor(message.getPublicDepartment(), message.getPublicMaskedStudentNo(),
                         message.getPublicMaskedName()), message.getHeartCount(), hearted,
-                viewerUuid != null && viewerUuid.equals(message.getAuthorUuid()), message.getCreatedAt());
+                viewerUuid != null && viewerUuid.equals(message.getAuthorUuid()), message.getCreatedAt(), message.getDesignNo());
+    }
+
+    private Page<BirthdayMessage> randomPage(int page, int size, long seed) {
+        // Shuffle only IDs; load content and author data for the requested page.
+        List<Long> ids = new java.util.ArrayList<>(messages.findAllIdsForShuffle());
+        java.util.Collections.shuffle(ids, new java.util.Random(seed));
+        PageRequest pageable = PageRequest.of(page, size);
+        int from = (int) Math.min(pageable.getOffset(), ids.size());
+        int to = (int) Math.min((long) from + size, ids.size());
+        List<Long> pageIds = ids.subList(from, to);
+        var found = messages.findAllById(pageIds).stream().collect(java.util.stream.Collectors.toMap(
+                BirthdayMessage::getId, java.util.function.Function.identity()));
+        List<BirthdayMessage> content = pageIds.stream().map(found::get).filter(java.util.Objects::nonNull).toList();
+        return new org.springframework.data.domain.PageImpl<>(content, pageable, ids.size());
     }
 
     private Sort sort(BirthdayMessageSort order) {
         BirthdayMessageSort safe = order == null ? BirthdayMessageSort.LATEST : order;
         return switch (safe) {
+            case RANDOM -> throw new IllegalArgumentException("Random order requires seeded pagination");
             case LATEST -> Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"));
             case OLDEST -> Sort.by(Sort.Order.asc("createdAt"), Sort.Order.asc("id"));
             case MOST_LIKED -> Sort.by(Sort.Order.desc("heartCount"),

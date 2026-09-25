@@ -116,6 +116,8 @@ SELECT 'birthday_messages' AS table_name, 'content' AS column_name, 'varchar(400
 UNION ALL
 SELECT 'birthday_messages' AS table_name, 'created_at' AS column_name, 'datetime(6)' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
+SELECT 'birthday_messages' AS table_name, 'design_no' AS column_name, 'int' AS expected_type, 'NO' AS expected_nullable
+UNION ALL
 SELECT 'birthday_messages' AS table_name, 'heart_count' AS column_name, 'bigint' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
 SELECT 'birthday_messages' AS table_name, 'id' AS column_name, 'bigint' AS expected_type, 'NO' AS expected_nullable

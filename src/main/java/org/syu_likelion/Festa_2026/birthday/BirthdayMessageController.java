@@ -50,14 +50,16 @@ public class BirthdayMessageController {
     @Operation(summary = "생일축하 쪽지 목록 조회", description = "로그인과 학생 인증이 필요합니다.")
     @SecurityRequirement(name = "bearerAuth")
     ResponseEntity<BirthdayMessagePageResponse> list(
-            @RequestParam(defaultValue = "LATEST") BirthdayMessageSort sort,
+            @RequestParam(defaultValue = "RANDOM") BirthdayMessageSort sort,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "30") int size,
+            @Parameter(description = "랜덤 순서를 유지할 seed. 첫 조회에서 생략하고 다음 페이지부터 응답 seed를 전달합니다.")
+            @RequestParam(required = false) Long seed,
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
             @Parameter(hidden = true) HttpServletRequest request) {
 
         return response(api.list(BearerTokens.require(authorization), cookies.readRefreshToken(request),
-                sort, page, size));
+                sort, page, size, seed));
     }
 
     @GetMapping("/{id}")

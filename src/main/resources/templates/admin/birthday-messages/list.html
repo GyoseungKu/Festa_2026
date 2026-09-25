@@ -27,7 +27,7 @@
         <article class="birthday-admin-card" th:each="item : ${result.items}">
             <a class="birthday-card-link" th:href="@{/admin/birthday-messages/{id}(id=${item.id})}" th:aria-label="|${item.author.name ?: '프로필 없음'} 작성 쪽지 상세 보기|">
                 <div class="birthday-note-content" th:text="${item.content}">생일 축하해!</div>
-                <div class="birthday-card-flags"><span>♥ <b th:text="${item.heartCount}">0</b></span>
+                <div class="birthday-card-flags"><span th:text="|디자인 ${item.designNo}번|">디자인 1번</span><span>♥ <b th:text="${item.heartCount}">0</b></span>
                     <time th:text="${#temporals.format(item.createdAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm')} + ' KST'">작성일</time></div>
                 <div class="birthday-list-author"><span>작성자</span><strong th:text="${item.author.name ?: '프로필 없음'}">홍길동</strong></div>
             </a>

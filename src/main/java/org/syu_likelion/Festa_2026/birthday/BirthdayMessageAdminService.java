@@ -64,7 +64,7 @@ public class BirthdayMessageAdminService {
         List<AdminBirthdayMessageResponse> items = result.getContent().stream().map(message ->
                 new AdminBirthdayMessageResponse(message.getId(), message.getContent(), message.getHeartCount(),
                         message.getCreatedAt(), toUserView(viewerRole, profileMap.get(message.getAuthorUuid()),
-                        message.getAuthorUuid()))).toList();
+                        message.getAuthorUuid()), message.getDesignNo())).toList();
         return new AdminBirthdayMessagePageResponse(items, result.getNumber(), result.getSize(),
                 result.getTotalElements(), result.getTotalPages());
     }
@@ -75,7 +75,7 @@ public class BirthdayMessageAdminService {
         InternalUserProfile profile = profileMap(List.of(message.getAuthorUuid()))
                 .get(message.getAuthorUuid());
         return new AdminBirthdayMessageResponse(message.getId(), message.getContent(), message.getHeartCount(),
-                message.getCreatedAt(), toUserView(viewerRole, profile, message.getAuthorUuid()));
+                message.getCreatedAt(), toUserView(viewerRole, profile, message.getAuthorUuid()), message.getDesignNo());
     }
 
     public AdminHeartPageResponse heartsAs(Long messageId, Set<FestivalRole> roles, int page, int size) {

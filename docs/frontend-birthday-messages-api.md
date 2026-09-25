@@ -24,6 +24,8 @@ Content-Type: application/json
 - 활성 쪽지는 사용자당 하나이며 수정 API는 없습니다.
 - 삭제하면 연결된 하트도 삭제되고 새 쪽지를 작성할 수 있습니다.
 - 본문은 trim 후 1–100자입니다.
+- `designNo`는 프론트가 선택한 디자인 번호(1 이상의 정수, 디자인 개수에 따른 상한 없음)입니다. 생략/null은 1로 저장합니다. 작성 응답·목록·상세·내 쪽지·관리자 응답에 포함됩니다.
+- 기존 쪽지는 `design_no` 컬럼 추가 시 1번으로 초기화됩니다. `ddl-auto=update`에서 자동 추가되며, 수동 스키마 환경은 [디자인 번호 SQL](birthday-design-schema.sql)을 적용합니다.
 - 본인 쪽지에는 하트를 누를 수 없습니다.
 - 공개 작성자는 학과·마스킹 학번·마스킹 이름만 제공합니다.
 
@@ -33,6 +35,7 @@ Content-Type: application/json
 type BirthdayMessage = {
   id: number;
   content: string;
+  designNo: number; // 1 이상의 정수
   author: {
     department: string | null;
     maskedStudentNo: string | null;
@@ -50,24 +53,34 @@ type BirthdayMessagePage = {
   size: number;
   totalElements: number;
   totalPages: number;
+  seed: number | null; // 랜덤 정렬 시 다음 페이지에 재사용
 };
 ```
 
 ## 목록·상세
 
 ```http
-GET /api/birthday-messages?sort=LATEST&page=0&size=30
+GET /api/birthday-messages?sort=RANDOM&page=0&size=30
 GET /api/birthday-messages/{id}
 Authorization: Bearer ACCESS_TOKEN  # 필수
 ```
 
-- `sort`: `LATEST`(기본), `OLDEST`, `MOST_LIKED`
+- `sort`: `RANDOM`(기본), `LATEST`, `OLDEST`, `MOST_LIKED`
 - `page`: 0부터 시작
 - `size`: 기본 30, 최대 100
 - 비로그인 요청은 `401`, 학생 미인증 요청은 `403 SCHOOL_VERIFICATION_REQUIRED`
 - 학생 인증된 사용자의 `heartedByMe`, `mine`은 해당 사용자 기준으로 계산됨
 
 목록은 `BirthdayMessagePage`, 상세는 `BirthdayMessage`를 반환합니다.
+
+랜덤 첫 조회는 `seed`를 생략합니다. 서버가 랜덤 순서를 정하고 응답에 `seed`를 반환합니다. 다음 페이지는 같은 `seed`와 `size`를 전달해야 순서가 유지됩니다.
+
+```http
+GET /api/birthday-messages?page=0&size=30
+GET /api/birthday-messages?page=1&size=30&seed=12345
+```
+
+두 번째 요청의 `12345`는 실제 첫 응답의 `seed`로 바꿉니다. 새로 섞으려면 `page=0`에서 `seed`를 생략합니다. `sort=LATEST`를 보내는 기존 프론트는 이를 제거하거나 `RANDOM`으로 바꿔야 합니다. 같은 seed의 페이지 중복 방지는 쪽지 집합이 같을 때 보장하며, 조회 도중 작성·삭제가 발생하면 페이지 구성이 바뀔 수 있습니다. 랜덤 이외 정렬의 응답 seed는 null입니다. 관리자 목록 기본값은 최신순을 유지합니다.
 
 ## 작성·내 쪽지·삭제
 
@@ -76,7 +89,7 @@ POST /api/birthday-messages
 Content-Type: application/json
 Authorization: Bearer ACCESS_TOKEN
 
-{ "content": "수야와 수호의 생일을 축하해!" }
+{ "content": "수야와 수호의 생일을 축하해!", "designNo": 2 }
 ```
 
 성공은 `201`과 생성된 `BirthdayMessage`입니다.
@@ -94,6 +107,7 @@ DELETE /api/birthday-messages/{id}
   "message": {
     "id": 11,
     "content": "수야와 수호의 생일을 축하해!",
+    "designNo": 2,
     "author": {
       "department": "컴퓨터공학부",
       "maskedStudentNo": "2024******",
@@ -144,7 +158,7 @@ DELETE /api/admin/birthday-messages/{id}
 
 관리자 원본 프로필은 조회 시 SSO에서 가져오지만 공개 `author`의 마스킹 이름·학번·학과는 작성 당시 스냅샷입니다. SSO 프로필 변경이나 SSO에서 직접 수행한 탈퇴만으로 공개 값이 갱신되지는 않습니다. 축제 이용 정보 삭제 또는 홈페이지의 `DELETE /api/users/me`를 통한 SSO 탈퇴 시에는 별도로 익명화됩니다.
 
-관리자 목록의 `items`에는 `id`, `content`, `heartCount`, `createdAt`, `author: AdminUserView`가 들어가고 `mine`, `heartedByMe`는 없습니다. 하트 목록은 다음 구조입니다.
+관리자 목록의 `items`에는 `id`, `content`, `designNo`, `heartCount`, `createdAt`, `author: AdminUserView`가 들어가고 `mine`, `heartedByMe`는 없습니다. 하트 목록은 다음 구조입니다.
 
 ```ts
 type AdminUserView = {
@@ -184,6 +198,7 @@ type AdminHeartPage = {
 |---|---|---|
 | `400` | `BIRTHDAY_MESSAGE_CONTENT_REQUIRED` | 빈 본문 안내 |
 | `400` | `BIRTHDAY_MESSAGE_CONTENT_TOO_LONG` | Unicode 문자 기준 최대 100자 안내 |
+| `400` | `INVALID_REQUEST`, `INVALID_BIRTHDAY_MESSAGE_DESIGN` | `designNo`가 1 이상의 정수인지 확인 |
 | `400` | `SELF_HEART_NOT_ALLOWED` | 본인 글 하트 UI 비활성화 |
 | `403` | `BIRTHDAY_MESSAGE_DELETE_FORBIDDEN` | 본인 글이 아님 |
 | `403` | `BIRTHDAY_MESSAGE_MANAGE_FORBIDDEN` | 관리자 권한 없음 |

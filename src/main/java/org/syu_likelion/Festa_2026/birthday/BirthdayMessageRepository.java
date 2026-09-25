@@ -14,6 +14,9 @@ public interface BirthdayMessageRepository extends JpaRepository<BirthdayMessage
     Optional<BirthdayMessage> findByAuthorUuid(UUID authorUuid);
     Page<BirthdayMessage> findAll(Pageable pageable);
 
+    @Query("select m.id from BirthdayMessage m order by m.id")
+    java.util.List<Long> findAllIdsForShuffle();
+
     @Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @Query("select m from BirthdayMessage m where m.id = :id")
     Optional<BirthdayMessage> findForUpdateById(@Param("id") Long id);

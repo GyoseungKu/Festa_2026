@@ -31,7 +31,7 @@ class BirthdayMessageAdminServiceTests {
         service = new BirthdayMessageAdminService(messages, mock(UserService.class), profiles, festivalUsers);
         when(messages.listEntities(BirthdayMessageSort.LATEST, 0, 30))
                 .thenReturn(new PageImpl<>(List.of(new BirthdayMessage(AUTHOR, "축하해!",
-                        "컴퓨터공학부", "2024******", "홍*동"))));
+                        "컴퓨터공학부", "2024******", "홍*동", 1))));
         when(profiles.getProfiles(List.of(AUTHOR))).thenReturn(List.of(profile()));
     }
 

@@ -36,6 +36,9 @@ public class BirthdayMessage {
     @Column(nullable = false, length = 400)
     private String content;
 
+    @Column(name = "design_no", nullable = false, columnDefinition = "int default 1")
+    private int designNo = 1;
+
     @Column(name = "public_department", length = 150)
     private String publicDepartment;
 
@@ -58,9 +61,10 @@ public class BirthdayMessage {
     protected BirthdayMessage() { }
 
     BirthdayMessage(UUID authorUuid, String content, String publicDepartment,
-                    String publicMaskedStudentNo, String publicMaskedName) {
+                    String publicMaskedStudentNo, String publicMaskedName, int designNo) {
         this.authorUuid = authorUuid;
         this.content = content;
+        this.designNo = designNo;
         this.publicDepartment = publicDepartment;
         this.publicMaskedStudentNo = publicMaskedStudentNo;
         this.publicMaskedName = publicMaskedName;
@@ -71,6 +75,7 @@ public class BirthdayMessage {
 
     public Long getId() { return id; }
     public UUID getAuthorUuid() { return authorUuid; }
+    public int getDesignNo() { return designNo; }
     public String getContent() { return content; }
     public String getPublicDepartment() { return publicDepartment; }
     public String getPublicMaskedStudentNo() { return publicMaskedStudentNo; }

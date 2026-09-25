@@ -44,10 +44,10 @@ class BirthdayMessageServiceTests {
         String oneHundredEmoji = "🎂".repeat(100);
         when(messages.saveAndFlush(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        service.createAs(AUTHOR, oneHundredEmoji, "컴퓨터공학부", "2024100920", "홍길동");
+        service.createAs(AUTHOR, oneHundredEmoji, "컴퓨터공학부", "2024100920", "홍길동", 1);
 
         assertThatThrownBy(() -> service.createAs(OTHER, oneHundredEmoji + "🎉",
-                "컴퓨터공학부", "2025100920", "김철"))
+                "컴퓨터공학부", "2025100920", "김철", 1))
                 .isInstanceOfSatisfying(ApiException.class, exception ->
                         assertThat(exception.code()).isEqualTo("BIRTHDAY_MESSAGE_CONTENT_TOO_LONG"));
     }
@@ -59,7 +59,7 @@ class BirthdayMessageServiceTests {
         when(messages.saveAndFlush(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         service.deleteOwnAs(1L, AUTHOR);
-        service.createAs(AUTHOR, "다시 축하해!", "컴퓨터공학부", "2024100920", "홍길동");
+        service.createAs(AUTHOR, "다시 축하해!", "컴퓨터공학부", "2024100920", "홍길동", 1);
 
         verify(messages).delete(original);
         verify(messages).flush();
@@ -84,7 +84,7 @@ class BirthdayMessageServiceTests {
     void mostLikedSortUsesHeartCountThenLatestCreation() {
         when(messages.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of()));
 
-        service.list(null, BirthdayMessageSort.MOST_LIKED, 0, 30);
+        service.list(null, BirthdayMessageSort.MOST_LIKED, 0, 30, null);
 
         org.mockito.ArgumentCaptor<Pageable> captor = org.mockito.ArgumentCaptor.forClass(Pageable.class);
         verify(messages).findAll(captor.capture());
@@ -93,7 +93,16 @@ class BirthdayMessageServiceTests {
                 .containsExactly("heartCount", "createdAt", "id");
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(ints = {-1, 0})
+    void rejectsNonPositiveDesignNumbers(int designNo) {
+        assertThatThrownBy(() -> service.createAs(AUTHOR, "축하해!", null, null, null, designNo))
+                .isInstanceOfSatisfying(ApiException.class, e ->
+                        assertThat(e.code()).isEqualTo("INVALID_BIRTHDAY_MESSAGE_DESIGN"));
+        org.mockito.Mockito.verifyNoInteractions(messages);
+    }
+
     private BirthdayMessage entity(UUID author) {
-        return new BirthdayMessage(author, "생일 축하해!", "컴퓨터공학부", "2024******", "홍*동");
+        return new BirthdayMessage(author, "생일 축하해!", "컴퓨터공학부", "2024******", "홍*동", 1);
     }
 }

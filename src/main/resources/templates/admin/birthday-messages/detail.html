@@ -16,7 +16,7 @@
     <section class="management-toolbar"><div><p class="eyebrow">MESSAGE DETAIL</p><h1>생일축하 쪽지 상세</h1><p>작성자 정보는 현재 관리자 권한 범위에 맞춰 표시됩니다.</p></div></section>
     <section class="birthday-detail-panel">
         <div class="birthday-note-content" th:text="${item.content}">생일 축하해!</div>
-        <div class="birthday-card-flags"><span>♥ <b th:text="${item.heartCount}">0</b></span>
+        <div class="birthday-card-flags"><span th:text="|디자인 ${item.designNo}번|">디자인 1번</span><span>♥ <b th:text="${item.heartCount}">0</b></span>
             <time th:text="${#temporals.format(item.createdAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm')} + ' KST'">작성일</time></div>
         <h2>작성자 정보</h2>
         <dl class="birthday-user-grid">

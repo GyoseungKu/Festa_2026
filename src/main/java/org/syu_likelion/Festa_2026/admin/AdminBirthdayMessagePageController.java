@@ -49,7 +49,8 @@ public class AdminBirthdayMessagePageController {
         model.addAttribute("result", result);
         model.addAttribute("pageNumbers", AdminPagination.window(result.page(), result.totalPages()));
         model.addAttribute("selectedSort", sort);
-        model.addAttribute("sortOptions", BirthdayMessageSort.values());
+        model.addAttribute("sortOptions", java.util.Arrays.stream(BirthdayMessageSort.values())
+                .filter(order -> order != BirthdayMessageSort.RANDOM).toList());
         return "admin/birthday-messages/list";
     }
 

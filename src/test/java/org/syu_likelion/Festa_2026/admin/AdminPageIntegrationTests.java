@@ -505,9 +505,9 @@ class AdminPageIntegrationTests {
         java.time.Instant createdAt = java.time.Instant.parse("2026-08-14T03:00:00Z");
         BirthdayMessageResponse message = new BirthdayMessageResponse(11L, "수야 수호 생일 축하해!",
                 new PublicAuthor("컴퓨터공학부", "2024******", "홍*동"),
-                3L, false, false, createdAt);
-        when(birthdayMessageApiService.list("user-token", null, BirthdayMessageSort.LATEST, 0, 30))
-                .thenReturn(new AuthorizedResult<>(new BirthdayMessagePageResponse(java.util.List.of(message), 0, 30, 1, 1), null, null));
+                3L, false, false, createdAt, 1);
+        when(birthdayMessageApiService.list("user-token", null, BirthdayMessageSort.RANDOM, 0, 30, null))
+                .thenReturn(new AuthorizedResult<>(new BirthdayMessagePageResponse(java.util.List.of(message), 0, 30, 1, 1, 123L), null, null));
         when(birthdayMessageApiService.create(
                 org.mockito.ArgumentMatchers.eq("user-token"),
                 org.mockito.ArgumentMatchers.isNull(), any()))
@@ -551,7 +551,7 @@ class AdminPageIntegrationTests {
         when(birthdayMessageAdminService.listAs(Set.of(FestivalRole.STAFF),
                 BirthdayMessageSort.LATEST, 0, 20))
                 .thenReturn(new AdminBirthdayMessagePageResponse(java.util.List.of(
-                        new AdminBirthdayMessageResponse(11L, "생일 축하해!", 2L, createdAt, author)),
+                        new AdminBirthdayMessageResponse(11L, "생일 축하해!", 2L, createdAt, author, 1)),
                         0, 20, 1, 1));
 
         mvc.perform(get("/admin/birthday-messages")
@@ -565,7 +565,7 @@ class AdminPageIntegrationTests {
                 .andExpect(content().string(org.hamcrest.Matchers.not(containsString("user@example.com"))));
 
         when(birthdayMessageAdminService.detailAs(11L, Set.of(FestivalRole.STAFF)))
-                .thenReturn(new AdminBirthdayMessageResponse(11L, "생일 축하해!", 2L, createdAt, author));
+                .thenReturn(new AdminBirthdayMessageResponse(11L, "생일 축하해!", 2L, createdAt, author, 1));
         mvc.perform(get("/admin/birthday-messages/11")
                         .cookie(new Cookie("festivalAdminAccess", "staff-access")))
                 .andExpect(status().isOk())

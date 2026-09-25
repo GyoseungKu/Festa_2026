@@ -21,10 +21,10 @@ public class BirthdayMessageApiService {
     }
 
     public AuthorizedResult<BirthdayMessagePageResponse> list(String access, String refresh,
-                                                              BirthdayMessageSort sort, int page, int size) {
+                                                              BirthdayMessageSort sort, int page, int size, Long seed) {
         AuthorizedResult<MeResponse> authenticated = users.getMe(access, refresh);
         users.requireSchoolVerified(authenticated.body().userUuid());
-        return rotated(authenticated, messages.list(authenticated.body().userUuid(), sort, page, size));
+        return rotated(authenticated, messages.list(authenticated.body().userUuid(), sort, page, size, seed));
     }
 
     public AuthorizedResult<BirthdayMessageResponse> get(Long id, String access, String refresh) {
@@ -45,7 +45,7 @@ public class BirthdayMessageApiService {
         users.requireSchoolVerified(authenticated.body().userUuid());
         MeResponse me = authenticated.body();
         return rotated(authenticated, messages.createAs(me.userUuid(), request.content(), me.department(),
-                me.studentNo(), me.name()));
+                me.studentNo(), me.name(), request.designNo()));
     }
 
     public AuthorizedResult<Void> delete(Long id, String access, String refresh) {
