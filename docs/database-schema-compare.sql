@@ -154,6 +154,26 @@ SELECT 'festival_booth_media' AS table_name, 'original_filename' AS column_name,
 UNION ALL
 SELECT 'festival_booth_media' AS table_name, 'storage_key' AS column_name, 'varchar(512)' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
+SELECT 'festival_stamp_prizes' AS table_name, 'issued' AS column_name, 'tinyint(1)' AS expected_type, 'NO' AS expected_nullable
+UNION ALL
+SELECT 'festival_stamp_prizes' AS table_name, 'version' AS column_name, 'bigint' AS expected_type, 'NO' AS expected_nullable
+UNION ALL
+SELECT 'festival_stamp_prize_events' AS table_name, 'id' AS column_name, 'bigint' AS expected_type, 'NO' AS expected_nullable
+UNION ALL
+SELECT 'festival_stamp_prize_events' AS table_name, 'prize_id' AS column_name, 'bigint' AS expected_type, 'NO' AS expected_nullable
+UNION ALL
+SELECT 'festival_stamp_prize_events' AS table_name, 'action' AS column_name, 'enum (''grant'',''revoke'')' AS expected_type, 'NO' AS expected_nullable
+UNION ALL
+SELECT 'festival_stamp_prize_events' AS table_name, 'method' AS column_name, 'enum (''admin_search'',''qr'')' AS expected_type, 'NO' AS expected_nullable
+UNION ALL
+SELECT 'festival_stamp_prize_events' AS table_name, 'actor_uuid' AS column_name, 'binary(16)' AS expected_type, 'NO' AS expected_nullable
+UNION ALL
+SELECT 'festival_stamp_prize_events' AS table_name, 'occurred_at' AS column_name, 'datetime(6)' AS expected_type, 'NO' AS expected_nullable
+UNION ALL
+SELECT 'festival_stamp_prize_events' AS table_name, 'stamp_count' AS column_name, 'int' AS expected_type, 'NO' AS expected_nullable
+UNION ALL
+SELECT 'festival_stamp_prize_events' AS table_name, 'reason' AS column_name, 'varchar(500)' AS expected_type, 'YES' AS expected_nullable
+UNION ALL
 SELECT 'festival_stamp_prizes' AS table_name, 'id' AS column_name, 'bigint' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
 SELECT 'festival_stamp_prizes' AS table_name, 'target_user_uuid' AS column_name, 'binary(16)' AS expected_type, 'NO' AS expected_nullable

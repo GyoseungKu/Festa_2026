@@ -9,6 +9,10 @@ import org.springframework.data.jpa.repository.Query;
 
 public interface StampPrizeRepository extends JpaRepository<StampPrize, Long> {
     Optional<StampPrize> findByTargetUserUuid(UUID targetUserUuid);
+    long countByIssuedTrue();
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select p from StampPrize p where p.id = :id")
+    Optional<StampPrize> findByIdForUpdate(Long id);
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select p from StampPrize p where p.targetUserUuid = :targetUserUuid")
     Optional<StampPrize> findByTargetUserUuidForUpdate(UUID targetUserUuid);

@@ -757,6 +757,40 @@ class AdminPageIntegrationTests {
     }
 
     @Test
+    void prizeManualLookupHistoryAndRevokePagesWork() throws Exception {
+        when(adminAccess.authenticate("prize-manual", null)).thenReturn(new AuthorizedResult<>(
+                new AdminIdentity(ADMIN_UUID, "관리자", FestivalRole.ADMIN), null, null));
+        Cookie admin = new Cookie("festivalAdminAccess", "prize-manual");
+        when(stampPrizes.searchAs(FestivalRole.ADMIN, "홍길동", 0))
+                .thenReturn(new UserSearchResponse(java.util.List.of(), 0, 20, 0, 0));
+        mvc.perform(post("/admin/stamps/prizes/search").cookie(admin).with(csrf()).param("query", "홍길동"))
+                .andExpect(status().isOk()).andExpect(content().string(containsString("일치하는 사용자가 없습니다")));
+        var ready = new org.syu_likelion.Festa_2026.stamp.StampDtos.StampPrizeTargetResponse(
+                ADMIN_UUID, "홍길동", "2026000001", "컴퓨터공학과", 6, 6, java.util.List.of(), true, false, null, null);
+        when(stampPrizes.lookupUserAs(FestivalRole.ADMIN, ADMIN_UUID)).thenReturn(ready);
+        mvc.perform(get("/admin/stamps/prizes/users/" + ADMIN_UUID).cookie(admin)).andExpect(status().isOk())
+                .andExpect(content().string(containsString("/admin/stamps/prizes/users/" + ADMIN_UUID + "/grant")));
+        mvc.perform(post("/admin/stamps/prizes/users/" + ADMIN_UUID + "/grant").cookie(admin).with(csrf()))
+                .andExpect(redirectedUrl("/admin/stamps/prizes/users/" + ADMIN_UUID));
+        verify(stampPrizes).grantUserAs(ADMIN_UUID, FestivalRole.ADMIN, ADMIN_UUID);
+        var record = new org.syu_likelion.Festa_2026.stamp.StampPrizeService.RecordView(7L, ADMIN_UUID,
+                "홍길동", "2026000001", "컴퓨터공학과", true, ADMIN_UUID, "관리자", java.time.Instant.now(), 6, 0);
+        when(stampPrizes.listAs(FestivalRole.ADMIN, 0)).thenReturn(new org.springframework.data.domain.PageImpl<>(java.util.List.of(record)));
+        when(stampPrizes.issuedCountAs(FestivalRole.ADMIN)).thenReturn(1L);
+        when(stampPrizes.detailAs(FestivalRole.ADMIN, 7L)).thenReturn(record);
+        when(stampPrizes.historyAs(FestivalRole.ADMIN, 7L, 0)).thenReturn(new org.springframework.data.domain.PageImpl<>(java.util.List.of()));
+        mvc.perform(get("/admin/stamps/prizes/manage").cookie(admin)).andExpect(status().isOk())
+                .andExpect(content().string(containsString("상품 지급 완료 1명")))
+                .andExpect(content().string(containsString("/admin/stamps/prizes/records/7")));
+        mvc.perform(get("/admin/stamps/prizes/records/7").cookie(admin)).andExpect(status().isOk())
+                .andExpect(content().string(containsString("철회 사유")));
+        mvc.perform(post("/admin/stamps/prizes/records/7/revoke").cookie(admin).with(csrf())
+                        .param("version", "0").param("reason", "오지급"))
+                .andExpect(redirectedUrl("/admin/stamps/prizes/records/7"));
+        verify(stampPrizes).revokeAs(ADMIN_UUID, FestivalRole.ADMIN, 7L, 0L, "오지급");
+    }
+
+    @Test
     void boothManagerStampPageOnlyShowsAssignedBoothsAndQrFlow() throws Exception {
         FestivalBooth booth = mock(FestivalBooth.class);
         when(booth.getId()).thenReturn(7L);

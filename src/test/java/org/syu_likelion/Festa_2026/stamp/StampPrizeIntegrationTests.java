@@ -114,6 +114,49 @@ class StampPrizeIntegrationTests {
         }
     }
 
+    @Test void directLookupGrantRevokeAndReissueKeepAuditHistory() {
+        addStamps(6);
+        assertThat(prizes.lookupUserAs(FestivalRole.ADMIN, target).eligible()).isTrue();
+        prizes.grantUserAs(actor, FestivalRole.ADMIN, target);
+        var first = prizeRepository.findByTargetUserUuid(target).orElseThrow();
+        Long id = first.getId();
+        assertThat(prizes.historyAs(FestivalRole.ADMIN, id, 0).getContent().getFirst().method())
+                .isEqualTo(StampMethod.ADMIN_SEARCH);
+        long originalVersion = first.getVersion();
+        assertThatThrownBy(() -> prizes.revokeAs(actor, FestivalRole.ADMIN, id, originalVersion, " "))
+                .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code()).isEqualTo("INVALID_STAMP_PRIZE_REASON"));
+        prizes.revokeAs(actor, FestivalRole.ADMIN, id, originalVersion, "오지급 회수");
+        assertThat(prizes.detailAs(FestivalRole.ADMIN, id).issued()).isFalse();
+        assertThat(prizes.lookupUserAs(FestivalRole.ADMIN, target).eligible()).isTrue();
+        prizes.grantQrAs(actor, FestivalRole.ADMIN, "token");
+        assertThat(prizeRepository.findByTargetUserUuid(target).orElseThrow().getId()).isEqualTo(id);
+        assertThatThrownBy(() -> prizes.revokeAs(actor, FestivalRole.ADMIN, id, originalVersion, "오래된 화면"))
+                .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code()).isEqualTo("STAMP_PRIZE_CHANGED"));
+        var events = prizes.historyAs(FestivalRole.ADMIN, id, 0).getContent();
+        assertThat(events).extracting(StampPrizeService.EventView::action)
+                .containsExactly(StampAction.GRANT, StampAction.REVOKE, StampAction.GRANT);
+        assertThat(events.get(1).reason()).isEqualTo("오지급 회수");
+    }
+
+    @Test void directManagementRequiresAdminAndStillChecksSixStamps() {
+        assertThatThrownBy(() -> prizes.grantUserAs(actor, FestivalRole.ADMIN, target))
+                .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code()).isEqualTo("STAMP_PRIZE_NOT_READY"));
+        for (FestivalRole role : List.of(FestivalRole.USER, FestivalRole.STAFF, FestivalRole.BOOTH_MANAGER)) {
+            assertThatThrownBy(() -> prizes.searchAs(role, "홍길동", 0)).isInstanceOf(ApiException.class);
+            assertThatThrownBy(() -> prizes.lookupUserAs(role, target)).isInstanceOf(ApiException.class);
+            assertThatThrownBy(() -> prizes.grantUserAs(actor, role, target)).isInstanceOf(ApiException.class);
+            assertThatThrownBy(() -> prizes.listAs(role, 0)).isInstanceOf(ApiException.class);
+            assertThatThrownBy(() -> prizes.revokeAs(actor, role, 1L, 0, "오지급")).isInstanceOf(ApiException.class);
+        }
+    }
+
+    @Test void legacyPrizeGetsOriginalGrantEventWhenRevoked() {
+        var old = prizeRepository.saveAndFlush(new StampPrize(target, actor, java.time.Instant.now(), 6));
+        assertThat(prizes.historyAs(FestivalRole.ADMIN, old.getId(), 0).getTotalElements()).isEqualTo(1);
+        prizes.revokeAs(actor, FestivalRole.ADMIN, old.getId(), old.getVersion(), "기존 지급 철회");
+        assertThat(prizes.historyAs(FestivalRole.ADMIN, old.getId(), 0).getTotalElements()).isEqualTo(2);
+    }
+
     private List<Long> addStamps(int count) {
         var ids = new java.util.ArrayList<Long>();
         for (int i = 0; i < count; i++) {

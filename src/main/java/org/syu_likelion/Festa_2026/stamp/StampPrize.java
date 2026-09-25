@@ -19,6 +19,19 @@ public class StampPrize {
     @Column(name = "stamp_count", nullable = false)
     private int stampCount;
 
+    @Column(nullable = false, columnDefinition = "boolean default true")
+    private boolean issued = true;
+    @Version
+    @Column(nullable = false, columnDefinition = "bigint default 0")
+    private long version;
+
+    void reissue(UUID actor, Instant at, int count) {
+        issued = true; grantedBy = actor; grantedAt = at; stampCount = count;
+    }
+    void revoke() { issued = false; }
+    public boolean isIssued() { return issued; }
+    public long getVersion() { return version; }
+
     protected StampPrize() { }
     StampPrize(UUID targetUserUuid, UUID grantedBy, Instant grantedAt, int stampCount) {
         this.targetUserUuid = targetUserUuid;

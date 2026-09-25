@@ -61,7 +61,7 @@ public class FestivalWithdrawalService {
                     "LostItemNotice.lastModifiedByUuid", "PollSubmission.userUuid", "PollSubmission.singleVoteKey",
                     "FestivalPoll.createdBy", "FestivalPoll.updatedBy", "FestivalBooth.createdBy", "FestivalBooth.updatedBy",
                     "FestivalPerformance.createdBy", "FestivalPerformance.updatedBy", "BoothStamp.grantedBy",
-                    "StampEvent.targetUserUuid", "StampEvent.actorUuid", "StampPrize.targetUserUuid", "StampPrize.grantedBy")) {
+                    "StampEvent.targetUserUuid", "StampEvent.actorUuid", "StampPrize.targetUserUuid", "StampPrize.grantedBy", "StampPrizeEvent.actorUuid")) {
                 String[] parts = entry.split("\\.");
                 update(parts[0], parts[1], "", userUuid, anonymous);
             }
