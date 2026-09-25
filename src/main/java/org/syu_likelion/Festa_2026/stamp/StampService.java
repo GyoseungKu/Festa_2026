@@ -198,20 +198,25 @@ public class StampService {
     }
 
     private void grant(FestivalBooth booth, UUID targetUuid, UUID actor, StampMethod method) {
+        FestivalUser target = lockedUser(targetUuid);
         if (stamps.existsByBoothIdAndUserUserUuid(booth.getId(), targetUuid))
             throw new ApiException(HttpStatus.CONFLICT, "STAMP_ALREADY_GRANTED", "이미 이 부스의 스탬프를 받은 사용자입니다.");
-        FestivalUser target = festivalUsers.findByUserUuid(targetUuid).orElseThrow(() ->
-                new ApiException(HttpStatus.BAD_REQUEST, "STAMP_USER_NOT_LINKED", "축제 서비스에 연결되지 않은 사용자입니다."));
         Instant now = clock.instant();
         stamps.saveAndFlush(new BoothStamp(booth, target, now, actor, method));
         events.save(new StampEvent(booth, targetUuid, actor, StampAction.GRANT, method, now));
     }
 
     private void revoke(FestivalBooth booth, UUID targetUuid, UUID actor, StampMethod method) {
+        lockedUser(targetUuid);
         BoothStamp stamp = stamps.findByBoothIdAndUserUserUuid(booth.getId(), targetUuid).orElseThrow(() ->
                 new ApiException(HttpStatus.CONFLICT, "STAMP_NOT_GRANTED", "이 부스에서 지급된 스탬프가 없습니다."));
         stamps.delete(stamp);
         events.save(new StampEvent(booth, targetUuid, actor, StampAction.REVOKE, method, clock.instant()));
+    }
+
+    private FestivalUser lockedUser(UUID targetUuid) {
+        return festivalUsers.findByUserUuidForUpdate(targetUuid).orElseThrow(() ->
+                new ApiException(HttpStatus.BAD_REQUEST, "STAMP_USER_NOT_LINKED", "축제 서비스에 연결되지 않은 사용자입니다."));
     }
 
     private StampTargetResponse target(FestivalBooth booth, UUID targetUuid, FestivalRole viewerRole) {

@@ -166,6 +166,7 @@ class AdminPageIntegrationTests {
     @MockitoBean BirthdayMessageAdminService birthdayMessageAdminService;
     @MockitoBean SystemMonitoringService systemMonitoringService;
     @MockitoBean StampService stampService;
+    @MockitoBean org.syu_likelion.Festa_2026.stamp.StampPrizeService stampPrizes;
     @MockitoBean BoothManagerDirectory boothManagerDirectory;
     @MockitoBean UserService userService;
     @MockitoBean PollService pollService;
@@ -719,6 +720,40 @@ class AdminPageIntegrationTests {
                 .andExpect(view().name("admin/qr-scan"))
                 .andExpect(content().string(containsString("학생 인증을 완료 처리했습니다.")));
         verify(qrService).updateSchoolVerificationAs(FestivalRole.ADMIN, target, true);
+    }
+
+    @Test
+    void prizeDeskRequiresAdminAndCsrfAndShowsBoardAndGrantedState() throws Exception {
+        when(adminAccess.authenticate("prize-admin", null)).thenReturn(new AuthorizedResult<>(
+                new AdminIdentity(ADMIN_UUID, "관리자", FestivalRole.ADMIN), null, null));
+        when(adminAccess.authenticate("prize-manager", null)).thenReturn(new AuthorizedResult<>(
+                new AdminIdentity(ADMIN_UUID, "부스관리자", FestivalRole.BOOTH_MANAGER), null, null));
+        Cookie admin = new Cookie("festivalAdminAccess", "prize-admin");
+        Cookie manager = new Cookie("festivalAdminAccess", "prize-manager");
+        mvc.perform(get("/admin/stamps/prizes").cookie(manager)).andExpect(status().isForbidden());
+        mvc.perform(post("/admin/stamps/prizes/qr/lookup").cookie(manager).with(csrf()).param("token", "token"))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/admin/stamps/prizes/qr/grant").cookie(manager).with(csrf()).param("token", "token"))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/admin/stamps/prizes/qr/grant").cookie(admin).param("token", "token"))
+                .andExpect(status().isForbidden());
+        org.mockito.Mockito.verifyNoInteractions(stampPrizes);
+        mvc.perform(get("/admin/stamps/prizes").cookie(admin)).andExpect(status().isOk())
+                .andExpect(content().string(containsString("/admin/stamps/prizes/qr/lookup")));
+        var ready = new org.syu_likelion.Festa_2026.stamp.StampDtos.StampPrizeTargetResponse(
+                ADMIN_UUID, "홍길동", "2026000001", "컴퓨터공학과", 6, 6, java.util.List.of(), true, false, null, null);
+        when(stampPrizes.lookupQrAs(FestivalRole.ADMIN, "token")).thenReturn(ready);
+        mvc.perform(post("/admin/stamps/prizes/qr/lookup").cookie(admin).with(csrf()).param("token", "token"))
+                .andExpect(status().isOk()).andExpect(content().string(containsString("6 / 6개")))
+                .andExpect(content().string(containsString("/admin/stamps/prizes/qr/grant")))
+                .andExpect(content().string(containsString("홍길동")));
+        var granted = new org.syu_likelion.Festa_2026.stamp.StampDtos.StampPrizeTargetResponse(
+                ADMIN_UUID, "홍길동", "2026000001", "컴퓨터공학과", 6, 6, java.util.List.of(), false, true,
+                java.time.Instant.now(), ADMIN_UUID);
+        when(stampPrizes.grantQrAs(ADMIN_UUID, FestivalRole.ADMIN, "token")).thenReturn(granted);
+        mvc.perform(post("/admin/stamps/prizes/qr/grant").cookie(admin).with(csrf()).param("token", "token"))
+                .andExpect(status().isOk()).andExpect(content().string(containsString("이미 상품을 지급했습니다")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("action=\"/admin/stamps/prizes/qr/grant\""))));
     }
 
     @Test

@@ -198,3 +198,9 @@ location / {
 `/auth/sso/callback`은 백엔드가 처리하고 `/auth/school/result`는 React가 처리합니다. `/auth/**` 전체를 백엔드로 보내지 않습니다. 기존 프록시의 `/images`, `/css`, `/js`, `/webjars`, `/favicon.ico`, 이전 Swagger 별칭 분기는 제거합니다. `/actuator/**`는 이 공개 서버 분기에 포함하지 않습니다.
 
 Nginx 동작 기준: [location](https://nginx.org/en/docs/http/ngx_http_core_module.html#location), [proxy_pass](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_pass).
+
+## 스탬프 완성 상품 지급
+
+`/admin/stamps`의 **상품 지급 관리**에서 `/admin/stamps/prizes`로 이동합니다. ADMIN·SUPER_ADMIN만 사용자 QR로 스탬프판을 조회하고, 6개 이상 보유한 사용자에게 상품 지급 완료를 기록할 수 있습니다. 스탬프판은 1회 유지하며 상품 수령 후 초기화하지 않습니다. 사용자별 중복 지급은 차단하고 지급 시각·처리 관리자·지급 당시 스탬프 수를 남깁니다.
+
+화면 경로, QR 유효기간, 오류와 배포 스키마는 [스탬프 문서](frontend-stamps-api.md#관리자-상품-지급-확인)를 참고합니다.

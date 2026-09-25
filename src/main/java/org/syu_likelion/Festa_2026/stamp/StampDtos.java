@@ -13,6 +13,10 @@ public final class StampDtos {
                                       boolean stamped, Instant grantedAt) { }
     public record StampItemResponse(Long boothId, String boothName, String operator, Instant grantedAt) { }
     public record MyStampBoardResponse(boolean participated, int stampCount, List<StampItemResponse> stamps) { }
+    public record StampPrizeTargetResponse(UUID userUuid, String name, String studentNo, String department,
+                                           int stampCount, int requiredStampCount, List<StampItemResponse> stamps,
+                                           boolean eligible, boolean prizeGranted, Instant prizeGrantedAt,
+                                           UUID prizeGrantedBy) { }
     public record CurrentStampResponse(UUID userUuid, String name, String studentNo,
                                        Instant grantedAt, UUID grantedBy, StampMethod method) { }
     public record StampHistoryResponse(Long id, StampAction action, StampMethod method,

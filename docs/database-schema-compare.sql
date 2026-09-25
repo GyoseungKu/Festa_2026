@@ -154,6 +154,16 @@ SELECT 'festival_booth_media' AS table_name, 'original_filename' AS column_name,
 UNION ALL
 SELECT 'festival_booth_media' AS table_name, 'storage_key' AS column_name, 'varchar(512)' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
+SELECT 'festival_stamp_prizes' AS table_name, 'id' AS column_name, 'bigint' AS expected_type, 'NO' AS expected_nullable
+UNION ALL
+SELECT 'festival_stamp_prizes' AS table_name, 'target_user_uuid' AS column_name, 'binary(16)' AS expected_type, 'NO' AS expected_nullable
+UNION ALL
+SELECT 'festival_stamp_prizes' AS table_name, 'granted_by' AS column_name, 'binary(16)' AS expected_type, 'NO' AS expected_nullable
+UNION ALL
+SELECT 'festival_stamp_prizes' AS table_name, 'granted_at' AS column_name, 'datetime(6)' AS expected_type, 'NO' AS expected_nullable
+UNION ALL
+SELECT 'festival_stamp_prizes' AS table_name, 'stamp_count' AS column_name, 'int' AS expected_type, 'NO' AS expected_nullable
+UNION ALL
 SELECT 'festival_booth_stamps' AS table_name, 'booth_id' AS column_name, 'bigint' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
 SELECT 'festival_booth_stamps' AS table_name, 'festival_user_id' AS column_name, 'bigint' AS expected_type, 'NO' AS expected_nullable

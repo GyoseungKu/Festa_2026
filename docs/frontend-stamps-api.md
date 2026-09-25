@@ -165,3 +165,26 @@ type BoothStampAdmin = {
 | `409` | `STAMP_NOT_GRANTED` | 이미 회수됨, lookup 재호출 |
 
 관리자 HTML 화면은 `/admin/stamps`입니다.
+
+## 관리자 상품 지급 확인
+
+- 관리자 **스탬프 지급 관리 → 상품 지급 관리**(`/admin/stamps/prizes`)에서 사용합니다.
+- `ADMIN`, `SUPER_ADMIN`만 조회·지급할 수 있습니다. `STAFF`, `BOOTH_MANAGER`는 직접 요청해도 403입니다.
+- 카메라로 사용자 QR을 읽으면 이름·학번·학과, 현재 스탬프 수, 획득 부스 목록, 상품 지급 여부를 표시합니다.
+- 서로 다른 부스의 현재 스탬프 **6개 이상**이고 상품을 받지 않은 경우에만 지급 버튼이 표시됩니다. 기존 스탬프판과 동일하게 획득 후 비활성화된 부스의 스탬프도 포함합니다.
+- 지급 버튼을 누르면 QR 유효기간, 현재 스탬프 수, 기존 상품 지급 여부를 다시 검사합니다. 만료 시 새 QR을 스캔합니다.
+- 상품은 사용자당 1회이며 지급 시각·관리자 UUID·지급 당시 스탬프 수를 기록합니다. 동시에 여러 관리자가 지급해도 한 건만 저장합니다.
+- 상품 지급 후 스탬프판을 초기화하지 않습니다. 스탬프를 회수·재지급해도 상품 지급 이력은 유지합니다. 상품 지급 취소 기능은 제공하지 않습니다.
+- 서비스 정보 삭제 시 기존 감사 이력 정책과 같이 상품 지급 기록의 사용자·관리자 UUID를 익명화합니다.
+
+아래는 관리자 쿠키·CSRF를 사용하는 **HTML 화면용 요청**입니다. 사용자 Bearer REST API가 아닙니다.
+
+| Method | Path | 입력·동작 |
+|---|---|---|
+| `GET` | `/admin/stamps/prizes` | QR 스캔 화면 |
+| `POST` | `/admin/stamps/prizes/qr/lookup` | form `token`, 스탬프판·상품 지급 상태 확인 |
+| `POST` | `/admin/stamps/prizes/qr/grant` | form `token`, 상품 지급 완료 기록 |
+
+업무 오류는 화면에 안내합니다. 서비스 오류 코드는 `STAMP_PRIZE_NOT_READY`(6개 미만), `STAMP_PRIZE_ALREADY_GRANTED`(이미 지급), `STAMP_PRIZE_FORBIDDEN`(권한 부족)입니다.
+
+DB에 `festival_stamp_prizes` 테이블이 추가됩니다. `ddl-auto=update` 환경에서는 자동 생성하며 수동 스키마 환경은 [상품 지급 스키마](stamp-prize-schema.sql)를 적용합니다.

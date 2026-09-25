@@ -1,0 +1,128 @@
+package org.syu_likelion.Festa_2026.stamp;
+
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.*;
+import java.math.BigDecimal;
+import java.time.LocalTime;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.syu_likelion.Festa_2026.booth.*;
+import org.syu_likelion.Festa_2026.error.ApiException;
+import org.syu_likelion.Festa_2026.qr.QrService;
+import org.syu_likelion.Festa_2026.sso.SsoInternalProfileClient;
+import org.syu_likelion.Festa_2026.sso.SsoProfiles.InternalUserProfile;
+import org.syu_likelion.Festa_2026.user.*;
+
+@SpringBootTest(properties = "spring.datasource.url=jdbc:h2:mem:stamp-prizes;MODE=MySQL;DB_CLOSE_DELAY=-1")
+class StampPrizeIntegrationTests {
+    @Autowired StampPrizeService prizes;
+    @Autowired StampPrizeRepository prizeRepository;
+    @Autowired StampService stamps;
+    @Autowired BoothService booths;
+    @Autowired FestivalUserRepository users;
+    @MockitoBean QrService qr;
+    @MockitoBean SsoInternalProfileClient profiles;
+    UUID target;
+    UUID actor;
+
+    @BeforeEach void setUp() {
+        target = UUID.randomUUID(); actor = UUID.randomUUID();
+        users.saveAndFlush(new FestivalUser(target));
+        when(qr.resolveUserUuid("token")).thenReturn(target);
+        when(profiles.getProfile(target)).thenReturn(new InternalUserProfile(target, "user", "u@example.com",
+                "USER", "ACTIVE", "홍길동", null, "2026000001", "컴퓨터공학과", 1, "ENROLLED", null, null, null));
+    }
+
+    @ParameterizedTest @ValueSource(ints = {0, 5, 6, 7})
+    void eligibilityDependsOnCurrentStampCountAndPersistsGrant(int count) {
+        addStamps(count);
+        var lookup = prizes.lookupQrAs(FestivalRole.ADMIN, "token");
+        assertThat(lookup.stampCount()).isEqualTo(count);
+        assertThat(lookup.eligible()).isEqualTo(count >= 6);
+        assertThat(lookup.prizeGranted()).isFalse();
+        if (count < 6) {
+            assertThatThrownBy(() -> prizes.grantQrAs(actor, FestivalRole.ADMIN, "token"))
+                    .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code()).isEqualTo("STAMP_PRIZE_NOT_READY"));
+            assertThat(prizeRepository.findByTargetUserUuid(target)).isEmpty();
+        } else {
+            var granted = prizes.grantQrAs(actor, FestivalRole.SUPER_ADMIN, "token");
+            assertThat(granted.prizeGranted()).isTrue();
+            assertThat(granted.eligible()).isFalse();
+            assertThat(granted.stampCount()).isEqualTo(count);
+            assertThat(granted.prizeGrantedBy()).isEqualTo(actor);
+            var saved = prizeRepository.findByTargetUserUuid(target).orElseThrow();
+            assertThat(saved.getStampCount()).isEqualTo(count);
+            assertThat(saved.getGrantedAt()).isNotNull();
+            assertThat(prizes.lookupQrAs(FestivalRole.ADMIN, "token").prizeGranted()).isTrue();
+        }
+    }
+
+    @Test void revokingAfterPreviewRechecksEligibilityAndPrizeDoesNotResetAfterRegrant() {
+        List<Long> ids = addStamps(6);
+        assertThat(prizes.lookupQrAs(FestivalRole.ADMIN, "token").eligible()).isTrue();
+        stamps.revokeBySearchAs(actor, ids.getFirst(), target);
+        assertThatThrownBy(() -> prizes.grantQrAs(actor, FestivalRole.ADMIN, "token"))
+                .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code()).isEqualTo("STAMP_PRIZE_NOT_READY"));
+        stamps.grantBySearchAs(actor, ids.getFirst(), target);
+        prizes.grantQrAs(actor, FestivalRole.ADMIN, "token");
+        stamps.revokeBySearchAs(actor, ids.getFirst(), target);
+        stamps.grantBySearchAs(actor, ids.getFirst(), target);
+        assertThatThrownBy(() -> prizes.grantQrAs(actor, FestivalRole.ADMIN, "token"))
+                .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code()).isEqualTo("STAMP_PRIZE_ALREADY_GRANTED"));
+    }
+
+    @Test void lowerRolesCannotReadOrGrantPrizes() {
+        for (FestivalRole role : List.of(FestivalRole.USER, FestivalRole.STAFF, FestivalRole.BOOTH_MANAGER)) {
+            assertThatThrownBy(() -> prizes.lookupQrAs(role, "token"))
+                    .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.status().value()).isEqualTo(403));
+            assertThatThrownBy(() -> prizes.grantQrAs(actor, role, "token"))
+                    .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.status().value()).isEqualTo(403));
+        }
+        verify(qr, never()).resolveUserUuid(any());
+    }
+
+    @Test void expiredQrCannotGrantPrize() {
+        addStamps(6);
+        when(qr.resolveUserUuid("token")).thenThrow(new ApiException(org.springframework.http.HttpStatus.NOT_FOUND,
+                "QR_TOKEN_NOT_FOUND", "만료된 QR입니다."));
+        assertThatThrownBy(() -> prizes.grantQrAs(actor, FestivalRole.ADMIN, "token")).isInstanceOf(ApiException.class);
+        assertThat(prizeRepository.findByTargetUserUuid(target)).isEmpty();
+    }
+
+    @Test void concurrentGrantsProduceOnlyOnePrize() throws Exception {
+        addStamps(6);
+        CountDownLatch start = new CountDownLatch(1);
+        try (ExecutorService pool = Executors.newFixedThreadPool(2)) {
+            Callable<String> grant = () -> {
+                start.await();
+                try { prizes.grantQrAs(actor, FestivalRole.ADMIN, "token"); return "granted"; }
+                catch (ApiException conflict) { return conflict.code(); }
+            };
+            Future<String> first = pool.submit(grant);
+            Future<String> second = pool.submit(grant);
+            start.countDown();
+            assertThat(List.of(first.get(15, TimeUnit.SECONDS), second.get(15, TimeUnit.SECONDS)))
+                    .containsExactlyInAnyOrder("granted", "STAMP_PRIZE_ALREADY_GRANTED");
+        }
+    }
+
+    private List<Long> addStamps(int count) {
+        var ids = new java.util.ArrayList<Long>();
+        for (int i = 0; i < count; i++) {
+            var request = new BoothDtos.BoothMutationRequest(BigDecimal.ZERO, BigDecimal.ZERO, "부스 " + i,
+                    "운영팀", "설명", LocalTime.of(10, 0), LocalTime.of(18, 0), true, List.of(), BoothCategory.GENERAL);
+            Long id = booths.createAs(actor, request, List.of(), List.of()).booth().id();
+            stamps.grantBySearchAs(actor, id, target);
+            ids.add(id);
+        }
+        return ids;
+    }
+}

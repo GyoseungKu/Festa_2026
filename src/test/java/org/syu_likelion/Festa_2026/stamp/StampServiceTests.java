@@ -56,6 +56,7 @@ class StampServiceTests {
         when(booth.getId()).thenReturn(1L); when(booth.getName()).thenReturn("체험 부스"); when(booth.getOperator()).thenReturn("운영팀");
         when(booth.isStampEnabled()).thenReturn(true);
         when(booths.findById(1L)).thenReturn(Optional.of(booth));
+        when(festivalUsers.findByUserUuidForUpdate(TARGET)).thenReturn(Optional.of(new FestivalUser(TARGET)));
         when(qr.resolveUserUuid("qr-token")).thenReturn(TARGET);
         when(profiles.getProfile(TARGET)).thenReturn(profile(TARGET, "홍길동", "2026000001"));
     }
@@ -96,7 +97,7 @@ class StampServiceTests {
         BoothStamp saved = mock(BoothStamp.class);
         when(saved.getGrantedAt()).thenReturn(NOW);
         when(booths.existsByIdAndManagersUserUuid(1L, ACTOR)).thenReturn(true);
-        when(festivalUsers.findByUserUuid(TARGET)).thenReturn(Optional.of(targetUser));
+        when(festivalUsers.findByUserUuidForUpdate(TARGET)).thenReturn(Optional.of(targetUser));
         when(stamps.findByBoothIdAndUserUserUuid(1L, TARGET)).thenReturn(Optional.of(saved));
         var result = service.grantQrAs(ACTOR, FestivalRole.BOOTH_MANAGER, 1L, "qr-token");
         assertThat(result.stamped()).isTrue();

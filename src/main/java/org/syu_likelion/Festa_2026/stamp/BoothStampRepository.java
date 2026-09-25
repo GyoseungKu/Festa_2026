@@ -11,6 +11,9 @@ public interface BoothStampRepository extends JpaRepository<BoothStamp, Long> {
     boolean existsByBoothIdAndUserUserUuid(Long boothId, UUID userUuid);
     @EntityGraph(attributePaths = "booth")
     List<BoothStamp> findAllByUserUserUuidOrderByGrantedAtAsc(UUID userUuid);
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("select s from BoothStamp s join fetch s.booth where s.user.userUuid = :userUuid order by s.grantedAt, s.id")
+    List<BoothStamp> findAllForUserForUpdate(UUID userUuid);
     @EntityGraph(attributePaths = "user")
     List<BoothStamp> findAllByBoothIdOrderByGrantedAtDesc(Long boothId);
 }
