@@ -5,7 +5,9 @@ public enum BoothCategory {
     GENERAL("일반부스(동아리 등)"),
     FOOD_TRUCK("푸드트럭"),
     STUDENT_COUNCIL("학생회·팔찌배부존"),
-    CAMPUS("교내 기관·부서 운영 부스");
+    CAMPUS("교내 기관·부서 운영 부스"),
+    EXTERNAL("외부 부스"),
+    OTHER("기타");
 
     private final String label;
 

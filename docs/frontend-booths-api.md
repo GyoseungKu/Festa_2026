@@ -27,7 +27,7 @@
 ## 프런트 타입
 
 ```ts
-type BoothCategory = "PHOTO_BOOTH" | "GENERAL" | "FOOD_TRUCK" | "STUDENT_COUNCIL" | "CAMPUS";
+type BoothCategory = "PHOTO_BOOTH" | "GENERAL" | "FOOD_TRUCK" | "STUDENT_COUNCIL" | "CAMPUS" | "EXTERNAL" | "OTHER";
 
 type BoothMediaKind = "IMAGE" | "VIDEO";
 
@@ -70,6 +70,8 @@ type BoothDetail = BoothSummary & {
 | `FOOD_TRUCK` | 푸드트럭 | 푸드트럭 |
 | `STUDENT_COUNCIL` | 학생회·팔찌배부존 | 학생회·팔찌배부존 |
 | `CAMPUS` | 교내 기관·부서 운영 부스 | 일반부스 |
+| `EXTERNAL` | 외부 부스 | 일반부스 |
+| `OTHER` | 기타 | 일반부스 |
 
 목록·상세·내 찜 목록에 `category`가 포함됩니다. 전체 탭은 카테고리 조건 없이, 북마크 탭은 `favorited`로, 나머지 탭은 `category`로 프론트에서 필터링합니다. 목록 API에 카테고리 쿼리 파라미터는 없습니다. 내 위치는 별도 마커이며 부스 카테고리에 포함하지 않습니다.
 
