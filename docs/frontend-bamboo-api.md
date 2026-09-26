@@ -167,7 +167,9 @@ Authorization: Bearer ACCESS_TOKEN
   "readOnly": false,
   "closesAt": "2026-10-06T12:00:00Z",
   "nickname": "졸린사자42",
-  "cursor": 103
+  "cursor": 103,
+  "muted": false,
+  "mutedUntil": null
 }
 ```
 
@@ -177,7 +179,10 @@ Authorization: Bearer ACCESS_TOKEN
 - 종료 시각이 지나면 서버가 자동으로 `readOnly=true`로 계산합니다. `enabled` 자체가 자동으로 바뀌지는 않습니다.
 - `nickname=null`: 아직 닉네임을 확정하지 않은 사용자입니다.
 
-방 응답에는 `mutedUntil`이 없습니다. 작성 차단은 POST의 `403 BAMBOO_MUTED`로 안내합니다. 운영 설정·개인 차단 변경이 메시지 커서를 반드시 증가시키지는 않으므로 탭 복귀와 주기적인 방 상태 재조회, 쓰기 오류를 함께 처리합니다.
+- `muted`: 현재 사용자의 작성 차단 여부입니다. 방 전체의 `readOnly`와 별개입니다.
+- `mutedUntil`: 차단 중이면 해제 시각(UTC ISO-8601, 예: `2026-10-06T10:30:00Z`)입니다. 차단되지 않았거나 만료·해제된 경우 `null`이며 `muted=false`입니다. 닉네임 미설정 사용자도 동일합니다.
+
+차단 중에도 조회는 가능하며, 작성 시에는 `403 BAMBOO_MUTED`가 반환됩니다. 운영 설정·개인 차단 변경이 메시지 커서를 반드시 증가시키지는 않으므로 탭 복귀와 주기적인 방 상태 재조회, 쓰기 오류를 함께 처리합니다.
 
 ## 6. 닉네임
 

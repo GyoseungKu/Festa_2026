@@ -46,7 +46,7 @@ public class BambooController {
 
     @GetMapping
     @Operation(summary = "대나무숲 상태 조회",
-            description = "방 개방 여부, 읽기 전용 여부, 내 닉네임과 현재 커서를 반환합니다.")
+            description = "방 개방 여부, 읽기 전용 여부, 내 닉네임, 현재 커서, 내 작성 차단 여부와 해제 시각을 반환합니다.")
     @SecurityRequirement(name = "bearerAuth")
     ResponseEntity<BambooRoomResponse> room(
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,

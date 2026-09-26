@@ -16,7 +16,10 @@ public final class BambooDtos {
     private BambooDtos() { }
 
     public record BambooRoomResponse(boolean enabled, boolean readOnly, Instant closesAt,
-                                     String nickname, long cursor) { }
+                                     String nickname, long cursor,
+                                     @Schema(description = "현재 사용자의 작성 차단 여부") boolean muted,
+                                     @Schema(description = "작성 차단 해제 시각(UTC). 차단되지 않았거나 만료되면 null",
+                                             types = {"string", "null"}) Instant mutedUntil) { }
 
     /** HIDDEN은 신고 가림과 원문, BLOCKED·DELETED는 null 본문을 전달한다. */
     public record BambooMessageResponse(Long id,

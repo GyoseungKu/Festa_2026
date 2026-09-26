@@ -79,9 +79,12 @@ public class BambooService {
     public BambooRoomResponse room(UUID viewerUuid) {
         Instant now = Instant.now(clock);
         BambooSettings current = currentSettings();
-        String nickname = nicknames.findById(viewerUuid).map(BambooNickname::getNickname).orElse(null);
+        BambooNickname participant = nicknames.findById(viewerUuid).orElse(null);
+        String nickname = participant == null ? null : participant.getNickname();
+        Instant mutedUntil = participant == null ? null : participant.getMutedUntil();
+        boolean muted = mutedUntil != null && now.isBefore(mutedUntil);
         return new BambooRoomResponse(current.isEnabled(), current.isReadOnlyAt(now), current.getClosesAt(),
-                nickname, sequence.current());
+                nickname, sequence.current(), muted, muted ? mutedUntil : null);
     }
 
     // ------------------------------------------------------------------ 닉네임

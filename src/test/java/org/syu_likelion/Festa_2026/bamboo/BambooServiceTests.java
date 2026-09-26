@@ -216,6 +216,36 @@ class BambooServiceTests {
 
         assertThat(room.enabled()).isFalse();
         assertThat(room.nickname()).isNull();
+        assertThat(room.muted()).isFalse();
+        assertThat(room.mutedUntil()).isNull();
+    }
+
+    @Test
+    void roomReportsPersonalMuteAndClearsItAfterExpiryOrRelease() {
+        service.claimNickname(AUTHOR, "졸린사자42");
+        assertThat(service.room(AUTHOR).muted()).isFalse();
+        assertThat(service.room(AUTHOR).mutedUntil()).isNull();
+
+        BambooNickname participant = nicknames.findById(AUTHOR).orElseThrow();
+        Instant until = Instant.now().plusSeconds(3600).truncatedTo(java.time.temporal.ChronoUnit.SECONDS);
+        participant.mute(until);
+        nicknames.saveAndFlush(participant);
+
+        var room = service.room(AUTHOR);
+        assertThat(room.muted()).isTrue();
+        assertThat(room.mutedUntil()).isEqualTo(until);
+        assertThat(service.room(OTHER).muted()).isFalse();
+        assertThat(service.room(OTHER).mutedUntil()).isNull();
+
+        participant.mute(Instant.now().minusSeconds(60));
+        nicknames.saveAndFlush(participant);
+        assertThat(service.room(AUTHOR).muted()).isFalse();
+        assertThat(service.room(AUTHOR).mutedUntil()).isNull();
+
+        participant.mute(null);
+        nicknames.saveAndFlush(participant);
+        assertThat(service.room(AUTHOR).muted()).isFalse();
+        assertThat(service.room(AUTHOR).mutedUntil()).isNull();
     }
 
     @Test
