@@ -131,12 +131,12 @@ class AdminPageIntegrationTests {
             Set<String> expected = new java.util.HashSet<>(Set.of("/admin/qr"));
             boolean manager = assigned.contains(FestivalRole.ADMIN) || assigned.contains(FestivalRole.SUPER_ADMIN);
             if (manager) expected.addAll(Set.of("/admin/booths", "/admin/performances", "/admin/polls",
-                    "/admin/student-fees", "/admin/sponsors", "/admin/timetable"));
+                    "/admin/sponsors", "/admin/timetable"));
             if (manager || assigned.contains(FestivalRole.STAFF)) expected.addAll(Set.of("/admin/notices",
                     "/admin/lost-items", "/admin/bamboo", "/admin/birthday-messages", "/admin/wristbands"));
             if (manager || assigned.contains(FestivalRole.BOOTH_MANAGER)) expected.add("/admin/stamps");
             if (assigned.contains(FestivalRole.SUPER_ADMIN)) expected.addAll(Set.of(
-                    "/admin/school-verifications", "/admin/system"));
+                    "/admin/school-verifications", "/admin/system", "/admin/student-fees"));
             String cards = html.substring(html.indexOf("<div class=\"feature-grid\""));
             var cardLinks = java.util.regex.Pattern.compile("<a[^>]*class=\"feature-card\"[^>]*href=\"([^\"]+)\"")
                     .matcher(cards).results().map(match -> match.group(1)).toList();

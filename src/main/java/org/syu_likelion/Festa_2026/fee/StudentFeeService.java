@@ -26,9 +26,9 @@ public class StudentFeeService {
         this.hasher = hasher; this.profiles = profiles; this.clock = clock;
     }
     public record ImportResult(int added, int duplicates, int rechecked) { }
-    public static void requireAdmin(FestivalRole role) {
-        if (role != FestivalRole.ADMIN && role != FestivalRole.SUPER_ADMIN)
-            throw new ApiException(HttpStatus.FORBIDDEN, "STUDENT_FEE_MANAGE_FORBIDDEN", "납부자 명단은 ADMIN 이상만 관리할 수 있습니다.");
+    public static void requireSuperAdmin(FestivalRole role) {
+        if (role != FestivalRole.SUPER_ADMIN)
+            throw new ApiException(HttpStatus.FORBIDDEN, "STUDENT_FEE_MANAGE_FORBIDDEN", "납부자 명단은 SUPER_ADMIN만 관리할 수 있습니다.");
     }
     public static String normalizeNumber(String value) {
         String number = value == null ? "" : value.strip();
@@ -53,7 +53,7 @@ public class StudentFeeService {
     }
     @Transactional(readOnly = true)
     public Page<StudentFeePayer> list(FestivalRole role, String query, int page) {
-        requireAdmin(role);
+        requireSuperAdmin(role);
         String term = query == null ? "" : query.strip();
         if (term.contains("*")) term = normalizeNumber(term);
         if (!term.matches("[0-9]{0,10}"))
@@ -62,7 +62,7 @@ public class StudentFeeService {
     }
     @Transactional
     public ImportResult add(FestivalRole role, UUID actor, String text) {
-        requireAdmin(role);
+        requireSuperAdmin(role);
         if (text == null || text.isBlank() || text.length() > 200000)
             throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_STUDENT_FEE_INPUT", "학번을 입력해 주세요. 한 번에 최대 10,000개를 등록할 수 있습니다.");
         String[] tokens = text.strip().split("[\\s,;]+");
@@ -84,7 +84,7 @@ public class StudentFeeService {
     }
     @Transactional
     public int delete(FestivalRole role, String number) {
-        requireAdmin(role);
+        requireSuperAdmin(role);
         String normalized = normalizeNumber(number);
         lock();
         payers.deleteById(normalized);

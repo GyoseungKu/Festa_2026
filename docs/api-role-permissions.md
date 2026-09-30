@@ -98,7 +98,7 @@
 | `/admin/qr/users/{userUuid}/role` | A·SA | 하위 역할 차단, ROLE 조건 적용 |
 | `/admin/qr/users/{userUuid}/school-verification` | A·SA | 하위 역할 차단 |
 | `/admin/school-verifications/**` | SA | A 이하 차단 |
-| `/admin/student-fees/**` | A·SA | S 이하 차단 |
+| `/admin/student-fees/**` | SA | A 이하 차단 |
 | `/admin/wristbands`, `/scan`, `/search`, `/issue` | S·A·SA | B·USER 차단, 지급 대상 학생 인증 필수 |
 | `/admin/wristbands/manage`, `/records/{id}`, `/records/{id}/revoke` | A·SA | S 이하 차단, 철회 사유·버전 필요 |
 | `/admin/stamps`, `/admin/stamps/qr/lookup`, `/admin/stamps/qr/action` | 담당 B·A·SA | STAFF 단독·USER 차단 |

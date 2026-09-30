@@ -484,7 +484,7 @@ QR에는 개인정보나 Access Token을 넣지 않습니다. 서버는 256비�
 | `/admin/lost-items` | `STAFF` 이상 | 분실물 관리 |
 | `/admin/notices` | `STAFF` 이상 | 일반 공지·배너·첨부 관리 |
 | `/admin/sponsors` | `ADMIN` 이상 | 협찬사 관리 |
-| `/admin/student-fees` | `ADMIN` 이상 | 학생회비 납부 명부 관리 |
+| `/admin/student-fees` | `SUPER_ADMIN`만 | 학생회비 납부 명부 관리 |
 | `/admin/school-verifications` | `SUPER_ADMIN` | 학생 인증 불일치 요청 승인·삭제 |
 | `/admin/birthday-messages` | `STAFF` 이상 | 생일축하 쪽지·하트 사용자 관리 |
 | `/admin/bamboo/users` | `SUPER_ADMIN` | 실제 신원으로 사용자 검색 후 오픈채팅 차단·해제 |

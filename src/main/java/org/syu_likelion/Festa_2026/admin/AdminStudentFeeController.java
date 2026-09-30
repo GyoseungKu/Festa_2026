@@ -21,7 +21,7 @@ public class AdminStudentFeeController {
     private AdminAccessService.AdminIdentity authenticate(HttpServletRequest request, HttpServletResponse response) {
         var auth = access.authenticate(cookies.readAccessToken(request), cookies.readRefreshToken(request));
         cookies.applyRotation(response, auth.newAccessToken(), auth.newRefreshToken());
-        StudentFeeService.requireAdmin(auth.body().role());
+        StudentFeeService.requireSuperAdmin(auth.body().role());
         response.setHeader("Cache-Control", "no-store");
         return auth.body();
     }
