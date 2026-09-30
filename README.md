@@ -610,6 +610,7 @@ Nginx 뒤에서 실제 클라이언트 IP를 기록하려면 외부가 보낸 �
 
 ```nginx
 location ~ ^/(?:api(?:/|$)|admin(?:/|$)|terms(?:/|$)|auth/sso/callback$) {
+    client_max_body_size 650m;
     proxy_pass http://127.0.0.1:8888;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;

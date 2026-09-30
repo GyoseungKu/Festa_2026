@@ -46,7 +46,7 @@ public class BambooMessage {
 
     // 본문 제한은 200 코드포인트다. 이모지는 UTF-16 기준 2단위이므로 컬럼은 그 두 배로 잡는다.
     // (birthday_messages 가 100 코드포인트 제한에 VARCHAR(400) 을 쓰는 것과 같은 이유)
-    @Column(nullable = false, length = 400)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
     @Enumerated(EnumType.STRING)

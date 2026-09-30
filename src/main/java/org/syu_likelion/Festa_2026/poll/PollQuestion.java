@@ -24,7 +24,7 @@ public class PollQuestion {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id;
     @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "poll_id", nullable = false)
     private FestivalPoll poll;
-    @Column(name = "question_text", nullable = false, length = 500) private String text;
+    @Column(name = "question_text", nullable = false, columnDefinition = "TEXT") private String text;
     @Enumerated(EnumType.STRING) @Column(nullable = false, length = 30) private PollQuestionType type;
     @Column(nullable = false) private boolean required;
     @Column(name = "display_order", nullable = false) private int displayOrder;

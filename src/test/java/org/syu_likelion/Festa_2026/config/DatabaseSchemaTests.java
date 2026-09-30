@@ -34,7 +34,12 @@ class DatabaseSchemaTests {
             var metadata = sources.buildMetadata();
             Set<String> longText = Set.of("festival_performances.description", "festival_booths.description",
                     "notices.content", "lost_item_notices.content", "festival_polls.description",
-                    "festival_poll_answers.text_value");
+                    "festival_poll_answers.text_value", "festival_poll_questions.question_text",
+                    "festival_poll_options.option_text", "festival_sponsors.description",
+                    "bamboo_messages.content", "birthday_messages.content",
+                    "birthday_messages.public_department", "birthday_messages.public_masked_student_no",
+                    "birthday_messages.public_masked_name", "bamboo_moderation_audits.reason",
+                    "festival_wristband_events.reason", "festival_stamp_prize_events.reason");
             List<String> checked = new ArrayList<>();
             List<String> rows = new ArrayList<>();
             for (var namespace : metadata.getDatabase().getNamespaces()) {

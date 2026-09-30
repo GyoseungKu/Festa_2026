@@ -2,6 +2,7 @@ package org.syu_likelion.Festa_2026.lostitem;
 
 import jakarta.annotation.PreDestroy;
 import java.io.IOException;
+import org.syu_likelion.Festa_2026.storage.UploadMetadataPolicy;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -9,7 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import org.syu_likelion.Festa_2026.error.ApiException;
 import org.syu_likelion.Festa_2026.performance.R2Properties;
@@ -48,13 +48,13 @@ public class R2LostItemImageStorage implements LostItemImageStorage {
         String contentType = file.getContentType();
         String key = properties.lostItemPrefix() + "/images/" + UUID.randomUUID()
                 + "." + EXTENSIONS.get(contentType);
+        UploadMetadataPolicy.validateLocation(properties.baseUrl(), key, 512);
+        String original = UploadMetadataPolicy.originalFilename(file.getOriginalFilename());
         try {
             client.putObject(PutObjectRequest.builder()
                             .bucket(properties.bucket()).key(key).contentType(contentType)
                             .contentLength(file.getSize()).build(),
                     RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
-            String original = StringUtils.cleanPath(file.getOriginalFilename() == null
-                    ? "upload" : file.getOriginalFilename());
             return new StoredImage(properties.baseUrl() + "/" + key, key, original);
         } catch (IOException | RuntimeException exception) {
             throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "MEDIA_UPLOAD_FAILED",

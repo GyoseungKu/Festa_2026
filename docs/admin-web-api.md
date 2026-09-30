@@ -177,6 +177,7 @@ root /srv/Make-A-Wish_FE/dist;
 index index.html;
 
 location ~ ^/(?:api(?:/|$)|admin(?:/|$)|terms(?:/|$)|auth/sso/callback$) {
+    client_max_body_size 650m;
     proxy_pass http://127.0.0.1:8888;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;

@@ -30,7 +30,56 @@ class PollServiceTests {
     private static final UUID USER_TWO = UUID.fromString("123e4567-e89b-12d3-a456-426614174203");
 
     @Autowired PollService service;
+    @Autowired jakarta.persistence.EntityManager entityManager;
     @MockitoBean PollQuestionMediaStorage questionMediaStorage;
+
+    @Test
+    void maximumLengthKoreanAndEmojiPollTextSurvivesDatabaseReload() {
+        Instant now = Instant.now();
+        String description = "가".repeat(5000);
+        String question = "나".repeat(500);
+        String option = "다".repeat(200);
+        String answer = "🎉".repeat(2500);
+        var poll = service.createAs(ADMIN, new PollMutationRequest("라".repeat(200), description,
+                true, false, now.minusSeconds(3600), now.minusSeconds(60), now.plusSeconds(3600),
+                now.minusSeconds(30), List.of(
+                        new QuestionMutationRequest(null, question, PollQuestionType.SINGLE_CHOICE, true,
+                                List.of(new OptionMutationRequest(null, option), new OptionMutationRequest(null, "다른 선택지"))),
+                        new QuestionMutationRequest(null, question, PollQuestionType.LONG_TEXT, true, List.of()))));
+        service.submitAs(poll.id(), USER, new PollSubmissionRequest(List.of(
+                new PollAnswerRequest(poll.questions().get(0).id(), List.of(poll.questions().get(0).options().getFirst().id()), null),
+                new PollAnswerRequest(poll.questions().get(1).id(), List.of(), answer))));
+        entityManager.flush();
+        entityManager.clear();
+        var reloaded = service.adminDetailAs(poll.id(), FestivalRole.ADMIN);
+        assertThat(reloaded.poll().description()).isEqualTo(description);
+        assertThat(reloaded.poll().questions().getFirst().text()).isEqualTo(question);
+        assertThat(reloaded.poll().questions().getFirst().options().getFirst().text()).isEqualTo(option);
+        assertThat(reloaded.results().questions().get(1).textAnswers().getFirst().text()).isEqualTo(answer);
+    }
+
+    @Test
+    void oversizedPollDescriptionQuestionOptionAndAnswerAreRejectedBeforeSave() {
+        Instant now = Instant.now();
+        var valid = request(false, true);
+        assertThatThrownBy(() -> service.createAs(ADMIN, new PollMutationRequest(valid.title(), "가".repeat(5001),
+                true, false, valid.publishedAt(), valid.startsAt(), valid.endsAt(), valid.resultPublishedAt(), valid.questions())))
+                .isInstanceOf(ApiException.class);
+        for (var question : List.of(
+                new QuestionMutationRequest(null, "가".repeat(501), PollQuestionType.LONG_TEXT, true, List.of()),
+                new QuestionMutationRequest(null, "질문", PollQuestionType.SINGLE_CHOICE, true,
+                        List.of(new OptionMutationRequest(null, "가".repeat(201)))))) {
+            assertThatThrownBy(() -> service.createAs(ADMIN, new PollMutationRequest("제목", "설명", true, false,
+                    now.minusSeconds(3600), now.minusSeconds(60), now.plusSeconds(3600), null, List.of(question))))
+                    .isInstanceOf(ApiException.class);
+        }
+        var poll = service.createAs(ADMIN, valid);
+        assertThatThrownBy(() -> service.submitAs(poll.id(), USER, new PollSubmissionRequest(List.of(
+                new PollAnswerRequest(poll.questions().get(0).id(), List.of(poll.questions().get(0).options().getFirst().id()), null),
+                new PollAnswerRequest(poll.questions().get(1).id(), List.of(), "가".repeat(5001))))))
+                .isInstanceOf(ApiException.class);
+        assertThat(service.adminDetailAs(poll.id(), FestivalRole.ADMIN).submissionCount()).isZero();
+    }
 
     @Test
     void questionMediaSupportsMixedUploadIntegratedOrderAndRemoval() {

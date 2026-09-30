@@ -18,7 +18,7 @@ public class WristbandEvent {
     @JdbcTypeCode(SqlTypes.CHAR) @Column(nullable = false, length = 36, columnDefinition = "CHAR(36)")
     private UUID actorUuid;
     @Column(nullable = false, length = 200) private String actorName;
-    @Column(length = 500) private String reason;
+    @Column(columnDefinition = "TEXT") private String reason;
     @Column(nullable = false) private Instant occurredAt;
     protected WristbandEvent() { }
     public WristbandEvent(Wristband record, Action action, UUID actor, String actorName, String reason, Instant now) {

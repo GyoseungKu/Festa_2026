@@ -2,6 +2,7 @@ package org.syu_likelion.Festa_2026.poll;
 
 import jakarta.annotation.PreDestroy;
 import java.io.IOException;
+import org.syu_likelion.Festa_2026.storage.UploadMetadataPolicy;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -9,7 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import org.syu_likelion.Festa_2026.error.ApiException;
 import org.syu_likelion.Festa_2026.performance.R2Properties;
@@ -49,12 +49,12 @@ public class R2PollOptionImageStorage implements PollOptionImageStorage {
             throw new ApiException(HttpStatus.BAD_REQUEST, "POLL_OPTION_IMAGE_TOO_LARGE",
                     "선택지 이미지는 파일당 최대 10MB입니다.");
         String key = properties.pollPrefix() + "/options/" + UUID.randomUUID() + "." + EXTENSIONS.get(type);
+        UploadMetadataPolicy.validateLocation(properties.baseUrl(), key, 1024);
+        String original = UploadMetadataPolicy.originalFilename(file.getOriginalFilename());
         try {
             client.putObject(PutObjectRequest.builder().bucket(properties.bucket()).key(key)
                             .contentType(type).contentLength(file.getSize()).build(),
                     RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
-            String original = StringUtils.cleanPath(file.getOriginalFilename() == null
-                    ? "upload" : file.getOriginalFilename());
             return new StoredImage(properties.baseUrl() + "/" + key, key, original);
         } catch (IOException | RuntimeException exception) {
             throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "POLL_OPTION_IMAGE_UPLOAD_FAILED",

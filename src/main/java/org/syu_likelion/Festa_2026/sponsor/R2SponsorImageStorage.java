@@ -2,6 +2,7 @@ package org.syu_likelion.Festa_2026.sponsor;
 
 import jakarta.annotation.PreDestroy;
 import java.io.IOException;
+import org.syu_likelion.Festa_2026.storage.UploadMetadataPolicy;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -48,6 +49,7 @@ public class R2SponsorImageStorage implements SponsorImageStorage {
             throw new ApiException(HttpStatus.BAD_REQUEST, "SPONSOR_IMAGE_TOO_LARGE",
                     "협찬사 이미지는 파일당 최대 10MB입니다.");
         String key = "festa2026_sponsors/" + UUID.randomUUID() + "." + EXTENSIONS.get(type);
+        UploadMetadataPolicy.validateLocation(properties.baseUrl(), key, 1024);
         try {
             client.putObject(PutObjectRequest.builder().bucket(properties.bucket()).key(key)
                             .contentType(type).contentLength(file.getSize()).build(),

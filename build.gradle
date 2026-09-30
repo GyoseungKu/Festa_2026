@@ -58,6 +58,46 @@ dependencies {
 	testAnnotationProcessor 'org.projectlombok:lombok'
 }
 
+sourceSets {
+	databaseTools {
+		java.srcDir 'tools/database'
+	}
+}
+
+dependencies {
+	databaseToolsRuntimeOnly 'com.mysql:mysql-connector-j'
+}
+
+tasks.register('exportDatabaseSchema', Test) {
+	description = 'Export the current Hibernate schema without connecting to MySQL.'
+	testClassesDirs = sourceSets.test.output.classesDirs
+	classpath = sourceSets.test.runtimeClasspath
+	useJUnitPlatform()
+	filter { includeTestsMatching 'org.syu_likelion.Festa_2026.config.DatabaseSchemaTests' }
+	outputs.upToDateWhen { false }
+	doLast {
+		copy {
+			from 'build/reports/database/schema-compare.sql'
+			into 'docs'
+			rename { 'database-schema-compare.sql' }
+		}
+	}
+}
+
+tasks.register('checkTextCapacityMigration', JavaExec) {
+	dependsOn databaseToolsClasses
+	classpath = sourceSets.databaseTools.runtimeClasspath
+	mainClass = 'TextCapacityMigrationChecks'
+}
+
+tasks.register('databaseTextCapacity', JavaExec) {
+	description = 'Inspect text capacity in configured MySQL; use -PapplyTextCapacity to apply widening.'
+	dependsOn exportDatabaseSchema, checkTextCapacityMigration
+	classpath = sourceSets.databaseTools.runtimeClasspath
+	mainClass = 'TextCapacityMigration'
+	if (project.hasProperty('applyTextCapacity')) args '--apply'
+}
+
 tasks.named('test') {
 	useJUnitPlatform()
 }

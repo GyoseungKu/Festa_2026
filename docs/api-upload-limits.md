@@ -24,6 +24,9 @@
 - `r2.video-max-size` / `R2_VIDEO_MAX_SIZE`: 기본 200MB.
 - `notice.document-max-size` / `NOTICE_DOCUMENT_MAX_SIZE`: 기본 20MB.
 - Servlet multipart 파일 하나 제한은 기본 200MB, 전체 요청은 기본 650MB입니다. 정확한 설정 키는 [application.properties](../src/main/resources/application.properties)를 확인합니다.
+- 관리자 투표 폼은 파일 외에도 질문·선택지·체크박스·숨김 필드를 각각 multipart 파트로 전송합니다. Tomcat의 기본 50파트 제한으로 작은 폼도 413이 발생할 수 있어, `server.tomcat.max-part-count`와 `max-parameter-count`를 12,000으로 지정합니다. 텍스트 폼 합계는 16MB, 파트 헤더는 4KB까지 허용합니다. 기존 질문 50개·질문당 선택지 30개 제한과 파일당/전체 요청 제한은 유지합니다.
+- 위 설정의 환경변수는 `SERVER_TOMCAT_MAX_PART_COUNT`, `SERVER_TOMCAT_MAX_PARAMETER_COUNT`, `SERVER_TOMCAT_MAX_HTTP_FORM_POST_SIZE`, `SERVER_TOMCAT_MAX_PART_HEADER_SIZE`입니다. 적용하려면 백엔드를 재시작해야 합니다.
+- Nginx를 사용하는 배포에서는 백엔드로 전달하는 location의 `client_max_body_size 650m;`도 맞춰야 합니다. Spring 설정을 높여도 프록시의 작은 제한은 별도로 413을 반환합니다.
 - MB 표기는 Spring `DataSize`의 1024 단위입니다. 예를 들어 10MB는 `10 * 1024 * 1024` 바이트입니다.
 - 파일별 제한을 통과해도 요청 합계와 multipart 헤더·boundary가 전체 제한을 넘으면 실패합니다. 동영상 200MB 네 개를 한 요청으로 올릴 수 있다는 뜻이 아닙니다.
 - 인증·권한 검사 → multipart 파싱 → DTO/도메인 검증 순서에 따라 먼저 발견된 오류가 반환됩니다. 미인증은 401, 업로드 권한 부족은 `403 MULTIPART_MANAGE_FORBIDDEN`, 잘못된 파트는 `400 INVALID_MULTIPART_REQUEST`, Servlet 크기 초과는 `413 UPLOAD_TOO_LARGE`가 될 수 있습니다. 개별 저장소의 크기·형식 위반은 주로 도메인 코드가 포함된 400입니다.

@@ -33,19 +33,19 @@ public class BirthdayMessage {
     @Column(name = "author_uuid", nullable = false, updatable = false, columnDefinition = "BINARY(16)")
     private UUID authorUuid;
 
-    @Column(nullable = false, length = 400)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
     @Column(name = "design_no", nullable = false, columnDefinition = "int default 1")
     private int designNo = 1;
 
-    @Column(name = "public_department", length = 150)
+    @Column(name = "public_department", columnDefinition = "TEXT")
     private String publicDepartment;
 
-    @Column(name = "public_masked_student_no", nullable = false, length = 100)
+    @Column(name = "public_masked_student_no", nullable = false, columnDefinition = "TEXT")
     private String publicMaskedStudentNo;
 
-    @Column(name = "public_masked_name", nullable = false, length = 100)
+    @Column(name = "public_masked_name", nullable = false, columnDefinition = "TEXT")
     private String publicMaskedName;
 
     @Column(name = "heart_count", nullable = false)

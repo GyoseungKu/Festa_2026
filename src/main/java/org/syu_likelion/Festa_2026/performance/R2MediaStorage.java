@@ -2,6 +2,7 @@ package org.syu_likelion.Festa_2026.performance;
 
 import jakarta.annotation.PreDestroy;
 import java.io.IOException;
+import org.syu_likelion.Festa_2026.storage.UploadMetadataPolicy;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -9,7 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import org.syu_likelion.Festa_2026.error.ApiException;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
@@ -50,6 +50,8 @@ public class R2MediaStorage implements MediaStorage {
         String folder = kind == PerformanceMediaKind.IMAGE ? "images" : "videos";
         String key = properties.performancePrefix() + "/" + folder + "/"
                 + UUID.randomUUID() + "." + EXTENSIONS.get(contentType);
+        UploadMetadataPolicy.validateLocation(properties.baseUrl(), key, 512);
+        String original = UploadMetadataPolicy.originalFilename(file.getOriginalFilename());
         try {
             PutObjectRequest request = PutObjectRequest.builder()
                     .bucket(properties.bucket())
@@ -58,8 +60,6 @@ public class R2MediaStorage implements MediaStorage {
                     .contentLength(file.getSize())
                     .build();
             client.putObject(request, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
-            String original = StringUtils.cleanPath(file.getOriginalFilename() == null
-                    ? "upload" : file.getOriginalFilename());
             return new StoredFile(properties.baseUrl() + "/" + key, key, original);
         } catch (IOException | RuntimeException exception) {
             throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "MEDIA_UPLOAD_FAILED",

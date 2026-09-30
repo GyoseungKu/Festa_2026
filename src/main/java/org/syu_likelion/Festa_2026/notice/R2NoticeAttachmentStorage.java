@@ -2,6 +2,7 @@ package org.syu_likelion.Festa_2026.notice;
 
 import jakarta.annotation.PreDestroy;
 import java.io.IOException;
+import org.syu_likelion.Festa_2026.storage.UploadMetadataPolicy;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,6 +48,7 @@ public class R2NoticeAttachmentStorage implements NoticeAttachmentStorage {
         var data = NoticeFilePolicy.validate(file, properties.imageMaxSize().toBytes(),
                 properties.videoMaxSize().toBytes(), documentMaxSize.toBytes());
         String key = prefix + "/attachments/" + UUID.randomUUID() + "." + data.extension();
+        UploadMetadataPolicy.validateLocation(properties.baseUrl(), key, 512);
         try (var input = file.getInputStream()) {
             var put = PutObjectRequest.builder().bucket(properties.bucket()).key(key)
                     .contentType(data.contentType()).contentLength(data.size());

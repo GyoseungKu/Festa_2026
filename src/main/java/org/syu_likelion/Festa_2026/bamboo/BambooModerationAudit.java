@@ -39,7 +39,7 @@ public class BambooModerationAudit {
     private BambooModerationAction action;
     @Column(name = "duration_minutes")
     private Integer durationMinutes;
-    @Column(nullable = false, length = 200)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String reason;
     @Column(name = "source_message_id")
     private Long sourceMessageId;

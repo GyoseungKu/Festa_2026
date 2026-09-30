@@ -30,7 +30,7 @@ SELECT 'api_request_logs' AS table_name, 'user_uuid' AS column_name, 'binary(16)
 UNION ALL
 SELECT 'bamboo_messages' AS table_name, 'anon_name' AS column_name, 'varchar(20)' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
-SELECT 'bamboo_messages' AS table_name, 'content' AS column_name, 'varchar(400)' AS expected_type, 'NO' AS expected_nullable
+SELECT 'bamboo_messages' AS table_name, 'content' AS column_name, 'text' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
 SELECT 'bamboo_messages' AS table_name, 'created_at' AS column_name, 'datetime(6)' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
@@ -64,7 +64,7 @@ SELECT 'bamboo_moderation_audits' AS table_name, 'id' AS column_name, 'bigint' A
 UNION ALL
 SELECT 'bamboo_moderation_audits' AS table_name, 'occurred_at' AS column_name, 'datetime(6)' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
-SELECT 'bamboo_moderation_audits' AS table_name, 'reason' AS column_name, 'varchar(200)' AS expected_type, 'NO' AS expected_nullable
+SELECT 'bamboo_moderation_audits' AS table_name, 'reason' AS column_name, 'text' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
 SELECT 'bamboo_moderation_audits' AS table_name, 'source_message_id' AS column_name, 'bigint' AS expected_type, 'YES' AS expected_nullable
 UNION ALL
@@ -112,7 +112,7 @@ SELECT 'birthday_message_hearts' AS table_name, 'user_uuid' AS column_name, 'bin
 UNION ALL
 SELECT 'birthday_messages' AS table_name, 'author_uuid' AS column_name, 'binary(16)' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
-SELECT 'birthday_messages' AS table_name, 'content' AS column_name, 'varchar(400)' AS expected_type, 'NO' AS expected_nullable
+SELECT 'birthday_messages' AS table_name, 'content' AS column_name, 'text' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
 SELECT 'birthday_messages' AS table_name, 'created_at' AS column_name, 'datetime(6)' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
@@ -122,11 +122,11 @@ SELECT 'birthday_messages' AS table_name, 'heart_count' AS column_name, 'bigint'
 UNION ALL
 SELECT 'birthday_messages' AS table_name, 'id' AS column_name, 'bigint' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
-SELECT 'birthday_messages' AS table_name, 'public_department' AS column_name, 'varchar(150)' AS expected_type, 'YES' AS expected_nullable
+SELECT 'birthday_messages' AS table_name, 'public_department' AS column_name, 'text' AS expected_type, 'YES' AS expected_nullable
 UNION ALL
-SELECT 'birthday_messages' AS table_name, 'public_masked_name' AS column_name, 'varchar(100)' AS expected_type, 'NO' AS expected_nullable
+SELECT 'birthday_messages' AS table_name, 'public_masked_name' AS column_name, 'text' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
-SELECT 'birthday_messages' AS table_name, 'public_masked_student_no' AS column_name, 'varchar(100)' AS expected_type, 'NO' AS expected_nullable
+SELECT 'birthday_messages' AS table_name, 'public_masked_student_no' AS column_name, 'text' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
 SELECT 'festival_booth_favorites' AS table_name, 'booth_id' AS column_name, 'bigint' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
@@ -153,36 +153,6 @@ UNION ALL
 SELECT 'festival_booth_media' AS table_name, 'original_filename' AS column_name, 'varchar(255)' AS expected_type, 'YES' AS expected_nullable
 UNION ALL
 SELECT 'festival_booth_media' AS table_name, 'storage_key' AS column_name, 'varchar(512)' AS expected_type, 'NO' AS expected_nullable
-UNION ALL
-SELECT 'festival_stamp_prizes' AS table_name, 'issued' AS column_name, 'tinyint(1)' AS expected_type, 'NO' AS expected_nullable
-UNION ALL
-SELECT 'festival_stamp_prizes' AS table_name, 'version' AS column_name, 'bigint' AS expected_type, 'NO' AS expected_nullable
-UNION ALL
-SELECT 'festival_stamp_prize_events' AS table_name, 'id' AS column_name, 'bigint' AS expected_type, 'NO' AS expected_nullable
-UNION ALL
-SELECT 'festival_stamp_prize_events' AS table_name, 'prize_id' AS column_name, 'bigint' AS expected_type, 'NO' AS expected_nullable
-UNION ALL
-SELECT 'festival_stamp_prize_events' AS table_name, 'action' AS column_name, 'enum (''grant'',''revoke'')' AS expected_type, 'NO' AS expected_nullable
-UNION ALL
-SELECT 'festival_stamp_prize_events' AS table_name, 'method' AS column_name, 'enum (''admin_search'',''qr'')' AS expected_type, 'NO' AS expected_nullable
-UNION ALL
-SELECT 'festival_stamp_prize_events' AS table_name, 'actor_uuid' AS column_name, 'binary(16)' AS expected_type, 'NO' AS expected_nullable
-UNION ALL
-SELECT 'festival_stamp_prize_events' AS table_name, 'occurred_at' AS column_name, 'datetime(6)' AS expected_type, 'NO' AS expected_nullable
-UNION ALL
-SELECT 'festival_stamp_prize_events' AS table_name, 'stamp_count' AS column_name, 'int' AS expected_type, 'NO' AS expected_nullable
-UNION ALL
-SELECT 'festival_stamp_prize_events' AS table_name, 'reason' AS column_name, 'varchar(500)' AS expected_type, 'YES' AS expected_nullable
-UNION ALL
-SELECT 'festival_stamp_prizes' AS table_name, 'id' AS column_name, 'bigint' AS expected_type, 'NO' AS expected_nullable
-UNION ALL
-SELECT 'festival_stamp_prizes' AS table_name, 'target_user_uuid' AS column_name, 'binary(16)' AS expected_type, 'NO' AS expected_nullable
-UNION ALL
-SELECT 'festival_stamp_prizes' AS table_name, 'granted_by' AS column_name, 'binary(16)' AS expected_type, 'NO' AS expected_nullable
-UNION ALL
-SELECT 'festival_stamp_prizes' AS table_name, 'granted_at' AS column_name, 'datetime(6)' AS expected_type, 'NO' AS expected_nullable
-UNION ALL
-SELECT 'festival_stamp_prizes' AS table_name, 'stamp_count' AS column_name, 'int' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
 SELECT 'festival_booth_stamps' AS table_name, 'booth_id' AS column_name, 'bigint' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
@@ -296,7 +266,7 @@ SELECT 'festival_poll_options' AS table_name, 'image_storage_key' AS column_name
 UNION ALL
 SELECT 'festival_poll_options' AS table_name, 'image_url' AS column_name, 'varchar(2048)' AS expected_type, 'YES' AS expected_nullable
 UNION ALL
-SELECT 'festival_poll_options' AS table_name, 'option_text' AS column_name, 'varchar(200)' AS expected_type, 'NO' AS expected_nullable
+SELECT 'festival_poll_options' AS table_name, 'option_text' AS column_name, 'text' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
 SELECT 'festival_poll_options' AS table_name, 'question_id' AS column_name, 'bigint' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
@@ -320,7 +290,7 @@ SELECT 'festival_poll_questions' AS table_name, 'id' AS column_name, 'bigint' AS
 UNION ALL
 SELECT 'festival_poll_questions' AS table_name, 'poll_id' AS column_name, 'bigint' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
-SELECT 'festival_poll_questions' AS table_name, 'question_text' AS column_name, 'varchar(500)' AS expected_type, 'NO' AS expected_nullable
+SELECT 'festival_poll_questions' AS table_name, 'question_text' AS column_name, 'text' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
 SELECT 'festival_poll_questions' AS table_name, 'required' AS column_name, 'bit' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
@@ -398,7 +368,7 @@ SELECT 'festival_sponsors' AS table_name, 'created_at' AS column_name, 'datetime
 UNION ALL
 SELECT 'festival_sponsors' AS table_name, 'created_by' AS column_name, 'binary(16)' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
-SELECT 'festival_sponsors' AS table_name, 'description' AS column_name, 'varchar(2000)' AS expected_type, 'NO' AS expected_nullable
+SELECT 'festival_sponsors' AS table_name, 'description' AS column_name, 'text' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
 SELECT 'festival_sponsors' AS table_name, 'id' AS column_name, 'bigint' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
@@ -427,6 +397,36 @@ UNION ALL
 SELECT 'festival_stamp_events' AS table_name, 'occurred_at' AS column_name, 'datetime(6)' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
 SELECT 'festival_stamp_events' AS table_name, 'target_user_uuid' AS column_name, 'binary(16)' AS expected_type, 'NO' AS expected_nullable
+UNION ALL
+SELECT 'festival_stamp_prize_events' AS table_name, 'action' AS column_name, 'enum (''grant'',''revoke'')' AS expected_type, 'NO' AS expected_nullable
+UNION ALL
+SELECT 'festival_stamp_prize_events' AS table_name, 'actor_uuid' AS column_name, 'binary(16)' AS expected_type, 'NO' AS expected_nullable
+UNION ALL
+SELECT 'festival_stamp_prize_events' AS table_name, 'id' AS column_name, 'bigint' AS expected_type, 'NO' AS expected_nullable
+UNION ALL
+SELECT 'festival_stamp_prize_events' AS table_name, 'method' AS column_name, 'enum (''admin_search'',''qr'')' AS expected_type, 'NO' AS expected_nullable
+UNION ALL
+SELECT 'festival_stamp_prize_events' AS table_name, 'occurred_at' AS column_name, 'datetime(6)' AS expected_type, 'NO' AS expected_nullable
+UNION ALL
+SELECT 'festival_stamp_prize_events' AS table_name, 'prize_id' AS column_name, 'bigint' AS expected_type, 'NO' AS expected_nullable
+UNION ALL
+SELECT 'festival_stamp_prize_events' AS table_name, 'reason' AS column_name, 'text' AS expected_type, 'YES' AS expected_nullable
+UNION ALL
+SELECT 'festival_stamp_prize_events' AS table_name, 'stamp_count' AS column_name, 'integer' AS expected_type, 'NO' AS expected_nullable
+UNION ALL
+SELECT 'festival_stamp_prizes' AS table_name, 'granted_at' AS column_name, 'datetime(6)' AS expected_type, 'NO' AS expected_nullable
+UNION ALL
+SELECT 'festival_stamp_prizes' AS table_name, 'granted_by' AS column_name, 'binary(16)' AS expected_type, 'NO' AS expected_nullable
+UNION ALL
+SELECT 'festival_stamp_prizes' AS table_name, 'id' AS column_name, 'bigint' AS expected_type, 'NO' AS expected_nullable
+UNION ALL
+SELECT 'festival_stamp_prizes' AS table_name, 'issued' AS column_name, 'tinyint(1)' AS expected_type, 'NO' AS expected_nullable
+UNION ALL
+SELECT 'festival_stamp_prizes' AS table_name, 'stamp_count' AS column_name, 'integer' AS expected_type, 'NO' AS expected_nullable
+UNION ALL
+SELECT 'festival_stamp_prizes' AS table_name, 'target_user_uuid' AS column_name, 'binary(16)' AS expected_type, 'NO' AS expected_nullable
+UNION ALL
+SELECT 'festival_stamp_prizes' AS table_name, 'version' AS column_name, 'bigint' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
 SELECT 'festival_users' AS table_name, 'booth_manager' AS column_name, 'tinyint(1)' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
@@ -468,7 +468,7 @@ SELECT 'festival_wristband_events' AS table_name, 'id' AS column_name, 'bigint' 
 UNION ALL
 SELECT 'festival_wristband_events' AS table_name, 'occurred_at' AS column_name, 'datetime(6)' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
-SELECT 'festival_wristband_events' AS table_name, 'reason' AS column_name, 'varchar(500)' AS expected_type, 'YES' AS expected_nullable
+SELECT 'festival_wristband_events' AS table_name, 'reason' AS column_name, 'text' AS expected_type, 'YES' AS expected_nullable
 UNION ALL
 SELECT 'festival_wristband_events' AS table_name, 'target_user_uuid' AS column_name, 'char(36)' AS expected_type, 'NO' AS expected_nullable
 UNION ALL

@@ -14,7 +14,7 @@ public class Sponsor {
     Long id;
     @Column(nullable = false, length = 100)
     String name;
-    @Column(nullable = false, length = 2000)
+    @Column(nullable = false, columnDefinition = "TEXT")
     String description;
     @Column(nullable = false, length = 2048)
     String imageUrl;

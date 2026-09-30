@@ -16,7 +16,7 @@ public class PollOption {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id;
     @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "question_id", nullable = false)
     private PollQuestion question;
-    @Column(name = "option_text", nullable = false, length = 200) private String text;
+    @Column(name = "option_text", nullable = false, columnDefinition = "TEXT") private String text;
     @Column(name = "display_order", nullable = false) private int displayOrder;
     @Column(name = "image_url", length = 2048) private String imageUrl;
     @Column(name = "image_storage_key", length = 1024) private String imageStorageKey;
