@@ -1,4 +1,12 @@
 .booth-list-panel { border:1px solid var(--admin-line); border-radius:16px; overflow:hidden; }
+.booth-map-panel { margin-bottom:24px; padding:20px; border:1px solid var(--admin-line); border-radius:16px; }
+.booth-map-panel h2 { margin:0; font-size:1rem; }
+.booth-map-panel > p { color:var(--muted); }
+.booth-map { height:420px; width:100%; border-radius:12px; margin-bottom:18px; background:#e8ece9; isolation:isolate; z-index:0; }
+.booth-map .leaflet-popup-content { color:#17251e; line-height:1.6; }
+.booth-map .leaflet-popup-content strong { display:block; }
+.booth-map .leaflet-popup-content a { color:#176447; text-decoration:underline; }
+@media (max-width:700px) { .booth-map { height:320px; } .booth-map-panel { padding:16px; } }
 .booth-list-heading { padding:20px 24px; }
 .booth-list-heading h2 { margin:0; font-size:1rem; }
 .booth-list-heading h2 span { margin-left:8px; color:var(--admin-accent); font-size:.85rem; }

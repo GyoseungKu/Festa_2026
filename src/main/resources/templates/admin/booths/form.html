@@ -5,6 +5,10 @@
     <title th:text="${editing ? '부스 수정' : '부스 등록'} + ' | 천보축전 관리자페이지'">부스 등록</title>
     <link rel="icon" type="image/svg+xml" th:href="@{/admin/assets/images/favicon.svg}"><link rel="stylesheet" th:href="@{/admin/assets/css/admin.css}">
 <link rel="stylesheet" th:href="@{/admin/assets/css/admin-console.css}">
+<link rel="stylesheet" th:href="@{/admin/assets/css/admin-booths.css}">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script defer th:src="@{/admin/assets/js/admin-booth-map.js}"></script>
 </head>
 <body class="admin-page">
 <a class="skip-link" href="#admin-content">본문으로 건너뛰기</a>
@@ -16,7 +20,9 @@
     <section class="page-heading"><div><p class="eyebrow">BOOTH EDITOR</p><h1 th:text="${editing ? '부스 수정' : '새 부스 등록'}">새 부스 등록</h1><p>저장한 부스는 별도 공개 절차 없이 지도에 바로 표시됩니다.</p></div></section>
     <div class="alert alert-error" role="alert" th:if="${error}" th:text="${error}"></div>
     <form class="performance-form" method="post" enctype="multipart/form-data" th:object="${form}" th:action="${editing} ? @{/admin/booths/{id}(id=${booth.booth.id})} : @{/admin/booths}">
-        <section class="form-section"><div class="form-section-heading"><span>01</span><div><h2>기본 정보와 지도 좌표</h2><p>위도와 경도는 소수점 형식으로 입력합니다.</p></div></div>
+        <section class="form-section"><div class="form-section-heading"><span>01</span><div><h2>기본 정보와 지도 좌표</h2><p>지도를 클릭하거나 마커를 옮겨 위치를 선택하세요. 좌표를 직접 입력할 수도 있습니다.</p></div></div>
+            <div id="booth-map" class="booth-map" data-mode="edit" aria-label="부스 위치 선택 지도"></div>
+            <p id="booth-map-status" class="support-copy" role="status" hidden></p>
             <div class="form-grid booth-form-grid">
                 <label class="field-group"><span>위도 <b>*</b></span><input type="number" step="0.0000001" min="-90" max="90" th:field="*{latitude}" required></label>
                 <label class="field-group"><span>경도 <b>*</b></span><input type="number" step="0.0000001" min="-180" max="180" th:field="*{longitude}" required></label>

@@ -205,13 +205,19 @@ MAIL_FROM_2=
 MAIL_USERNAME_3=
 MAIL_PASSWORD_3=
 MAIL_FROM_3=
+MAIL_USERNAME_4=
+MAIL_PASSWORD_4=
+MAIL_FROM_4=
+MAIL_USERNAME_5=
+MAIL_PASSWORD_5=
+MAIL_FROM_5=
 MAIL_QUOTA_COOLDOWN_SECONDS=86400
 ```
 
-- 계정은 기본 → 2 → 3 순서로 시도하며, 미설정 슬롯과 쿨다운 중인 계정은 건너뜁니다.
+- 최대 5개 계정을 기본 → 2 → 3 → 4 → 5 순서로 시도하며, 미설정 슬롯과 쿨다운 중인 계정은 건너뜁니다.
 - 선택 계정은 아이디와 앱 비밀번호를 함께 설정해야 합니다. 중복 계정은 시작 시 거부하며,
   Gmail의 점·`+` 태그·googlemail.com 별칭도 동일 계정으로 취급합니다.
-- `MAIL_FROM_2`, `MAIL_FROM_3`가 비어 있으면 해당 SMTP 계정 주소를 사용합니다.
+- `MAIL_FROM_2`~`MAIL_FROM_5`가 비어 있으면 해당 SMTP 계정 주소를 사용합니다.
   다른 발신 주소는 해당 계정에 발송 권한이 있어야 합니다. 같은 메일함의 별칭은 별도 한도가 아닙니다.
 - 기본 계정의 기존 메일별 발신 주소 설정은 유지합니다. 보조 계정은 기본 SMTP 서버·포트·TLS·타임아웃을 복사한 별도 발송 객체를 사용합니다.
 - 중첩 SMTP 예외에서 명시적인 `550 5.4.5`가 확인될 때만 다음 계정으로 전환합니다.

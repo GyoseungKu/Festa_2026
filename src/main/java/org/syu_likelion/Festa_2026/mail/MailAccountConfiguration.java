@@ -20,7 +20,7 @@ public class MailAccountConfiguration {
     JavaMailSender mailSender(MailProperties primary, Environment environment) {
         List<QuotaMailSender.Account> accounts = new ArrayList<>();
         Set<String> usernames = new HashSet<>();
-        for (int slot = 1; slot <= 3; slot++) {
+        for (int slot = 1; slot <= 5; slot++) {
             String prefix = "mail.accounts." + slot + ".";
             String username = slot == 1 ? primary.getUsername() : environment.getProperty(prefix + "username", "");
             String password = slot == 1 ? primary.getPassword() : environment.getProperty(prefix + "password", "");

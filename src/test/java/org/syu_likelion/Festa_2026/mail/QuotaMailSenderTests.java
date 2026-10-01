@@ -23,6 +23,27 @@ class QuotaMailSenderTests {
             new QuotaMailSender.Account(3, third, "third@gmail.com", "alias@example.com")),
             Duration.ofDays(1), clock);
 
+    @Test void quotaFailoverReachesFifthAndSkipsAllFourLimitedAccounts() throws Exception {
+        var fourth = mock(JavaMailSender.class);
+        var fifth = mock(JavaMailSender.class);
+        var fiveAccounts = new QuotaMailSender(List.of(
+                new QuotaMailSender.Account(1, first, "first@gmail.com", null),
+                new QuotaMailSender.Account(2, second, "second@gmail.com", "second@gmail.com"),
+                new QuotaMailSender.Account(3, third, "third@gmail.com", "third@gmail.com"),
+                new QuotaMailSender.Account(4, fourth, "fourth@gmail.com", "fourth@gmail.com"),
+                new QuotaMailSender.Account(5, fifth, "fifth@gmail.com", "fifth@gmail.com")), Duration.ofDays(1), clock);
+        for (var limited : List.of(first, second, third, fourth)) doThrow(quota()).when(limited).send(any(MimeMessage.class));
+        fiveAccounts.send(message());
+        fiveAccounts.send(message());
+        var order = inOrder(first, second, third, fourth, fifth);
+        order.verify(first).send(any(MimeMessage.class));
+        order.verify(second).send(any(MimeMessage.class));
+        order.verify(third).send(any(MimeMessage.class));
+        order.verify(fourth).send(any(MimeMessage.class));
+        order.verify(fifth, times(2)).send(any(MimeMessage.class));
+        order.verifyNoMoreInteractions();
+    }
+
     @Test void normalDeliveryUsesOnlyPrimary() throws Exception {
         sender.send(message());
         verify(first).send(any(MimeMessage.class));

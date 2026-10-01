@@ -41,8 +41,39 @@ class MailAccountConfigurationTests {
                 });
     }
 
+    @Test void registersAllFiveAccountsInOrder() {
+        context.withPropertyValues(
+                "mail.accounts.2.username=second@gmail.com", "mail.accounts.2.password=second-pass",
+                "mail.accounts.3.username=third@gmail.com", "mail.accounts.3.password=third-pass",
+                "mail.accounts.4.username=fourth@gmail.com", "mail.accounts.4.password=fourth-pass",
+                "mail.accounts.5.username=fifth@gmail.com", "mail.accounts.5.password=fifth-pass",
+                "mail.accounts.5.from=alias@example.com")
+                .run(ctx -> {
+                    assertThat(ctx).hasSingleBean(JavaMailSender.class);
+                    @SuppressWarnings("unchecked")
+                    var accounts = (List<QuotaMailSender.Account>) ReflectionTestUtils.getField(ctx.getBean(QuotaMailSender.class), "accounts");
+                    assertThat(accounts).extracting(QuotaMailSender.Account::slot).containsExactly(1, 2, 3, 4, 5);
+                    var fifth = (JavaMailSenderImpl) accounts.get(4).sender();
+                    assertThat(fifth.getPassword()).isEqualTo("fifth-pass");
+                    assertThat(fifth.getJavaMailProperties()).containsEntry("mail.smtp.from", "alias@example.com");
+                });
+    }
+
+    @Test void fifthAccountWorksWithIntermediateSlotsOmitted() {
+        context.withPropertyValues("mail.accounts.5.username=fifth@gmail.com", "mail.accounts.5.password=fifth-pass")
+                .run(ctx -> {
+                    assertThat(ctx).hasNotFailed();
+                    @SuppressWarnings("unchecked")
+                    var accounts = (List<QuotaMailSender.Account>) ReflectionTestUtils.getField(ctx.getBean(QuotaMailSender.class), "accounts");
+                    assertThat(accounts).extracting(QuotaMailSender.Account::slot).containsExactly(1, 5);
+                });
+    }
+
     @Test void rejectsIncompleteDuplicateAndInvalidCooldownConfiguration() {
         for (String[] invalid : List.of(
+                new String[]{"mail.accounts.4.username=fourth@gmail.com"},
+                new String[]{"mail.accounts.5.password=only-password"},
+                new String[]{"mail.accounts.5.username=f.i.r.s.t+alias@gmail.com", "mail.accounts.5.password=test"},
                 new String[]{"mail.accounts.2.username=second@gmail.com"},
                 new String[]{"mail.accounts.3.password=only-password"},
                 new String[]{"mail.accounts.2.username=FIRST@gmail.com", "mail.accounts.2.password=test"},

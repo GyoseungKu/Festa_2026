@@ -7,6 +7,9 @@
     <link rel="stylesheet" th:href="@{/admin/assets/css/admin.css}">
     <link rel="stylesheet" th:href="@{/admin/assets/css/admin-console.css}">
     <link rel="stylesheet" th:href="@{/admin/assets/css/admin-booths.css}">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script defer th:src="@{/admin/assets/js/admin-booth-map.js}"></script>
 </head>
 <body class="admin-page">
 <a class="skip-link" href="#admin-content">본문으로 건너뛰기</a>
@@ -18,6 +21,12 @@
     <section class="management-toolbar"><div><p class="eyebrow">FESTIVAL MAP</p><h1>부스 관리</h1><p>부스 좌표, 운영 정보, 담당자와 미디어를 관리합니다.</p></div>
         <a class="button button-primary" th:href="@{/admin/booths/new}">부스 추가</a></section>
     <div class="alert alert-success" role="status" th:if="${message}" th:text="${message}"></div>
+    <section class="booth-map-panel" aria-labelledby="booth-map-title">
+        <h2 id="booth-map-title">부스 위치</h2>
+        <p>마커를 누르면 부스 정보를 확인하고 수정할 수 있습니다.</p>
+        <div id="booth-map" class="booth-map" data-mode="list" aria-label="등록된 부스 위치 지도"></div>
+        <p id="booth-map-status" class="support-copy" role="status" hidden></p>
+    </section>
     <section class="empty-panel" th:if="${#lists.isEmpty(booths)}"><strong>등록된 부스가 없습니다.</strong><p>첫 부스를 등록해 축제 지도를 구성해 주세요.</p></section>
     <section class="booth-list-panel" th:unless="${#lists.isEmpty(booths)}" aria-labelledby="booth-list-title">
         <div class="booth-list-heading">
@@ -32,7 +41,8 @@
                     <th scope="col">미디어</th><th scope="col">관리</th>
                 </tr></thead>
                 <tbody>
-                <tr th:each="item : ${booths}" th:with="booth=${item.booth}">
+                <tr th:each="item : ${booths}" th:with="booth=${item.booth}" data-booth-marker
+                    th:attr="data-latitude=${booth.latitude},data-longitude=${booth.longitude},data-name=${booth.name},data-operator=${booth.operator}">
                     <td class="booth-name-cell">
                         <a class="booth-name-link" th:href="@{/admin/booths/{id}/edit(id=${booth.id})}" th:text="${booth.name}">부스명</a>
                         <small th:text="|${booth.latitude}, ${booth.longitude}|">좌표</small>
