@@ -17,7 +17,7 @@ import org.syu_likelion.Festa_2026.user.FestivalUserRepository;
 
 @Service
 public class StampPrizeService {
-    public static final int REQUIRED_STAMPS = 6;
+    public static final int REQUIRED_STAMPS = StampBoardPolicy.MAX_STAMPS;
     private final StampPrizeRepository prizes;
     private final BoothStampRepository stamps;
     private final FestivalUserRepository users;
@@ -69,8 +69,8 @@ public class StampPrizeService {
             throw new ApiException(HttpStatus.CONFLICT, "STAMP_PRIZE_ALREADY_GRANTED", "이미 상품을 지급한 사용자입니다.");
         }
         List<BoothStamp> board = stamps.findAllForUserForUpdate(target);
-        if (board.size() < REQUIRED_STAMPS) {
-            throw new ApiException(HttpStatus.CONFLICT, "STAMP_PRIZE_NOT_READY", "스탬프를 6개 이상 모아야 상품을 지급할 수 있습니다.");
+        if (!StampBoardPolicy.complete(board)) {
+            throw new ApiException(HttpStatus.CONFLICT, "STAMP_PRIZE_NOT_READY", "외부 부스 스탬프를 최소 1개 포함하여 스탬프 6개를 모아야 상품을 지급할 수 있습니다.");
         }
         StampPrize prize;
         if (existing == null) prize = prizes.saveAndFlush(new StampPrize(target, actor, clock.instant(), board.size()));
@@ -184,9 +184,9 @@ public class StampPrizeService {
     private StampPrizeTargetResponse response(UUID target, InternalUserProfile profile,
                                                List<BoothStamp> board, StampPrize prize) {
         List<StampItemResponse> items = board.stream().map(stamp -> new StampItemResponse(
-                stamp.getBooth().getId(), stamp.getBooth().getName(), stamp.getBooth().getOperator(), stamp.getGrantedAt())).toList();
+                stamp.getBooth().getId(), stamp.getBooth().getName(), stamp.getBooth().getOperator(), stamp.getGrantedAt(), stamp.getBooth().getCategory())).toList();
         return new StampPrizeTargetResponse(target, profile.name(), profile.studentNo(), profile.department(),
-                items.size(), REQUIRED_STAMPS, items, (prize == null || !prize.isIssued()) && items.size() >= REQUIRED_STAMPS,
+                items.size(), REQUIRED_STAMPS, items, (prize == null || !prize.isIssued()) && StampBoardPolicy.complete(board),
                 prize != null && prize.isIssued(), prize == null || !prize.isIssued() ? null : prize.getGrantedAt(), prize == null || !prize.isIssued() ? null : prize.getGrantedBy());
     }
 

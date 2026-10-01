@@ -45,15 +45,36 @@ class BoothServiceTests {
         service = new BoothService(booths, favorites, festivalUsers, users, storage);
     }
 
-    @Test void anonymousUserCanSeeEveryBoothWithoutFavoriteCounts() {
+    @Test void anonymousUserCanSeeEveryBoothWithDescriptionAndFavoriteCount() {
         when(booths.findAllByOrderByNameAsc()).thenReturn(List.of(entity(Set.of())));
         var result = service.list(null, null);
         assertThat(result.body()).hasSize(1);
         assertThat(result.body().getFirst().category()).isEqualTo(BoothCategory.PHOTO_BOOTH);
         assertThat(result.body().getFirst().name()).isEqualTo("멋사 부스");
+        assertThat(result.body().getFirst().description()).isEqualTo("부스 설명");
+        assertThat(result.body().getFirst().favoriteCount()).isZero();
         assertThat(result.body().getFirst().stampEnabled()).isTrue();
         assertThat(result.body().getFirst().favorited()).isFalse();
         verify(users, never()).getMe(any(), any());
+    }
+
+    @Test void listsUseCategoryPriorityAndKeepNameOrderWithinEachCategory() {
+        var categories = List.of(BoothCategory.OTHER, BoothCategory.FOOD_TRUCK, BoothCategory.GENERAL,
+                BoothCategory.PHOTO_BOOTH, BoothCategory.CAMPUS, BoothCategory.GENERAL,
+                BoothCategory.STUDENT_COUNCIL, BoothCategory.EXTERNAL);
+        var nameOrdered = java.util.stream.IntStream.range(0, categories.size()).mapToObj(i ->
+                new FestivalBooth(BigDecimal.ONE, BigDecimal.ONE, "부스" + i, "운영팀", "설명",
+                        LocalTime.of(10, 0), LocalTime.of(18, 0), false, Set.of(), USER_ID, categories.get(i)))
+                .toList();
+        when(booths.findAllByOrderByNameAsc()).thenReturn(nameOrdered);
+        authenticate(FestivalRole.USER);
+        when(favorites.findBoothsByUserUuid(USER_ID)).thenReturn(nameOrdered);
+        String[] expected = {"부스2", "부스5", "부스7", "부스6", "부스4", "부스3", "부스1", "부스0"};
+
+        assertThat(service.list(null, null).body()).extracting(item -> item.name()).containsExactly(expected);
+        assertThat(service.myFavorites("access", "refresh").body()).extracting(item -> item.name()).containsExactly(expected);
+        assertThat(service.listAdmin()).extracting(item -> item.booth().name()).containsExactly(expected);
+        verify(favorites, never()).countByBoothId(any());
     }
 
     @Test void loggedInUserReceivesOwnFavoriteStateOnly() {

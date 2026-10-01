@@ -11,7 +11,7 @@ public final class StampDtos {
     public record QrStampRequest(@NotBlank @Size(max = 128) String token) { }
     public record StampTargetResponse(UUID userUuid, String name, String studentNo, String department,
                                       boolean stamped, Instant grantedAt) { }
-    public record StampItemResponse(Long boothId, String boothName, String operator, Instant grantedAt) { }
+    public record StampItemResponse(Long boothId, String boothName, String operator, Instant grantedAt, org.syu_likelion.Festa_2026.booth.BoothCategory category) { }
     public record MyStampBoardResponse(boolean participated, int stampCount, List<StampItemResponse> stamps) { }
     public record StampPrizeTargetResponse(UUID userUuid, String name, String studentNo, String department,
                                            int stampCount, int requiredStampCount, List<StampItemResponse> stamps,

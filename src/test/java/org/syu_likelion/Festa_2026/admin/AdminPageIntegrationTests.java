@@ -741,10 +741,14 @@ class AdminPageIntegrationTests {
         mvc.perform(get("/admin/stamps/prizes").cookie(admin)).andExpect(status().isOk())
                 .andExpect(content().string(containsString("/admin/stamps/prizes/qr/lookup")));
         var ready = new org.syu_likelion.Festa_2026.stamp.StampDtos.StampPrizeTargetResponse(
-                ADMIN_UUID, "홍길동", "2026000001", "컴퓨터공학과", 6, 6, java.util.List.of(), true, false, null, null);
+                ADMIN_UUID, "홍길동", "2026000001", "컴퓨터공학과", 6, 6, java.util.List.of(new org.syu_likelion.Festa_2026.stamp.StampDtos.StampItemResponse(
+                        1L, "외부 체험 부스", "외부 운영팀", java.time.Instant.now(),
+                        org.syu_likelion.Festa_2026.booth.BoothCategory.EXTERNAL)), true, false, null, null);
         when(stampPrizes.lookupQrAs(FestivalRole.ADMIN, "token")).thenReturn(ready);
         mvc.perform(post("/admin/stamps/prizes/qr/lookup").cookie(admin).with(csrf()).param("token", "token"))
                 .andExpect(status().isOk()).andExpect(content().string(containsString("6 / 6개")))
+                .andExpect(content().string(containsString("외부 체험 부스")))
+                .andExpect(content().string(containsString("외부 부스")))
                 .andExpect(content().string(containsString("/admin/stamps/prizes/qr/grant")))
                 .andExpect(content().string(containsString("홍길동")));
         var granted = new org.syu_likelion.Festa_2026.stamp.StampDtos.StampPrizeTargetResponse(

@@ -14,4 +14,16 @@ public enum BoothCategory {
     BoothCategory(String label) { this.label = label; }
 
     public String getLabel() { return label; }
+
+    public int getDisplayOrder() {
+        return switch (this) {
+            case GENERAL -> 0;
+            case EXTERNAL -> 1;
+            case STUDENT_COUNCIL -> 2;
+            case CAMPUS -> 3;
+            case PHOTO_BOOTH -> 4;
+            case FOOD_TRUCK -> 5;
+            case OTHER -> 6;
+        };
+    }
 }

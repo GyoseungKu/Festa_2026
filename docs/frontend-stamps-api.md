@@ -8,6 +8,9 @@
 
 - 스탬프판은 사용자당 하나이며 회차·초기화 개념이 없습니다. 날짜나 축제 시즌으로 조회 범위를 나누지 않습니다.
 - 한 사용자는 한 부스의 현재 스탬프를 최대 하나만 보유합니다.
+- 현재 스탬프는 최대 6개입니다. 외부 부스(`EXTERNAL`) 스탬프가 최소 1개 필요하며, 외부 부스 없이 5개를 모았다면 6번째는 외부 부스에서만 받을 수 있습니다. QR·관리자 검색 지급 모두 동일합니다.
+- 정책 변경 전 획득 기록은 삭제하지 않습니다. 기존 6개 이상 보유자는 추가 지급이 차단됩니다. 외부 부스가 없다면 관리자가 기존 스탬프를 회수해 5개 이하로 만든 뒤 외부 부스 스탬프를 받아야 합니다. 기존 상품 지급 이력도 유지됩니다.
+- 외부 부스 여부는 조회·지급 시 부스의 현재 카테고리로 판단합니다.
 - 회수 후 재지급할 수 있으며 모든 `GRANT`, `REVOKE`는 감사 이력에 남습니다.
 - `stampEnabled=false`인 부스에서는 지급·조회·회수할 수 없습니다.
 - `BOOTH_MANAGER`: 자신에게 배정된 부스에서 QR 방식만 사용합니다.
@@ -31,6 +34,7 @@ type MyStampBoard = {
     boothId: number;
     boothName: string;
     operator: string;
+    category: BoothCategory; // 부스 API의 카테고리 enum, 외부 부스는 EXTERNAL
     grantedAt: string;
   }>;
 };
@@ -46,6 +50,7 @@ type MyStampBoard = {
     {
       "boothId": 1,
       "boothName": "체험 부스",
+      "category": "EXTERNAL",
       "operator": "운영팀",
       "grantedAt": "2026-08-18T03:00:00Z"
     }
@@ -161,6 +166,8 @@ type BoothStampAdmin = {
 | `400` | `STAMP_USER_NOT_LINKED` | 축제 서비스 미연결 사용자 안내 |
 | `403` | `STAMP_MANAGE_FORBIDDEN` | 담당 부스/권한 없음 |
 | `404` | `BOOTH_NOT_FOUND` | 부스 목록으로 이동 |
+| `409` | `STAMP_BOARD_FULL` | 이미 6개 이상 보유하여 추가 지급 불가 |
+| `409` | `STAMP_EXTERNAL_REQUIRED` | 6번째 스탬프는 외부 부스에서 받아야 함 |
 | `409` | `STAMP_ALREADY_GRANTED` | 이미 지급됨, lookup 재호출 |
 | `409` | `STAMP_NOT_GRANTED` | 이미 회수됨, lookup 재호출 |
 
@@ -171,7 +178,7 @@ type BoothStampAdmin = {
 - 관리자 **스탬프 지급 관리 → 상품 지급 관리**(`/admin/stamps/prizes`)에서 사용합니다.
 - `ADMIN`, `SUPER_ADMIN`만 조회·지급할 수 있습니다. `STAFF`, `BOOTH_MANAGER`는 직접 요청해도 403입니다.
 - 이름·학번·아이디로 직접 검색하여 사용자를 선택하거나, 카메라로 사용자 QR을 읽으면 이름·학번·학과, 현재 스탬프 수, 획득 부스 목록, 상품 지급 여부를 표시합니다.
-- 서로 다른 부스의 현재 스탬프 **6개 이상**이고 상품을 받지 않은 경우에만 지급 버튼이 표시됩니다. 기존 스탬프판과 동일하게 획득 후 비활성화된 부스의 스탬프도 포함합니다.
+- 서로 다른 부스의 현재 스탬프가 **외부 부스(`EXTERNAL`) 1개 이상을 포함하여 6개**이고 상품을 받지 않은 경우에만 지급 버튼이 표시됩니다. 기존 스탬프판과 동일하게 획득 후 비활성화된 부스의 스탬프도 포함합니다.
 - 지급 버튼을 누르면 현재 스탬프 수와 기존 상품 지급 여부를 다시 검사합니다. QR 지급은 QR 유효기간도 검사하며 만료 시 새 QR을 스캔합니다. 직접 조회 지급은 QR 없이 가능합니다.
 - 유효한 상품 지급은 사용자당 1건이며 지급 시각·관리자 UUID·지급 당시 스탬프 수를 기록합니다. 동시에 여러 관리자가 지급해도 한 건만 저장합니다.
 - 상품 지급 후 스탬프판을 초기화하지 않습니다. 스탬프를 회수·재지급해도 상품 지급 이력은 유지합니다. 오지급은 ADMIN 이상이 사유(1~500자)를 남겨 철회할 수 있습니다. 철회 후 사용자 스탬프판을 다시 확인하여 재지급할 수 있으며 모든 지급·철회 이력을 보존합니다. 오래된 화면의 철회 요청은 버전 검증으로 차단합니다.
@@ -191,6 +198,6 @@ type BoothStampAdmin = {
 | `POST` | `/admin/stamps/prizes/qr/lookup` | form `token`, 스탬프판·상품 지급 상태 확인 |
 | `POST` | `/admin/stamps/prizes/qr/grant` | form `token`, 상품 지급 완료 기록 |
 
-업무 오류는 화면에 안내합니다. 서비스 오류 코드는 `STAMP_PRIZE_NOT_READY`(6개 미만), `STAMP_PRIZE_ALREADY_GRANTED`(이미 지급), `STAMP_PRIZE_FORBIDDEN`(권한 부족), `STAMP_PRIZE_CHANGED`(다른 관리자가 변경), `STAMP_PRIZE_ALREADY_REVOKED`(이미 철회), `INVALID_STAMP_PRIZE_REASON`(사유 오류), `STAMP_PRIZE_NOT_FOUND`(기록 없음)입니다.
+업무 오류는 화면에 안내합니다. 서비스 오류 코드는 `STAMP_PRIZE_NOT_READY`(6개 미만 또는 외부 부스 없음), `STAMP_PRIZE_ALREADY_GRANTED`(이미 지급), `STAMP_PRIZE_FORBIDDEN`(권한 부족), `STAMP_PRIZE_CHANGED`(다른 관리자가 변경), `STAMP_PRIZE_ALREADY_REVOKED`(이미 철회), `INVALID_STAMP_PRIZE_REASON`(사유 오류), `STAMP_PRIZE_NOT_FOUND`(기록 없음)입니다.
 
 DB에 `festival_stamp_prizes`와 `festival_stamp_prize_events`를 사용합니다. 기존 지급 테이블에는 `issued`, `version` 컬럼이 추가됩니다. `ddl-auto=update` 환경에서는 자동 생성하며 수동 스키마 환경은 [상품 지급 스키마](stamp-prize-schema.sql)를 적용합니다.

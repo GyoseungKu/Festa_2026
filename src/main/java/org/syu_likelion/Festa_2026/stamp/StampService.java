@@ -108,7 +108,7 @@ public class StampService {
         UUID userUuid = auth.body().userUuid();
         List<StampItemResponse> items = stamps.findAllByUserUserUuidOrderByGrantedAtAsc(userUuid).stream()
                 .map(stamp -> new StampItemResponse(stamp.getBooth().getId(), stamp.getBooth().getName(),
-                        stamp.getBooth().getOperator(), stamp.getGrantedAt())).toList();
+                        stamp.getBooth().getOperator(), stamp.getGrantedAt(), stamp.getBooth().getCategory())).toList();
         boolean participated = !items.isEmpty() || events.existsByTargetUserUuidAndAction(userUuid, StampAction.GRANT);
         return rotated(auth, new MyStampBoardResponse(participated, items.size(), items));
     }
@@ -201,6 +201,12 @@ public class StampService {
         FestivalUser target = lockedUser(targetUuid);
         if (stamps.existsByBoothIdAndUserUserUuid(booth.getId(), targetUuid))
             throw new ApiException(HttpStatus.CONFLICT, "STAMP_ALREADY_GRANTED", "이미 이 부스의 스탬프를 받은 사용자입니다.");
+        List<BoothStamp> board = stamps.findAllForUserForUpdate(targetUuid);
+        if (board.size() >= StampBoardPolicy.MAX_STAMPS)
+            throw new ApiException(HttpStatus.CONFLICT, "STAMP_BOARD_FULL", "스탬프는 최대 6개까지 받을 수 있습니다.");
+        if (board.size() == StampBoardPolicy.MAX_STAMPS - 1 && !StampBoardPolicy.hasExternal(board)
+                && booth.getCategory() != org.syu_likelion.Festa_2026.booth.BoothCategory.EXTERNAL)
+            throw new ApiException(HttpStatus.CONFLICT, "STAMP_EXTERNAL_REQUIRED", "마지막 스탬프는 외부 부스에서 받아야 합니다. 외부 부스 스탬프가 최소 1개 필요합니다.");
         Instant now = clock.instant();
         stamps.saveAndFlush(new BoothStamp(booth, target, now, actor, method));
         events.save(new StampEvent(booth, targetUuid, actor, StampAction.GRANT, method, now));

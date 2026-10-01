@@ -180,13 +180,13 @@ class WristbandTests {
         UUID id = student(true, false);
         var staff = new Cookie("festivalAdminAccess", "STAFF");
         mvc.perform(post("/admin/qr/search").cookie(staff).with(csrf()).param("query", "홍길동"))
-                .andExpect(status().isOk()).andExpect(content().string(containsString("입장 팔찌: 미지급")));
+                .andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.matchesPattern("(?s).*<dt>입장 팔찌</dt>\\s*<dd>미지급</dd>.*")));
         var band = issue(id);
         tokens.save("management-qr", id, Duration.ofMinutes(1));
         mvc.perform(post("/admin/qr/scan").cookie(staff).with(csrf()).param("token", "management-qr"))
-                .andExpect(status().isOk()).andExpect(content().string(containsString("<dt>입장 팔찌</dt><dd>지급 완료</dd>")));
+                .andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.matchesPattern("(?s).*<dt>입장 팔찌</dt>\\s*<dd>지급 완료</dd>.*")));
         mvc.perform(post("/admin/qr/search").cookie(staff).with(csrf()).param("query", "홍길동"))
-                .andExpect(status().isOk()).andExpect(content().string(containsString("입장 팔찌: 지급 완료")));
+                .andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.matchesPattern("(?s).*<dt>입장 팔찌</dt>\\s*<dd>지급 완료</dd>.*")));
         var me = new UserDtos.MeResponse(actor, "staff", null, "USER", "ACTIVE", null, null,
                 null, null, null, null, null, null, null, Set.of(FestivalRole.STAFF));
         when(authentication.getMe("staff-api", null)).thenReturn(new AuthorizedResult<>(me, null, null));
@@ -196,7 +196,7 @@ class WristbandTests {
                 .andExpect(jsonPath("$.userUuid").doesNotExist());
         wristbands.revoke(FestivalRole.ADMIN, actor, "관리자", band.getId(), band.getVersion(), "오지급");
         mvc.perform(post("/admin/qr/search").cookie(staff).with(csrf()).param("query", "홍길동"))
-                .andExpect(status().isOk()).andExpect(content().string(containsString("입장 팔찌: 미지급")));
+                .andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.matchesPattern("(?s).*<dt>입장 팔찌</dt>\\s*<dd>미지급</dd>.*")));
     }
 
     @Test void studentVerificationAndFeesAreVisibleOnlyToStaffAndAbove() throws Exception {

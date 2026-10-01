@@ -16,5 +16,12 @@ public interface BoothFavoriteRepository extends JpaRepository<BoothFavorite, Lo
     @EntityGraph(attributePaths = "media")
     @Query("select f.booth from BoothFavorite f where f.user.userUuid = :userUuid order by f.booth.name asc")
     List<FestivalBooth> findBoothsByUserUuid(@Param("userUuid") UUID userUuid);
+    interface FavoriteCount {
+        Long getBoothId();
+        long getFavoriteCount();
+    }
+    @Query("select f.booth.id as boothId, count(f) as favoriteCount from BoothFavorite f group by f.booth.id")
+    List<FavoriteCount> countFavoritesByBooth();
+    long countByBoothId(Long boothId);
     void deleteAllByBoothId(Long boothId);
 }

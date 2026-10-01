@@ -38,16 +38,17 @@ public final class BoothDtos {
                                      int displayOrder, boolean representative) { }
 
     public record BoothSummaryResponse(Long id, BigDecimal latitude, BigDecimal longitude,
-                                       String name, String operator, LocalTime opensAt, LocalTime closesAt,
+                                       String name, String operator, String description,
+                                       LocalTime opensAt, LocalTime closesAt,
                                        boolean stampEnabled, BoothMediaResponse representativeMedia,
-                                       boolean favorited, BoothCategory category) { }
+                                       boolean favorited, BoothCategory category, long favoriteCount) { }
 
     public record BoothDetailResponse(Long id, BigDecimal latitude, BigDecimal longitude,
                                       String name, String operator, String description,
                                       LocalTime opensAt, LocalTime closesAt, boolean stampEnabled,
                                       List<BoothMediaResponse> media,
                                       BoothMediaResponse representativeMedia, boolean favorited,
-                                      Instant createdAt, Instant updatedAt, BoothCategory category) { }
+                                      Instant createdAt, Instant updatedAt, BoothCategory category, long favoriteCount) { }
 
     public record BoothAdminResponse(BoothDetailResponse booth, List<UUID> managerUuids) { }
 }

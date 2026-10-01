@@ -1,6 +1,7 @@
 package org.syu_likelion.Festa_2026.booth;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -49,8 +50,10 @@ public class BoothService {
     public AuthorizedResult<List<BoothSummaryResponse>> list(String authorizationToken, String refreshToken) {
         AuthorizedResult<MeResponse> auth = optionalAuth(authorizationToken, refreshToken);
         Set<Long> liked = auth == null ? Set.of() : new HashSet<>(favorites.findBoothIdsByUserUuid(auth.body().userUuid()));
+        Map<Long, Long> counts = favoriteCounts();
         List<BoothSummaryResponse> body = booths.findAllByOrderByNameAsc().stream()
-                .map(booth -> summary(booth, auth != null && liked.contains(booth.getId()))).toList();
+                .sorted(Comparator.comparingInt(booth -> booth.getCategory().getDisplayOrder()))
+                .map(booth -> summary(booth, auth != null && liked.contains(booth.getId()), counts.getOrDefault(booth.getId(), 0L))).toList();
         return rotated(auth, body);
     }
 
@@ -65,8 +68,10 @@ public class BoothService {
     @Transactional(readOnly = true)
     public AuthorizedResult<List<BoothSummaryResponse>> myFavorites(String access, String refresh) {
         AuthorizedResult<MeResponse> auth = users.getMe(access, refresh);
+        Map<Long, Long> counts = favoriteCounts();
         List<BoothSummaryResponse> body = favorites.findBoothsByUserUuid(auth.body().userUuid()).stream()
-                .map(booth -> summary(booth, true)).toList();
+                .sorted(Comparator.comparingInt(booth -> booth.getCategory().getDisplayOrder()))
+                .map(booth -> summary(booth, true, counts.getOrDefault(booth.getId(), 0L))).toList();
         return rotated(auth, body);
     }
 
@@ -227,7 +232,11 @@ public class BoothService {
     }
 
     @Transactional(readOnly = true) public List<BoothAdminResponse> listAdmin() {
-        return booths.findAllByOrderByNameAsc().stream().map(this::admin).toList();
+        Map<Long, Long> counts = favoriteCounts();
+        return booths.findAllByOrderByNameAsc().stream()
+                .sorted(Comparator.comparingInt(booth -> booth.getCategory().getDisplayOrder()))
+                .map(booth -> new BoothAdminResponse(detail(booth, false, counts.getOrDefault(booth.getId(), 0L)),
+                        booth.getManagers().stream().map(FestivalUser::getUserUuid).toList())).toList();
     }
     @Transactional(readOnly = true) public BoothAdminResponse getAdmin(Long id) { return admin(find(id)); }
 
@@ -296,18 +305,26 @@ public class BoothService {
     private void deleteStored(List<StoredFile> stored) {
         stored.forEach(file -> storage.delete(file.storageKey()));
     }
-    private BoothSummaryResponse summary(FestivalBooth booth, boolean liked) {
+    private Map<Long, Long> favoriteCounts() {
+        return favorites.countFavoritesByBooth().stream().collect(Collectors.toMap(
+                BoothFavoriteRepository.FavoriteCount::getBoothId,
+                BoothFavoriteRepository.FavoriteCount::getFavoriteCount));
+    }
+    private BoothSummaryResponse summary(FestivalBooth booth, boolean liked, long favoriteCount) {
         return new BoothSummaryResponse(booth.getId(), booth.getLatitude(), booth.getLongitude(), booth.getName(),
-                booth.getOperator(), booth.getOpensAt(), booth.getClosesAt(), booth.isStampEnabled(),
-                representative(booth), liked, booth.getCategory());
+                booth.getOperator(), booth.getDescription(), booth.getOpensAt(), booth.getClosesAt(), booth.isStampEnabled(),
+                representative(booth), liked, booth.getCategory(), favoriteCount);
     }
     private BoothDetailResponse detail(FestivalBooth booth, boolean liked) {
+        return detail(booth, liked, favorites.countByBoothId(booth.getId()));
+    }
+    private BoothDetailResponse detail(FestivalBooth booth, boolean liked, long favoriteCount) {
         List<BoothMediaResponse> media = media(booth);
         return new BoothDetailResponse(booth.getId(), booth.getLatitude(), booth.getLongitude(), booth.getName(),
                 booth.getOperator(), booth.getDescription(), booth.getOpensAt(), booth.getClosesAt(),
                 booth.isStampEnabled(), media,
                 media.stream().filter(BoothMediaResponse::representative).findFirst().orElse(null), liked,
-                booth.getCreatedAt(), booth.getUpdatedAt(), booth.getCategory());
+                booth.getCreatedAt(), booth.getUpdatedAt(), booth.getCategory(), favoriteCount);
     }
     private BoothAdminResponse admin(FestivalBooth booth) {
         return new BoothAdminResponse(detail(booth, false), booth.getManagers().stream().map(FestivalUser::getUserUuid).toList());

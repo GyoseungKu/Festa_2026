@@ -20,8 +20,9 @@
 - 좌표는 WGS84 위도·경도입니다.
 - 운영시간은 날짜·시간대가 없는 `HH:mm:ss` 형식입니다. API에는 별도의 운영 날짜·시즌 필드가 없습니다.
 - 전체·상세 조회는 공개 API입니다.
+- 전체 목록·내 찜 목록·관리자 목록은 일반부스(`GENERAL`) → 외부부스(`EXTERNAL`) → 학생회(`STUDENT_COUNCIL`) → 교내기관(`CAMPUS`) → 포토부스(`PHOTO_BOOTH`) → 푸드트럭(`FOOD_TRUCK`) → 기타(`OTHER`) 순서입니다. 같은 카테고리 안에서는 기존 부스명 오름차순을 유지합니다.
 - 로그인 상태에서 Bearer Token을 선택적으로 보내면 `favorited`가 현재 사용자 기준으로 계산됩니다.
-- 전체 찜 수는 공개하지 않습니다.
+- 목록·상세·내 찜 목록의 `favoriteCount`는 해당 부스를 찜한 전체 사용자 수입니다. 찜이 없으면 `0`입니다.
 - `representativeMedia`는 미디어가 없으면 `null`입니다.
 
 ## 프런트 타입
@@ -45,16 +46,17 @@ type BoothSummary = {
   longitude: number;
   name: string;
   operator: string;
+  description: string;
   category: BoothCategory;
   opensAt: string;
   closesAt: string;
   stampEnabled: boolean;
   representativeMedia: BoothMedia | null;
   favorited: boolean;
+  favoriteCount: number;
 };
 
 type BoothDetail = BoothSummary & {
-  description: string;
   media: BoothMedia[];
   createdAt: string;
   updatedAt: string;
@@ -94,6 +96,7 @@ Authorization: Bearer ACCESS_TOKEN  # 선택
     "longitude": 127.1059,
     "name": "멋사 체험 부스",
     "operator": "멋쟁이사자처럼",
+    "description": "체험 설명",
     "category": "GENERAL",
     "opensAt": "10:00:00",
     "closesAt": "18:00:00",
@@ -105,12 +108,13 @@ Authorization: Bearer ACCESS_TOKEN  # 선택
       "displayOrder": 0,
       "representative": true
     },
+    "favoriteCount": 0,
     "favorited": false
   }
 ]
 ```
 
-지도 핀은 `latitude`, `longitude`를 사용하고, 핀 팝업은 `name`, `operator`, `representativeMedia`를 사용하면 됩니다. 초기 화면에서 이 배열 전체를 지도에 표시합니다.
+지도 핀은 `latitude`, `longitude`를 사용하고, 목록 카드와 핀 팝업의 설명은 `description`을 사용하면 됩니다. `operator`는 운영 주체입니다. 목록과 내 찜 목록 모두 상세 조회와 동일한 설명 전문을 반환합니다. 초기 화면에서 이 배열 전체를 지도에 표시합니다.
 
 ## 부스 상세 조회
 
@@ -156,6 +160,7 @@ Authorization: Bearer ACCESS_TOKEN  # 선택
     "displayOrder": 0,
     "representative": true
   },
+  "favoriteCount": 0,
   "favorited": false,
   "createdAt": "2026-08-18T01:00:00Z",
   "updatedAt": "2026-08-18T02:00:00Z"

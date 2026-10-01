@@ -21,6 +21,46 @@ class BoothMediaPersistenceTests {
     @Autowired FestivalBoothRepository repository;
     @Autowired BoothService service;
     @Autowired TransactionTemplate transactions;
+    @Autowired BoothFavoriteRepository favorites;
+    @Autowired org.syu_likelion.Festa_2026.user.FestivalUserRepository users;
+
+    @Test
+    @org.springframework.transaction.annotation.Transactional
+    void favoriteCountsAreGroupedPerBoothAndDecreaseAfterRemoval() {
+        FestivalBooth first = repository.saveAndFlush(countTestBooth("첫 부스"));
+        FestivalBooth second = repository.saveAndFlush(countTestBooth("둘째 부스"));
+        FestivalBooth empty = repository.saveAndFlush(countTestBooth("찜 없는 부스"));
+        var user1 = users.saveAndFlush(new org.syu_likelion.Festa_2026.user.FestivalUser(UUID.randomUUID()));
+        var user2 = users.saveAndFlush(new org.syu_likelion.Festa_2026.user.FestivalUser(UUID.randomUUID()));
+        var removed = favorites.saveAndFlush(new BoothFavorite(first, user1));
+        favorites.saveAndFlush(new BoothFavorite(first, user2));
+        favorites.saveAndFlush(new BoothFavorite(second, user1));
+
+        var list = service.list(null, null).body();
+        assertThat(list).filteredOn(item -> item.id().equals(first.getId()))
+                .singleElement().satisfies(item -> {
+                    assertThat(item.favoriteCount()).isEqualTo(2);
+                    assertThat(item.favorited()).isFalse();
+                });
+        assertThat(list).filteredOn(item -> item.id().equals(second.getId()))
+                .singleElement().satisfies(item -> assertThat(item.favoriteCount()).isEqualTo(1));
+        assertThat(list).filteredOn(item -> item.id().equals(empty.getId()))
+                .singleElement().satisfies(item -> assertThat(item.favoriteCount()).isZero());
+        assertThat(service.detail(first.getId(), null, null).body().favoriteCount()).isEqualTo(2);
+        assertThat(service.detail(empty.getId(), null, null).body().favoriteCount()).isZero();
+
+        favorites.delete(removed);
+        favorites.flush();
+        assertThat(service.detail(first.getId(), null, null).body().favoriteCount()).isEqualTo(1);
+        assertThat(service.list(null, null).body()).filteredOn(item -> item.id().equals(first.getId()))
+                .singleElement().satisfies(item -> assertThat(item.favoriteCount()).isEqualTo(1));
+    }
+
+    private FestivalBooth countTestBooth(String name) {
+        return new FestivalBooth(new BigDecimal("37.6432000"), new BigDecimal("127.1059000"),
+                name, "운영팀", "설명", LocalTime.of(10, 0), LocalTime.of(18, 0),
+                false, Set.of(), ACTOR, BoothCategory.GENERAL);
+    }
 
     @Test
     void integratedImageAndVideoOrderPersistsThroughLockedMutation() {

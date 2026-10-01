@@ -27,6 +27,8 @@ class StampPrizeIntegrationTests {
     @Autowired StampPrizeRepository prizeRepository;
     @Autowired StampService stamps;
     @Autowired BoothService booths;
+    @Autowired BoothStampRepository stampRepository;
+    @Autowired FestivalBoothRepository boothRepository;
     @Autowired FestivalUserRepository users;
     @MockitoBean QrService qr;
     @MockitoBean SsoInternalProfileClient profiles;
@@ -41,7 +43,7 @@ class StampPrizeIntegrationTests {
                 "USER", "ACTIVE", "홍길동", null, "2026000001", "컴퓨터공학과", 1, "ENROLLED", null, null, null));
     }
 
-    @ParameterizedTest @ValueSource(ints = {0, 5, 6, 7})
+    @ParameterizedTest @ValueSource(ints = {0, 5, 6})
     void eligibilityDependsOnCurrentStampCountAndPersistsGrant(int count) {
         addStamps(count);
         var lookup = prizes.lookupQrAs(FestivalRole.ADMIN, "token");
@@ -157,11 +159,64 @@ class StampPrizeIntegrationTests {
         assertThat(prizes.historyAs(FestivalRole.ADMIN, old.getId(), 0).getTotalElements()).isEqualTo(2);
     }
 
+    @Test void sixthStampRequiresExternalAndSeventhIsRejectedForBothMethods() {
+        for (int i = 0; i < 5; i++) stamps.grantBySearchAs(actor, createBooth(BoothCategory.GENERAL), target);
+        Long general = createBooth(BoothCategory.GENERAL);
+        Long external = createBooth(BoothCategory.EXTERNAL);
+        assertThatThrownBy(() -> stamps.grantBySearchAs(actor, general, target))
+                .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code()).isEqualTo("STAMP_EXTERNAL_REQUIRED"));
+        assertThatThrownBy(() -> stamps.grantQrAs(actor, FestivalRole.ADMIN, general, "token"))
+                .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code()).isEqualTo("STAMP_EXTERNAL_REQUIRED"));
+        stamps.grantQrAs(actor, FestivalRole.ADMIN, external, "token");
+        assertThat(prizes.lookupUserAs(FestivalRole.ADMIN, target).eligible()).isTrue();
+        assertThatThrownBy(() -> stamps.grantBySearchAs(actor, general, target))
+                .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code()).isEqualTo("STAMP_BOARD_FULL"));
+        assertThatThrownBy(() -> stamps.grantQrAs(actor, FestivalRole.ADMIN, general, "token"))
+                .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code()).isEqualTo("STAMP_BOARD_FULL"));
+        assertThat(stampRepository.findAllByUserUserUuidOrderByGrantedAtAsc(target)).hasSize(6);
+    }
+
+    @Test void existingBoardWithoutExternalCannotRedeemPrize() {
+        var user = users.findByUserUuid(target).orElseThrow();
+        for (int i = 0; i < 6; i++) {
+            var booth = boothRepository.findById(createBooth(BoothCategory.GENERAL)).orElseThrow();
+            stampRepository.saveAndFlush(new BoothStamp(booth, user, java.time.Instant.now(), actor, StampMethod.ADMIN_SEARCH));
+        }
+        assertThat(prizes.lookupUserAs(FestivalRole.ADMIN, target).eligible()).isFalse();
+        assertThatThrownBy(() -> prizes.grantUserAs(actor, FestivalRole.ADMIN, target))
+                .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code()).isEqualTo("STAMP_PRIZE_NOT_READY"));
+    }
+
+    @Test void concurrentStampGrantsCannotExceedSix() throws Exception {
+        addStamps(5);
+        Long firstBooth = createBooth(BoothCategory.GENERAL);
+        Long secondBooth = createBooth(BoothCategory.EXTERNAL);
+        CountDownLatch start = new CountDownLatch(1);
+        try (ExecutorService pool = Executors.newFixedThreadPool(2)) {
+            var results = new java.util.ArrayList<Future<String>>();
+            for (Long id : List.of(firstBooth, secondBooth)) results.add(pool.submit(() -> {
+                start.await();
+                try { stamps.grantBySearchAs(actor, id, target); return "granted"; }
+                catch (ApiException conflict) { return conflict.code(); }
+            }));
+            start.countDown();
+            assertThat(List.of(results.get(0).get(15, TimeUnit.SECONDS), results.get(1).get(15, TimeUnit.SECONDS)))
+                    .containsExactlyInAnyOrder("granted", "STAMP_BOARD_FULL");
+        }
+        assertThat(stampRepository.findAllByUserUserUuidOrderByGrantedAtAsc(target)).hasSize(6);
+    }
+
+    private Long createBooth(BoothCategory category) {
+        return booths.createAs(actor, new BoothDtos.BoothMutationRequest(BigDecimal.ZERO, BigDecimal.ZERO,
+                "부스", "운영팀", "설명", LocalTime.of(10, 0), LocalTime.of(18, 0), true, List.of(), category),
+                List.of(), List.of()).booth().id();
+    }
+
     private List<Long> addStamps(int count) {
         var ids = new java.util.ArrayList<Long>();
         for (int i = 0; i < count; i++) {
             var request = new BoothDtos.BoothMutationRequest(BigDecimal.ZERO, BigDecimal.ZERO, "부스 " + i,
-                    "운영팀", "설명", LocalTime.of(10, 0), LocalTime.of(18, 0), true, List.of(), BoothCategory.GENERAL);
+                    "운영팀", "설명", LocalTime.of(10, 0), LocalTime.of(18, 0), true, List.of(), i == 0 ? BoothCategory.EXTERNAL : BoothCategory.GENERAL);
             Long id = booths.createAs(actor, request, List.of(), List.of()).booth().id();
             stamps.grantBySearchAs(actor, id, target);
             ids.add(id);
