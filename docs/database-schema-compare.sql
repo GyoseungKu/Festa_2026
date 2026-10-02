@@ -322,6 +322,12 @@ SELECT 'festival_polls' AS table_name, 'ends_at' AS column_name, 'datetime(6)' A
 UNION ALL
 SELECT 'festival_polls' AS table_name, 'id' AS column_name, 'bigint' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
+SELECT 'festival_polls' AS table_name, 'image_original_filename' AS column_name, 'varchar(255)' AS expected_type, 'YES' AS expected_nullable
+UNION ALL
+SELECT 'festival_polls' AS table_name, 'image_storage_key' AS column_name, 'varchar(1024)' AS expected_type, 'YES' AS expected_nullable
+UNION ALL
+SELECT 'festival_polls' AS table_name, 'image_url' AS column_name, 'varchar(2048)' AS expected_type, 'YES' AS expected_nullable
+UNION ALL
 SELECT 'festival_polls' AS table_name, 'published_at' AS column_name, 'datetime(6)' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
 SELECT 'festival_polls' AS table_name, 'result_published_at' AS column_name, 'datetime(6)' AS expected_type, 'YES' AS expected_nullable

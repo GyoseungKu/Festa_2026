@@ -44,6 +44,14 @@ public class PollAdminApiService {
                                                        String access, String refresh) {
         Auth auth = auth(access, refresh); return rotate(auth, polls.replaceOptionImageAs(id, optionId, file));
     }
+    public AuthorizedResult<PollDetailResponse> coverImage(Long id, MultipartFile file, String access, String refresh) {
+        Auth auth = auth(access, refresh);
+        return rotate(auth, polls.replaceCoverImageAs(id, auth.me().body().userUuid(), file));
+    }
+    public AuthorizedResult<PollDetailResponse> deleteCoverImage(Long id, String access, String refresh) {
+        Auth auth = auth(access, refresh);
+        return rotate(auth, polls.removeCoverImageAs(id, auth.me().body().userUuid()));
+    }
     public AuthorizedResult<PollDetailResponse> deleteImage(Long id, Long optionId, String access, String refresh) {
         Auth auth = auth(access, refresh); return rotate(auth, polls.removeOptionImageAs(id, optionId));
     }

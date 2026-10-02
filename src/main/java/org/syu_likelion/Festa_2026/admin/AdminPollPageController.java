@@ -50,6 +50,7 @@ public class AdminPollPageController {
         PollDetailResponse created = null;
         try {
             created = polls.createAs(admin.userUuid(), form.toMutation());
+            applyCoverImage(created.id(), admin, form);
             applyUploads(created, form);
             redirect.addFlashAttribute("message", "투표를 생성했습니다.");
             return "redirect:/admin/polls/" + created.id();
@@ -90,6 +91,7 @@ public class AdminPollPageController {
             PollDetailResponse updated = form.isSettingsOnly()
                     ? polls.updateSettingsAs(id, admin.userUuid(), form.toSettings())
                     : polls.updateDefinitionAs(id, admin.userUuid(), form.toMutation());
+            applyCoverImage(id, admin, form);
             if (!form.isSettingsOnly()) applyUploads(updated, form);
             redirect.addFlashAttribute("message", "투표 정보를 수정했습니다.");
             return "redirect:/admin/polls/" + id;
@@ -114,6 +116,11 @@ public class AdminPollPageController {
         } catch (ApiException exception) { redirect.addFlashAttribute("error", exception.getMessage()); return "redirect:/admin/polls/" + id; }
     }
 
+    private void applyCoverImage(Long id, AdminIdentity admin, PollAdminForm form) {
+        if (form.getCoverImage() != null && !form.getCoverImage().isEmpty())
+            polls.replaceCoverImageAs(id, admin.userUuid(), form.getCoverImage());
+        else if (form.isRemoveCoverImage()) polls.removeCoverImageAs(id, admin.userUuid());
+    }
     private void applyUploads(PollDetailResponse poll, PollAdminForm form) {
         int questionCount = Math.min(poll.questions().size(), form.getQuestions().size());
         for (int qi = 0; qi < questionCount; qi++) {

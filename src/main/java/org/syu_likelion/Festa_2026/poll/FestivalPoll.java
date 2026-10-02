@@ -29,6 +29,9 @@ public class FestivalPoll {
     private Long id;
     @Column(nullable = false, length = 200) private String title;
     @Column(nullable = false, columnDefinition = "TEXT") private String description;
+    @Column(name = "image_url", length = 2048) private String imageUrl;
+    @Column(name = "image_storage_key", length = 1024) private String imageStorageKey;
+    @Column(name = "image_original_filename", length = 255) private String imageOriginalFilename;
     @Column(nullable = false) private boolean anonymous;
     @Column(name = "allow_multiple_submissions", nullable = false) private boolean allowMultipleSubmissions;
     @Column(name = "published_at", nullable = false) @Convert(converter = KstInstantAttributeConverter.class)
@@ -79,6 +82,13 @@ public class FestivalPoll {
         questions.clear();
         replacements.forEach(question -> { question.attachTo(this); questions.add(question); });
     }
+
+    void setImage(String url, String storageKey, String originalFilename, UUID actor) {
+        imageUrl = url; imageStorageKey = storageKey; imageOriginalFilename = originalFilename; updatedBy = actor;
+    }
+    public String getImageUrl() { return imageUrl; }
+    public String getImageStorageKey() { return imageStorageKey; }
+    public String getImageOriginalFilename() { return imageOriginalFilename; }
 
     void close(Instant when, UUID actor) { closedAt = when; updatedBy = actor; }
 

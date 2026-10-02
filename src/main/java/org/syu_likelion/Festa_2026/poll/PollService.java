@@ -62,6 +62,7 @@ public class PollService {
     private final PollQuestionRepository questions;
     private final PollQuestionMediaRepository questionMedia;
     private final PollOptionImageStorage images;
+    private final PollCoverImageStorage coverImages;
     private final PollQuestionMediaStorage questionMediaStorage;
     private final UserService users;
     private final SsoInternalProfileClient profiles;
@@ -69,11 +70,11 @@ public class PollService {
 
     public PollService(FestivalPollRepository polls, PollSubmissionRepository submissions,
                        PollOptionRepository options, PollQuestionRepository questions,
-                       PollQuestionMediaRepository questionMedia, PollOptionImageStorage images,
+                       PollQuestionMediaRepository questionMedia, PollOptionImageStorage images, PollCoverImageStorage coverImages,
                        PollQuestionMediaStorage questionMediaStorage, UserService users,
                        SsoInternalProfileClient profiles, Clock clock) {
         this.polls = polls; this.submissions = submissions; this.options = options; this.questions = questions;
-        this.questionMedia = questionMedia; this.images = images; this.questionMediaStorage = questionMediaStorage;
+        this.questionMedia = questionMedia; this.images = images; this.coverImages = coverImages; this.questionMediaStorage = questionMediaStorage;
         this.users = users; this.profiles = profiles; this.clock = clock;
     }
 
@@ -243,10 +244,39 @@ public class PollService {
             submissions.deleteByPollId(id);
             submissions.flush();
         }
+        String coverKey = poll.getImageStorageKey();
         polls.delete(poll);
         polls.flush();
         TransactionalFileActions.deleteAfterCommit(() -> keys.forEach(images::delete));
+        if (coverKey != null) TransactionalFileActions.deleteAfterCommit(() -> coverImages.delete(coverKey));
         TransactionalFileActions.deleteAfterCommit(() -> questionMediaKeys.forEach(questionMediaStorage::delete));
+    }
+
+    @Transactional
+    public PollDetailResponse replaceCoverImageAs(Long pollId, UUID actor, MultipartFile file) {
+        FestivalPoll poll = find(pollId);
+        var stored = coverImages.store(file);
+        String oldKey = poll.getImageStorageKey();
+        boolean rollbackCleanup = TransactionalFileActions.deleteOnRollback(() -> coverImages.delete(stored.storageKey()));
+        try {
+            poll.setImage(stored.url(), stored.storageKey(), stored.originalFilename(), actor);
+            polls.saveAndFlush(poll);
+            if (oldKey != null) TransactionalFileActions.deleteAfterCommit(() -> coverImages.delete(oldKey));
+            return toDetail(poll, null, clock.instant());
+        } catch (RuntimeException failure) {
+            if (!rollbackCleanup) coverImages.delete(stored.storageKey());
+            throw failure;
+        }
+    }
+
+    @Transactional
+    public PollDetailResponse removeCoverImageAs(Long pollId, UUID actor) {
+        FestivalPoll poll = find(pollId);
+        String oldKey = poll.getImageStorageKey();
+        poll.setImage(null, null, null, actor);
+        polls.saveAndFlush(poll);
+        if (oldKey != null) TransactionalFileActions.deleteAfterCommit(() -> coverImages.delete(oldKey));
+        return toDetail(poll, null, clock.instant());
     }
 
     @Transactional
@@ -474,7 +504,7 @@ public class PollService {
         return new PollSummaryResponse(poll.getId(), poll.getTitle(), poll.getDescription(), poll.isAnonymous(),
                 poll.isAllowMultipleSubmissions(), poll.getPublishedAt(), poll.getStartsAt(), poll.getEndsAt(),
                 poll.getResultPublishedAt(), poll.getClosedAt(), state(poll, now), mine > 0, mine,
-                resultAvailable(poll, now));
+                resultAvailable(poll, now), poll.getImageUrl());
     }
 
     private PollDetailResponse toDetail(FestivalPoll poll, UUID viewer, Instant now) {
@@ -489,7 +519,7 @@ public class PollService {
                         question.getMedia().stream().map(item -> new PollQuestionMediaResponse(item.getId(),
                                 item.getKind(), item.getUrl(), item.getOriginalFilename(), item.getDisplayOrder()))
                                 .toList())).toList(),
-                poll.getCreatedAt(), poll.getUpdatedAt());
+                poll.getCreatedAt(), poll.getUpdatedAt(), poll.getImageUrl());
     }
 
     private MySubmissionResponse toMySubmission(PollSubmission submission) {

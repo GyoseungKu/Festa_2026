@@ -22,6 +22,7 @@
                 <span class="publish-chip" th:classappend="${poll.state.name() == 'OPEN'} ? ' is-public' : ' is-scheduled'" th:text="${poll.state.name() == 'OPEN' ? '진행 중' : (poll.state.name() == 'UPCOMING' ? '진행 예정' : '종료')}">진행 중</span></div>
                 <span class="media-count" th:text="${poll.allowMultipleSubmissions ? '복수 참여' : '1회 참여'}">1회 참여</span></div>
             <h2 th:text="${poll.title}">투표 제목</h2><p th:text="${poll.description}">설명</p>
+            <img th:if="${poll.imageUrl != null}" th:src="${poll.imageUrl}" alt="투표 기본정보 이미지" loading="lazy" style="max-width:100%;max-height:240px;object-fit:contain;border-radius:12px">
             <dl class="performance-meta"><div><dt>공개</dt><dd th:text="${#temporals.format(poll.publishedAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm')}">공개</dd></div>
                 <div><dt>진행</dt><dd th:text="|${#temporals.format(poll.startsAt.atZone(seoulZone), 'MM-dd HH:mm')} ~ ${#temporals.format(poll.endsAt.atZone(seoulZone), 'MM-dd HH:mm')}|">진행</dd></div>
                 <div><dt>결과 공개</dt><dd th:text="${poll.resultPublishedAt == null ? '관리자 전용' : #temporals.format(poll.resultPublishedAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm')}">관리자 전용</dd></div></dl>

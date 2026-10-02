@@ -19,6 +19,8 @@ public class PollAdminForm {
     private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
     private String title;
     private String description = "";
+    private MultipartFile coverImage;
+    private boolean removeCoverImage;
     private boolean anonymous;
     private boolean allowMultipleSubmissions;
     @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm") private LocalDateTime publishedAt;
@@ -78,6 +80,10 @@ public class PollAdminForm {
     private static Instant instant(LocalDateTime value) { return value == null ? null : value.atZone(SEOUL).toInstant(); }
     private static LocalDateTime local(Instant value) { return value == null ? null : LocalDateTime.ofInstant(value, SEOUL); }
 
+    public MultipartFile getCoverImage() { return coverImage; }
+    public void setCoverImage(MultipartFile value) { coverImage = value; }
+    public boolean isRemoveCoverImage() { return removeCoverImage; }
+    public void setRemoveCoverImage(boolean value) { removeCoverImage = value; }
     public String getTitle() { return title; } public void setTitle(String value) { title = value; }
     public String getDescription() { return description; } public void setDescription(String value) { description = value; }
     public boolean isAnonymous() { return anonymous; } public void setAnonymous(boolean value) { anonymous = value; }

@@ -32,6 +32,29 @@ class PollServiceTests {
     @Autowired PollService service;
     @Autowired jakarta.persistence.EntityManager entityManager;
     @MockitoBean PollQuestionMediaStorage questionMediaStorage;
+    @MockitoBean PollCoverImageStorage coverImageStorage;
+
+    @Test
+    void coverImagePersistsAndCanBeReplacedOrRemovedAfterVoting() {
+        when(coverImageStorage.store(any())).thenAnswer(invocation -> {
+            var upload = (org.springframework.web.multipart.MultipartFile) invocation.getArgument(0);
+            return new PollCoverImageStorage.StoredImage("https://cdn.test/" + upload.getOriginalFilename(),
+                    "poll/covers/" + upload.getOriginalFilename(), upload.getOriginalFilename());
+        });
+        var poll = service.createAs(ADMIN, request(false, true));
+        service.replaceCoverImageAs(poll.id(), ADMIN, file("cover.png", "image/png"));
+        entityManager.flush();
+        entityManager.clear();
+        assertThat(service.adminDetailAs(poll.id(), FestivalRole.ADMIN).poll().imageUrl())
+                .isEqualTo("https://cdn.test/cover.png");
+        service.submitAs(poll.id(), USER, choiceAnswer(poll));
+        assertThat(service.replaceCoverImageAs(poll.id(), ADMIN, file("new.webp", "image/webp")).imageUrl())
+                .isEqualTo("https://cdn.test/new.webp");
+        assertThat(service.removeCoverImageAs(poll.id(), ADMIN).imageUrl()).isNull();
+        entityManager.flush();
+        entityManager.clear();
+        assertThat(service.adminDetailAs(poll.id(), FestivalRole.ADMIN).poll().imageUrl()).isNull();
+    }
 
     @Test
     void maximumLengthKoreanAndEmojiPollTextSurvivesDatabaseReload() {

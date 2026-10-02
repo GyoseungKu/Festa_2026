@@ -24,6 +24,7 @@ public final class EarlyMultipartAuthenticationFilter extends OncePerRequestFilt
             "^/api/performances/[^/]+/(?:images|videos)/?$");
     private static final Pattern POLL_OPTION_IMAGE = Pattern.compile(
             "^/api/admin/polls/[^/]+/options/[^/]+/image/?$");
+    private static final Pattern POLL_COVER_IMAGE = Pattern.compile("^/api/admin/polls/[^/]+/image/?$");
     private static final Pattern POLL_QUESTION_MEDIA = Pattern.compile(
             "^/api/admin/polls/[^/]+/questions/[^/]+/media/?$");
     private static final Pattern LOST_ITEM_DETAIL = Pattern.compile("^/api/lost-items/[^/]+/?$");
@@ -71,6 +72,7 @@ public final class EarlyMultipartAuthenticationFilter extends OncePerRequestFilt
         if ("POST".equals(method) && (BOOTH_MEDIA.matcher(path).matches()
                 || PERFORMANCE_MEDIA.matcher(path).matches()
                 || POLL_OPTION_IMAGE.matcher(path).matches()
+                || POLL_COVER_IMAGE.matcher(path).matches()
                 || POLL_QUESTION_MEDIA.matcher(path).matches())) return RequiredAccess.ADMIN;
         if ("POST".equals(method) && "/api/lost-items".equals(stripTrailingSlash(path)))
             return RequiredAccess.STAFF;

@@ -6,6 +6,7 @@
 
 | 기능 | multipart 파트 | 허용 형식 | 개수 | 파일당 기본 제한 |
 |---|---|---|---|---|
+| 투표 기본정보 이미지 | `file` | JPEG, PNG, WebP | 투표당 1개, 새 파일로 교체 | 10MB |
 | 부스 이미지 | `files` 반복 | JPEG, PNG, WebP, GIF | 부스당 5개 | 10MB |
 | 부스 동영상 | `files` 반복 | MP4, WebM, MOV | 부스당 3개 | 200MB |
 | 공연 이미지 | `files` 반복 | JPEG, PNG, WebP, GIF | 링크와 업로드 합산 3개 | 10MB |

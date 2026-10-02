@@ -309,6 +309,7 @@ class AdminPageIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(view().name("admin/polls/form"))
                 .andExpect(content().string(containsString("새 투표 만들기")))
+                .andExpect(content().string(containsString("name=\"coverImage\"")))
                 .andExpect(content().string(containsString("questions[0].text")))
                 .andExpect(content().string(containsString("questions[0].mediaFiles")))
                 .andExpect(content().string(containsString("video/quicktime")))
@@ -328,7 +329,7 @@ class AdminPageIntegrationTests {
         var poll = new org.syu_likelion.Festa_2026.poll.PollDtos.PollDetailResponse(3L, "축제 사전 설문", "설명",
                 true, false, now.minusSeconds(7200), now.minusSeconds(3600), now.plusSeconds(3600),
                 now.minusSeconds(600), null, org.syu_likelion.Festa_2026.poll.PollState.OPEN,
-                false, 0, true, java.util.List.of(question), now.minusSeconds(7200), now);
+                false, 0, true, java.util.List.of(question), now.minusSeconds(7200), now, "https://cdn.test/cover.png");
         var optionResult = new org.syu_likelion.Festa_2026.poll.PollDtos.OptionResultResponse(21L, "공연", null, 1, 100.0);
         var questionResult = new org.syu_likelion.Festa_2026.poll.PollDtos.QuestionResultResponse(11L,
                 "가장 기대되는 프로그램", org.syu_likelion.Festa_2026.poll.PollQuestionType.SINGLE_CHOICE,
@@ -342,11 +343,20 @@ class AdminPageIntegrationTests {
         when(pollService.adminDetailAs(3L, FestivalRole.ADMIN, 0, 20)).thenReturn(
                 new org.syu_likelion.Festa_2026.poll.PollDtos.PollAdminDetailResponse(poll, 1, result,
                         java.util.List.of(submission), 0, 20, 1, 1));
+        when(pollService.adminDetailAs(3L, FestivalRole.ADMIN)).thenReturn(
+                new org.syu_likelion.Festa_2026.poll.PollDtos.PollAdminDetailResponse(poll, 1, result,
+                        java.util.List.of(submission), 0, 20, 1, 1));
+        mvc.perform(get("/admin/polls/3/edit").cookie(new Cookie("festivalAdminAccess", "access-one")))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("https://cdn.test/cover.png")))
+                .andExpect(content().string(containsString("name=\"coverImage\"")))
+                .andExpect(content().string(containsString("name=\"removeCoverImage\"")));
 
         mvc.perform(get("/admin/polls/3").cookie(new Cookie("festivalAdminAccess", "access-one")))
                 .andExpect(status().isOk())
                 .andExpect(view().name("admin/polls/detail"))
                 .andExpect(content().string(containsString("총 1건 제출")))
+                .andExpect(content().string(containsString("https://cdn.test/cover.png")))
                 .andExpect(content().string(containsString("익명 응답")))
                 .andExpect(content().string(containsString("공연")));
     }

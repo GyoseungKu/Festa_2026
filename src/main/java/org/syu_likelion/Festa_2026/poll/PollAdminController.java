@@ -53,6 +53,22 @@ public class PollAdminController {
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization, HttpServletRequest request) {
         return response(admin.list(BearerTokens.require(authorization), cookies.readRefreshToken(request)));
     }
+
+    @PostMapping(value = "/{id}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "투표 기본정보 이미지 업로드·교체", description = "ADMIN 이상. file 파트에 JPG, PNG, WebP 이미지 1개(최대 10MB)를 전달합니다. 응답 시작 후에도 변경할 수 있습니다.")
+    ResponseEntity<PollDetailResponse> coverImage(@PathVariable Long id, @RequestPart("file") MultipartFile file,
+            @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
+            HttpServletRequest request) {
+        return response(admin.coverImage(id, file, BearerTokens.require(authorization), cookies.readRefreshToken(request)));
+    }
+
+    @DeleteMapping("/{id}/image")
+    @Operation(summary = "투표 기본정보 이미지 삭제", description = "ADMIN 이상. 이미지가 없는 경우에도 정상 처리합니다.")
+    ResponseEntity<PollDetailResponse> deleteCoverImage(@PathVariable Long id,
+            @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authorization,
+            HttpServletRequest request) {
+        return response(admin.deleteCoverImage(id, BearerTokens.require(authorization), cookies.readRefreshToken(request)));
+    }
     @Operation(summary = "관리자 투표 집계와 제출 내역 조회", description = "ADMIN 이상이 실시간 집계와 제출 내역을 조회합니다. page는 0부터, size는 기본 50이며 최대 100입니다. 익명 투표의 제출자 신원은 SUPER_ADMIN에게만 공개됩니다.")
     @GetMapping("/{id}") ResponseEntity<PollAdminDetailResponse> detail(@PathVariable Long id,
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "50") int size,

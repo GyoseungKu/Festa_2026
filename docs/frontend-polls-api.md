@@ -12,6 +12,7 @@
 - [사용자 결과](#사용자-결과)
 - [ADMIN 이상 투표 생성·수정](#admin-이상-투표-생성수정)
 - [선택지 이미지](#선택지-이미지)
+- [기본정보 이미지](#기본정보-이미지)
 - [질문 이미지·동영상](#질문-이미지동영상)
 - [주요 오류](#주요-오류)
 
@@ -77,6 +78,7 @@ type PollSummary = {
   id: number;
   title: string;
   description: string;
+  imageUrl: string | null; // 투표 기본정보 이미지
   anonymous: boolean;
   allowMultipleSubmissions: boolean;
   publishedAt: string;
@@ -286,6 +288,20 @@ type PollAdminDetail = {
   totalPages: number;
 };
 ```
+
+## 기본정보 이미지
+
+`ADMIN` 이상은 아래 API로 투표 기본정보 이미지 1개를 추가·교체·삭제합니다. 투표 생성 JSON에는 이미지를 넣지 않고, 생성 후 반환된 ID로 업로드합니다.
+
+```http
+POST /api/admin/polls/{pollId}/image
+Authorization: Bearer ACCESS_TOKEN
+Content-Type: multipart/form-data
+
+file: 이미지 파일
+```
+
+JPG, PNG, WebP를 허용하며 기본 최대 크기는 10MB입니다. 기존 이미지는 새 파일로 교체됩니다. `DELETE /api/admin/polls/{pollId}/image`로 삭제합니다. 두 API 모두 `PollDetail`을 반환하며 목록·상세의 `imageUrl`로 표시합니다. 응답이 들어온 뒤에도 변경할 수 있습니다. 관리자 생성·수정 화면에서는 기본정보의 파일 선택과 기존 이미지 삭제 체크박스를 사용합니다.
 
 ## 선택지 이미지
 

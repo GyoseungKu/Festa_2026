@@ -18,7 +18,13 @@
 <input type="hidden" th:field="*{settingsOnly}">
 <section class="form-section"><div class="form-section-heading"><span>01</span><div><h2>기본 정보</h2><p>사용자에게 표시할 제목과 설명입니다.</p></div></div>
 <div class="form-grid"><label class="field-group field-full"><span>제목 <b>*</b></span><input type="text" th:field="*{title}" maxlength="200" required></label>
-<label class="field-group field-full"><span>설명</span><textarea th:field="*{description}" rows="5" maxlength="5000"></textarea></label></div></section>
+<label class="field-group field-full"><span>설명</span><textarea th:field="*{description}" rows="5" maxlength="5000"></textarea></label>
+<div class="field-group field-full"><label for="coverImage">기본정보 이미지</label>
+<input type="file" th:field="*{coverImage}" accept="image/jpeg,image/png,image/webp">
+<small>JPG, PNG, WebP 이미지 1개 · 최대 10MB. 새 파일을 선택하면 기존 이미지를 교체합니다.</small>
+<div th:if="${editing and poll.imageUrl != null}"><img th:src="${poll.imageUrl}" alt="현재 투표 기본정보 이미지" style="display:block;max-width:100%;max-height:320px;object-fit:contain;border-radius:12px;margin:12px 0">
+<label class="inline-check"><input type="checkbox" th:field="*{removeCoverImage}">기존 이미지 삭제</label></div>
+</div></div></section>
 <section class="form-section"><div class="form-section-heading"><span>02</span><div><h2>공개 및 진행 일정</h2><p>모든 입력은 한국 시간 기준입니다.</p></div></div>
 <div class="form-grid form-grid-three"><label class="field-group"><span>목록 공개 <b>*</b></span><input type="datetime-local" th:field="*{publishedAt}" th:disabled="${structureLocked}" required></label>
 <label class="field-group"><span>투표 시작 <b>*</b></span><input type="datetime-local" th:field="*{startsAt}" th:disabled="${structureLocked}" required></label>

@@ -58,14 +58,31 @@ public final class PollDtos {
             Long id, String title, String description, boolean anonymous, boolean allowMultipleSubmissions,
             Instant publishedAt, Instant startsAt, Instant endsAt, Instant resultPublishedAt,
             Instant closedAt, PollState state, boolean hasSubmitted, long mySubmissionCount,
-            boolean resultAvailable) { }
+            boolean resultAvailable, String imageUrl) {
+        public PollSummaryResponse(
+            Long id, String title, String description, boolean anonymous, boolean allowMultipleSubmissions,
+            Instant publishedAt, Instant startsAt, Instant endsAt, Instant resultPublishedAt,
+            Instant closedAt, PollState state, boolean hasSubmitted, long mySubmissionCount,
+            boolean resultAvailable) {
+            this(id, title, description, anonymous, allowMultipleSubmissions, publishedAt, startsAt, endsAt, resultPublishedAt, closedAt, state, hasSubmitted, mySubmissionCount, resultAvailable, null);
+        }
+    }
 
     public record PollDetailResponse(
             Long id, String title, String description, boolean anonymous, boolean allowMultipleSubmissions,
             Instant publishedAt, Instant startsAt, Instant endsAt, Instant resultPublishedAt,
             Instant closedAt, PollState state, boolean hasSubmitted, long mySubmissionCount,
             boolean resultAvailable, List<PollQuestionResponse> questions,
-            Instant createdAt, Instant updatedAt) { }
+            Instant createdAt, Instant updatedAt, String imageUrl) {
+        public PollDetailResponse(
+            Long id, String title, String description, boolean anonymous, boolean allowMultipleSubmissions,
+            Instant publishedAt, Instant startsAt, Instant endsAt, Instant resultPublishedAt,
+            Instant closedAt, PollState state, boolean hasSubmitted, long mySubmissionCount,
+            boolean resultAvailable, List<PollQuestionResponse> questions,
+            Instant createdAt, Instant updatedAt) {
+            this(id, title, description, anonymous, allowMultipleSubmissions, publishedAt, startsAt, endsAt, resultPublishedAt, closedAt, state, hasSubmitted, mySubmissionCount, resultAvailable, questions, createdAt, updatedAt, null);
+        }
+    }
 
     public record SubmissionReceipt(Long submissionId, Instant submittedAt, long mySubmissionCount) { }
     public record MyAnswerResponse(Long questionId, List<Long> optionIds, String text) { }

@@ -27,6 +27,7 @@ class EarlyMultipartSecurityIntegrationTests {
                 new Request("POST", "/api/performances/1/images"),
                 new Request("POST", "/api/performances/1/videos"),
                 new Request("POST", "/api/admin/polls/1/options/1/image"),
+                new Request("POST", "/api/admin/polls/1/image"),
                 new Request("POST", "/api/lost-items"),
                 new Request("PATCH", "/api/lost-items/1"));
 
