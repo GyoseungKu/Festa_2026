@@ -50,6 +50,25 @@ class QuotaMailSenderTests {
         verifyNoInteractions(second, third);
     }
 
+    @Test void quotaFailoverReachesTenthAndSkipsAllNineLimitedAccounts() throws Exception {
+        var accounts = new ArrayList<QuotaMailSender.Account>();
+        var delegates = new ArrayList<JavaMailSender>();
+        for (int slot = 1; slot <= 10; slot++) {
+            var delegate = mock(JavaMailSender.class);
+            delegates.add(delegate);
+            String username = "account" + slot + "@gmail.com";
+            accounts.add(new QuotaMailSender.Account(slot, delegate, username, slot == 1 ? null : username));
+            if (slot < 10) doThrow(quota()).when(delegate).send(any(MimeMessage.class));
+        }
+        var tenAccounts = new QuotaMailSender(accounts, Duration.ofDays(1), clock);
+        tenAccounts.send(message());
+        tenAccounts.send(message());
+        var order = inOrder(delegates.toArray());
+        for (int i = 0; i < 9; i++) order.verify(delegates.get(i)).send(any(MimeMessage.class));
+        order.verify(delegates.get(9), times(2)).send(any(MimeMessage.class));
+        order.verifyNoMoreInteractions();
+    }
+
     @Test void quotaFailsOverInOrderAndSkipsLimitedAccounts() throws Exception {
         doThrow(quota()).when(first).send(any(MimeMessage.class));
         doThrow(quota()).when(second).send(any(MimeMessage.class));

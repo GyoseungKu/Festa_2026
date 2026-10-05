@@ -69,8 +69,41 @@ class MailAccountConfigurationTests {
                 });
     }
 
+    @Test void registersAllTenAccountsAndCopiesSettingsToLastSlot() {
+        var properties = new java.util.ArrayList<String>();
+        for (int slot = 2; slot <= 10; slot++) {
+            properties.add("mail.accounts." + slot + ".username=account" + slot + "@gmail.com");
+            properties.add("mail.accounts." + slot + ".password=password" + slot);
+        }
+        properties.add("mail.accounts.10.from=tenth@example.com");
+        context.withPropertyValues(properties.toArray(String[]::new)).run(ctx -> {
+            assertThat(ctx).hasSingleBean(JavaMailSender.class);
+            @SuppressWarnings("unchecked")
+            var accounts = (List<QuotaMailSender.Account>) ReflectionTestUtils.getField(ctx.getBean(QuotaMailSender.class), "accounts");
+            assertThat(accounts).extracting(QuotaMailSender.Account::slot).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+            var tenth = (JavaMailSenderImpl) accounts.get(9).sender();
+            assertThat(tenth.getPassword()).isEqualTo("password10");
+            assertThat(tenth.getJavaMailProperties()).containsEntry("mail.smtp.from", "tenth@example.com")
+                    .containsEntry("mail.smtp.starttls.required", "true");
+        });
+    }
+
+    @Test void tenthAccountWorksWithIntermediateSlotsOmitted() {
+        context.withPropertyValues("mail.accounts.10.username=tenth@gmail.com", "mail.accounts.10.password=test")
+                .run(ctx -> {
+                    assertThat(ctx).hasNotFailed();
+                    @SuppressWarnings("unchecked")
+                    var accounts = (List<QuotaMailSender.Account>) ReflectionTestUtils.getField(ctx.getBean(QuotaMailSender.class), "accounts");
+                    assertThat(accounts).extracting(QuotaMailSender.Account::slot).containsExactly(1, 10);
+                    assertThat(accounts.get(1).from()).isEqualTo("tenth@gmail.com");
+                });
+    }
+
     @Test void rejectsIncompleteDuplicateAndInvalidCooldownConfiguration() {
         for (String[] invalid : List.of(
+                new String[]{"mail.accounts.6.username=sixth@gmail.com"},
+                new String[]{"mail.accounts.10.password=only-password"},
+                new String[]{"mail.accounts.10.username=f.i.r.s.t+alias@gmail.com", "mail.accounts.10.password=test"},
                 new String[]{"mail.accounts.4.username=fourth@gmail.com"},
                 new String[]{"mail.accounts.5.password=only-password"},
                 new String[]{"mail.accounts.5.username=f.i.r.s.t+alias@gmail.com", "mail.accounts.5.password=test"},
