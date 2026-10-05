@@ -9,11 +9,11 @@ import org.hibernate.type.SqlTypes;
 @Entity
 @Table(name = "festival_wristband_events", indexes = @Index(name = "idx_wristband_events_record", columnList = "wristband_id,id"))
 public class WristbandEvent {
-    public enum Action { ISSUE, REVOKE }
+    public enum Action { ISSUE, REVOKE, UPDATE_PROFILE }
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id;
     @Column(nullable = false) private Long wristbandId;
     @Enumerated(EnumType.STRING) @Column(nullable = false, length = 16) private Action action;
-    @JdbcTypeCode(SqlTypes.CHAR) @Column(nullable = false, length = 36, columnDefinition = "CHAR(36)")
+    @JdbcTypeCode(SqlTypes.CHAR) @Column(length = 36, columnDefinition = "CHAR(36)")
     private UUID targetUserUuid;
     @JdbcTypeCode(SqlTypes.CHAR) @Column(nullable = false, length = 36, columnDefinition = "CHAR(36)")
     private UUID actorUuid;

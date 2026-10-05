@@ -17,9 +17,11 @@ public class Wristband {
     @Column(nullable = false) private boolean issued;
     @JdbcTypeCode(SqlTypes.CHAR) @Column(length = 36, columnDefinition = "CHAR(36)", unique = true)
     private UUID activeUserUuid;
-    @JdbcTypeCode(SqlTypes.CHAR) @Column(nullable = false, length = 36, columnDefinition = "CHAR(36)")
+    @JdbcTypeCode(SqlTypes.CHAR) @Column(length = 36, columnDefinition = "CHAR(36)")
     private UUID targetUserUuid;
     @Column(nullable = false, length = 200) private String targetName;
+    @Column(length = 10) private String targetStudentNo;
+    @Column(length = 100) private String targetDepartment;
     @JdbcTypeCode(SqlTypes.CHAR) @Column(nullable = false, length = 36, columnDefinition = "CHAR(36)")
     private UUID issuedBy;
     @Column(nullable = false, length = 200) private String issuerName;
@@ -30,7 +32,16 @@ public class Wristband {
     public Wristband(String subjectHash) { this.subjectHash = subjectHash; }
     public void issue(UUID target, String name, UUID actor, String actorName, Instant now) {
         issued = true; activeUserUuid = target; targetUserUuid = target; targetName = name;
+        targetStudentNo = null; targetDepartment = null;
         issuedBy = actor; issuerName = actorName; issuedAt = now; updatedAt = now;
+    }
+    public void issueWithoutAccount(String studentNo, String name, String department,
+            UUID actor, String actorName, Instant now) {
+        issue(null, name, actor, actorName, now);
+        targetStudentNo = studentNo; targetDepartment = department;
+    }
+    public void updateManualProfile(String name, String department, Instant now) {
+        targetName = name; targetDepartment = department; updatedAt = now;
     }
     public void revoke(Instant now) { issued = false; activeUserUuid = null; updatedAt = now; }
     public Long getId() { return id; }
@@ -40,6 +51,8 @@ public class Wristband {
     public String getSubjectHash() { return subjectHash; }
     public UUID getTargetUserUuid() { return targetUserUuid; }
     public String getTargetName() { return targetName; }
+    public String getTargetStudentNo() { return targetStudentNo; }
+    public String getTargetDepartment() { return targetDepartment; }
     public UUID getIssuedBy() { return issuedBy; }
     public String getIssuerName() { return issuerName; }
     public Instant getIssuedAt() { return issuedAt; }

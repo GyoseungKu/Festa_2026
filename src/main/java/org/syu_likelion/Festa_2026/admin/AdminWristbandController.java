@@ -19,9 +19,11 @@ public class AdminWristbandController {
     private final AdminCookieManager cookies;
     private final WristbandService wristbands;
     private final WristbandLookupService lookup;
+    private final ManualWristbandService manual;
     public AdminWristbandController(AdminAccessService access, AdminCookieManager cookies,
-            WristbandService wristbands, WristbandLookupService lookup) {
+            WristbandService wristbands, WristbandLookupService lookup, ManualWristbandService manual) {
         this.access = access; this.cookies = cookies; this.wristbands = wristbands; this.lookup = lookup;
+        this.manual = manual;
     }
     private AdminAccessService.AdminIdentity authenticate(HttpServletRequest request, HttpServletResponse response, Model model) {
         var auth = access.authenticate(cookies.readAccessToken(request), cookies.readRefreshToken(request));
@@ -72,6 +74,41 @@ public class AdminWristbandController {
         } catch (ApiException e) { flash.addFlashAttribute("error", e.getMessage()); }
         catch (SsoException e) { flash.addFlashAttribute("error", "사용자 정보를 확인하지 못해 지급하지 않았습니다. 다시 조회해 주세요."); }
         return "redirect:/admin/wristbands";
+    }
+    @PostMapping("/manual/search")
+    String manualSearch(@RequestParam String studentNo, HttpServletRequest request,
+            HttpServletResponse response, Model model) {
+        var actor = authenticate(request, response, model);
+        WristbandService.requireAdmin(actor.role());
+        model.addAttribute("manualStudentNo", studentNo);
+        try { model.addAttribute("manualResult", manual.lookup(actor.role(), studentNo)); }
+        catch (ApiException e) { model.addAttribute("error", e.getMessage()); }
+        return "admin/wristbands/issue";
+    }
+    @PostMapping("/manual/issue")
+    String manualIssue(@RequestParam String studentNo, @RequestParam(required = false) String name,
+            @RequestParam(required = false) String department, HttpServletRequest request,
+            HttpServletResponse response, RedirectAttributes flash) {
+        var actor = authenticate(request, response, null);
+        WristbandService.requireAdmin(actor.role());
+        try {
+            var record = manual.issue(actor.role(), actor.userUuid(), actor.displayName(), studentNo, name, department);
+            flash.addFlashAttribute("message", "팔찌 지급을 기록했습니다. 본인을 확인한 학생에게 팔찌를 전달해 주세요.");
+            return "redirect:/admin/wristbands/records/" + record.getId();
+        } catch (ApiException e) { flash.addFlashAttribute("error", e.getMessage()); }
+        return "redirect:/admin/wristbands";
+    }
+    @PostMapping("/records/{id}/profile")
+    String manualProfile(@PathVariable long id, @RequestParam long version,
+            @RequestParam(required = false) String name, @RequestParam(required = false) String department,
+            HttpServletRequest request, HttpServletResponse response, RedirectAttributes flash) {
+        var actor = authenticate(request, response, null);
+        WristbandService.requireAdmin(actor.role());
+        try {
+            manual.updateProfile(actor.role(), actor.userUuid(), actor.displayName(), id, version, name, department);
+            flash.addFlashAttribute("message", "수령자 정보를 저장했습니다.");
+        } catch (ApiException e) { flash.addFlashAttribute("error", e.getMessage()); }
+        return "redirect:/admin/wristbands/records/" + id;
     }
     @GetMapping("/manage")
     String manage(@RequestParam(defaultValue = "0") int page, HttpServletRequest request, HttpServletResponse response, Model model) {

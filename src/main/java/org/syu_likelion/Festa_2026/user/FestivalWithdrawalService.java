@@ -52,7 +52,7 @@ public class FestivalWithdrawalService {
             update("BambooModerationAudit", "targetUserUuid", ", targetNickname = '알 수 없음'", userUuid, anonymous);
             update("BambooModerationAudit", "actorUuid", ", actorName = '알 수 없음'", userUuid, anonymous);
             // Keep the school-subject HMAC and state to prevent duplicate wristbands after rejoining.
-            update("Wristband", "targetUserUuid", ", targetName = '알 수 없음'", userUuid, anonymous);
+            update("Wristband", "targetUserUuid", ", targetName = '알 수 없음', targetStudentNo = null, targetDepartment = null", userUuid, anonymous);
             update("Wristband", "activeUserUuid", "", userUuid, anonymous);
             update("Wristband", "issuedBy", ", issuerName = '알 수 없음'", userUuid, anonymous);
             update("WristbandEvent", "targetUserUuid", "", userUuid, anonymous);

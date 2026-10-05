@@ -26,6 +26,30 @@
             </form>
         </section>
     </div>
+    <section th:if="${canManage}" class="panel">
+        <h2>미가입자 · 학번 직접 조회</h2>
+        <p class="support-copy">홈페이지에 가입하지 않은 학생은 전체 학번으로 조회해 주세요. 학생회비 납부 여부와 기존 지급 기록을 확인합니다. 지급 전 학생증 등으로 본인과 학번을 확인해 주세요.</p>
+        <form class="wristband-form" method="post" th:action="@{/admin/wristbands/manual/search}">
+            <label class="field-group"><span>학번</span><input name="studentNo" th:value="${manualStudentNo}" inputmode="numeric" pattern="[0-9]{10}" minlength="10" maxlength="10" required autocomplete="off" placeholder="10자리 전체 학번"></label>
+            <button class="button button-primary" type="submit">학번 조회</button>
+        </form>
+        <div th:if="${manualResult != null}">
+            <dl class="profile-grid">
+                <div><dt>학번</dt><dd th:text="${manualResult.studentNo}"></dd></div>
+                <div><dt>학생회비</dt><dd th:text="${manualResult.studentFeePaid ? '납부' : '미납부'}"></dd></div>
+                <div><dt>팔찌</dt><dd th:text="${manualResult.issued() ? '지급 완료' : '미지급'}"></dd></div>
+                <div th:if="${manualResult.wristband != null}"><dt>최근 지급 일시</dt><dd th:text="${#temporals.format(manualResult.wristband.issuedAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm:ss')} + ' KST'"></dd></div>
+            </dl>
+            <p class="support-copy">학생회비 미납부자도 지급할 수 있습니다. 이름과 학과는 선택 입력입니다.</p>
+            <form th:unless="${manualResult.issued()}" class="wristband-form" method="post" th:action="@{/admin/wristbands/manual/issue}" onsubmit="return confirm('학생증 등으로 본인과 학번을 확인했나요? 팔찌 지급을 기록합니다.');">
+                <input type="hidden" name="studentNo" th:value="${manualResult.studentNo}">
+                <label class="field-group"><span>이름 (선택)</span><input name="name" maxlength="200" th:value="${manualResult.wristband != null and manualResult.wristband.targetUserUuid == null ? manualResult.wristband.targetName : ''}"></label>
+                <label class="field-group"><span>학과 (선택)</span><input name="department" maxlength="100" th:value="${manualResult.wristband != null and manualResult.wristband.targetUserUuid == null ? manualResult.wristband.targetDepartment : ''}"></label>
+                <button class="button button-primary" type="submit">학번으로 팔찌 지급 처리</button>
+            </form>
+            <a th:if="${manualResult.wristband != null}" class="button button-secondary" th:href="@{/admin/wristbands/records/{id}(id=${manualResult.wristband.id})}">수령자 정보·지급 이력·회수</a>
+        </div>
+    </section>
     <section th:if="${candidates != null}" class="wristband-results" aria-label="사용자 조회 결과">
         <h2>조회 결과</h2>
         <p th:if="${#lists.isEmpty(candidates)}" class="empty-copy">일치하는 축제 사용자가 없습니다.</p>

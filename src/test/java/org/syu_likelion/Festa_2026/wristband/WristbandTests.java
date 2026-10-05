@@ -27,7 +27,10 @@ import org.syu_likelion.Festa_2026.sso.*;
 import org.syu_likelion.Festa_2026.sso.SsoProfiles.InternalUserProfile;
 import org.syu_likelion.Festa_2026.user.*;
 
-@SpringBootTest(properties = "spring.datasource.url=jdbc:h2:mem:wristbands;MODE=MySQL;DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=10000")
+@SpringBootTest(properties = {
+        "spring.datasource.url=jdbc:h2:mem:wristbands;MODE=MySQL;DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=10000",
+        "school-sso.subject-hash-secret=wristband-test-secret-at-least-16-bytes"
+})
 @AutoConfigureMockMvc
 class WristbandTests {
     @Autowired WristbandService wristbands;
@@ -38,6 +41,10 @@ class WristbandTests {
     @Autowired FestivalWithdrawalService withdrawal;
     @Autowired QrTokenStore tokens;
     @Autowired MockMvc mvc;
+    @Autowired ManualWristbandService manual;
+    @Autowired org.syu_likelion.Festa_2026.fee.StudentFeeService fees;
+    @Autowired org.syu_likelion.Festa_2026.fee.StudentFeePayerRepository payers;
+    @Autowired org.syu_likelion.Festa_2026.schoolsso.SchoolSubjectHasher hasher;
     @MockitoBean SsoInternalProfileClient profiles;
     @MockitoBean AdminAccessService access;
     @MockitoBean UserService authentication;
@@ -45,7 +52,7 @@ class WristbandTests {
     private static final String SUBJECT = "a".repeat(64);
 
     @BeforeEach void setup() {
-        events.deleteAll(); records.deleteAll(); users.deleteAll();
+        events.deleteAll(); records.deleteAll(); users.deleteAll(); payers.deleteAll();
         when(profiles.getProfile(any())).thenAnswer(i -> profile(i.getArgument(0)));
         when(profiles.getProfiles(anyList())).thenAnswer(i -> ((List<UUID>) i.getArgument(0)).stream().map(this::profile).toList());
         when(access.authenticate(any(), any())).thenAnswer(i -> {
@@ -68,6 +75,146 @@ class WristbandTests {
     private Wristband issue(UUID id) { return wristbands.issue(FestivalRole.STAFF, actor, "운영자", id); }
     private void assertCode(Runnable action, String code) {
         assertThatThrownBy(action::run).isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code()).isEqualTo(code));
+    }
+    @Test void manualLookupChecksExactRosterAndDoesNotCreateAccounts() {
+        String number = "2026100001";
+        assertThat(manual.lookup(FestivalRole.ADMIN, number).studentFeePaid()).isFalse();
+        fees.add(FestivalRole.SUPER_ADMIN, actor, number);
+        assertThat(manual.lookup(FestivalRole.ADMIN, number).studentFeePaid()).isTrue();
+        assertThat(manual.lookup(FestivalRole.ADMIN, "2026100002").studentFeePaid()).isFalse();
+        for (String invalid : List.of("홍길동", "2026", "2026**0001", "20261000010"))
+            assertCode(() -> manual.lookup(FestivalRole.ADMIN, invalid), "INVALID_WRISTBAND_STUDENT_NO");
+        var record = manual.issue(FestivalRole.ADMIN, actor, "관리자", " " + number + " ", null, null);
+        assertThat(record.getTargetUserUuid()).isNull();
+        assertThat(record.getActiveUserUuid()).isNull();
+        assertThat(record.getTargetStudentNo()).isEqualTo(number);
+        assertThat(record.getTargetName()).isEqualTo("미입력");
+        assertThat(record.getTargetDepartment()).isNull();
+        assertThat(manual.lookup(FestivalRole.ADMIN, number).issued()).isTrue();
+        assertThat(users.count()).isZero();
+        verify(profiles, never()).getProfile(any());
+        fees.delete(FestivalRole.SUPER_ADMIN, number);
+        assertThat(manual.lookup(FestivalRole.ADMIN, number).studentFeePaid()).isFalse();
+    }
+
+    @Test void manualIssueRevokeReissueAndProfileChangesAreAuditedAndVersioned() {
+        var record = manual.issue(FestivalRole.ADMIN, actor, "관리자", "2026100001", " 홍길동 ", " 컴퓨터공학과 ");
+        long id = record.getId();
+        assertCode(() -> manual.issue(FestivalRole.ADMIN, actor, "관리자", "2026100001", null, null), "WRISTBAND_ALREADY_ISSUED");
+        assertCode(() -> manual.updateProfile(FestivalRole.ADMIN, actor, "관리자", id, record.getVersion(), "가".repeat(201), null), "INVALID_WRISTBAND_PROFILE");
+        manual.updateProfile(FestivalRole.ADMIN, actor, "관리자", id, record.getVersion(), "김학생", "간호학과");
+        assertCode(() -> wristbands.revoke(FestivalRole.ADMIN, actor, "관리자", id, record.getVersion(), "예전 화면"), "WRISTBAND_STATE_CHANGED");
+        var updated = records.findById(id).orElseThrow();
+        assertThat(updated.getTargetName()).isEqualTo("김학생");
+        assertThat(updated.getTargetDepartment()).isEqualTo("간호학과");
+        assertCode(() -> manual.updateProfile(FestivalRole.ADMIN, actor, "관리자", id, record.getVersion(), null, null), "WRISTBAND_STATE_CHANGED");
+        wristbands.revoke(FestivalRole.ADMIN, actor, "관리자", id, updated.getVersion(), "실물 팔찌 회수");
+        assertThat(manual.lookup(FestivalRole.ADMIN, "2026100001").issued()).isFalse();
+        var reissued = manual.issue(FestivalRole.SUPER_ADMIN, actor, "관리자", "2026100001", "김학생", "간호학과");
+        assertThat(reissued.getId()).isEqualTo(id);
+        assertThat(events.findByWristbandIdOrderByIdDesc(id, org.springframework.data.domain.Pageable.unpaged()).getContent())
+                .extracting(WristbandEvent::getAction).containsExactly(WristbandEvent.Action.ISSUE,
+                        WristbandEvent.Action.REVOKE, WristbandEvent.Action.UPDATE_PROFILE, WristbandEvent.Action.ISSUE);
+    }
+
+    private UUID studentWithNumber(String number) {
+        UUID id = UUID.randomUUID();
+        var user = new FestivalUser(id);
+        String hash = hasher.hash(number);
+        user.verifySchool(hash, Instant.now()); user.updateStudentFee(hash, false);
+        users.saveAndFlush(user);
+        return id;
+    }
+
+    @Test void manualAndRegisteredGrantsShareIdentityAcrossSignupAndReissue() {
+        String number = "2026100001";
+        var record = manual.issue(FestivalRole.ADMIN, actor, "관리자", number, null, null);
+        UUID registered = studentWithNumber(number);
+        assertThat(wristbands.mine(registered).issued()).isTrue();
+        assertCode(() -> issue(registered), "WRISTBAND_ALREADY_ISSUED");
+        wristbands.revoke(FestivalRole.ADMIN, actor, "관리자", record.getId(), record.getVersion(), "회수 확인");
+        var memberRecord = issue(registered);
+        assertThat(memberRecord.getId()).isEqualTo(record.getId());
+        assertThat(memberRecord.getTargetStudentNo()).isNull();
+        assertThat(manual.lookup(FestivalRole.ADMIN, number).issued()).isTrue();
+        assertCode(() -> manual.issue(FestivalRole.ADMIN, actor, "관리자", number, null, null), "WRISTBAND_ALREADY_ISSUED");
+        assertCode(() -> manual.updateProfile(FestivalRole.ADMIN, actor, "관리자", memberRecord.getId(), memberRecord.getVersion(), "이름", null), "WRISTBAND_MANUAL_PROFILE_REQUIRED");
+    }
+
+    @Test void concurrentManualAndRegisteredRequestsOnlyGrantOneWristband() throws Exception {
+        String number = "2026100001";
+        UUID registered = studentWithNumber(number);
+        var start = new CountDownLatch(1);
+        try (var pool = Executors.newFixedThreadPool(4)) {
+            List<Future<Boolean>> futures = new ArrayList<>();
+            for (int i = 0; i < 4; i++) {
+                boolean useManual = i % 2 == 0;
+                futures.add(pool.submit(() -> {
+                    start.await();
+                    try {
+                        if (useManual) manual.issue(FestivalRole.ADMIN, actor, "관리자", number, null, null);
+                        else issue(registered);
+                        return true;
+                    } catch (ApiException e) {
+                        assertThat(e.code()).isEqualTo("WRISTBAND_ALREADY_ISSUED"); return false;
+                    }
+                }));
+            }
+            start.countDown();
+            int successes = 0;
+            for (var future : futures) if (future.get(15, TimeUnit.SECONDS)) successes++;
+            assertThat(successes).isEqualTo(1);
+        }
+        assertThat(records.count()).isEqualTo(1); assertThat(events.count()).isEqualTo(1);
+    }
+
+    @Test void manualFunctionsEnforceAdminRoleCsrfAndRenderForms() throws Exception {
+        for (var role : List.of(FestivalRole.USER, FestivalRole.BOOTH_MANAGER, FestivalRole.STAFF)) {
+            assertCode(() -> manual.lookup(role, "2026100001"), "WRISTBAND_MANAGE_FORBIDDEN");
+            assertCode(() -> manual.issue(role, actor, "직원", "2026100001", null, null), "WRISTBAND_MANAGE_FORBIDDEN");
+            assertCode(() -> manual.updateProfile(role, actor, "직원", 1, 0, null, null), "WRISTBAND_MANAGE_FORBIDDEN");
+        }
+        var staff = new Cookie("festivalAdminAccess", "STAFF");
+        var admin = new Cookie("festivalAdminAccess", "ADMIN");
+        mvc.perform(get("/admin/wristbands").cookie(staff)).andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("/admin/wristbands/manual/search"))));
+        mvc.perform(post("/admin/wristbands/manual/search").cookie(staff).with(csrf()).param("studentNo", "2026100001"))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/admin/wristbands/manual/issue").cookie(staff).with(csrf()).param("studentNo", "2026100001"))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/admin/wristbands/records/1/profile").cookie(staff).with(csrf()).param("version", "0"))
+                .andExpect(status().isForbidden());
+        for (String route : List.of("/manual/search", "/manual/issue", "/records/1/profile"))
+            mvc.perform(post("/admin/wristbands" + route).cookie(admin).param("studentNo", "2026100001").param("version", "0"))
+                    .andExpect(status().isForbidden());
+        mvc.perform(post("/admin/wristbands/manual/search").cookie(admin).with(csrf()).param("studentNo", "2026100001"))
+                .andExpect(status().isOk()).andExpect(content().string(containsString("미납부")))
+                .andExpect(content().string(containsString("학번으로 팔찌 지급 처리")));
+        mvc.perform(post("/admin/wristbands/manual/search").cookie(admin).with(csrf()).param("studentNo", "홍길동"))
+                .andExpect(status().isOk()).andExpect(content().string(containsString("10자리 숫자")));
+        mvc.perform(post("/admin/wristbands/manual/issue").cookie(admin).with(csrf()).param("studentNo", "2026100001")
+                        .param("name", "홍학생").param("department", "컴퓨터공학과"))
+                .andExpect(status().is3xxRedirection());
+        var record = records.findAll().getFirst();
+        mvc.perform(get("/admin/wristbands/records/" + record.getId()).cookie(admin)).andExpect(status().isOk())
+                .andExpect(content().string(containsString("홍학생"))).andExpect(content().string(containsString("2026100001")))
+                .andExpect(content().string(containsString("수령자 정보 저장")));
+        mvc.perform(post("/admin/wristbands/manual/search").cookie(admin).with(csrf()).param("studentNo", "2026100001"))
+                .andExpect(status().isOk()).andExpect(content().string(containsString("지급 완료")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("학번으로 팔찌 지급 처리"))));
+        mvc.perform(post("/admin/wristbands/records/" + record.getId() + "/profile").cookie(admin).with(csrf())
+                        .param("version", Long.toString(record.getVersion())).param("name", "김학생").param("department", "간호학과"))
+                .andExpect(status().is3xxRedirection());
+        mvc.perform(get("/admin/wristbands/records/" + record.getId()).cookie(admin)).andExpect(status().isOk())
+                .andExpect(content().string(containsString("김학생"))).andExpect(content().string(containsString("수령자 정보 수정")));
+        var updated = records.findById(record.getId()).orElseThrow();
+        mvc.perform(post("/admin/wristbands/records/" + record.getId() + "/revoke").cookie(admin).with(csrf())
+                        .param("version", Long.toString(updated.getVersion())).param("reason", "팔찌 회수"))
+                .andExpect(status().is3xxRedirection());
+        mvc.perform(post("/admin/wristbands/manual/search").cookie(new Cookie("festivalAdminAccess", "SUPER_ADMIN"))
+                        .with(csrf()).param("studentNo", "2026100001"))
+                .andExpect(status().isOk()).andExpect(content().string(containsString("학번으로 팔찌 지급 처리")))
+                .andExpect(content().string(containsString("김학생")));
     }
     @Test void unpaidVerifiedStudentsCanReceiveAndRevocationRequiresAdminAndReason() {
         UUID id = student(true, false);

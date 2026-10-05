@@ -464,7 +464,7 @@ SELECT 'festival_users' AS table_name, 'welcome_email_pending' AS column_name, '
 UNION ALL
 SELECT 'festival_users' AS table_name, 'welcome_email_sent_at' AS column_name, 'datetime(6)' AS expected_type, 'YES' AS expected_nullable
 UNION ALL
-SELECT 'festival_wristband_events' AS table_name, 'action' AS column_name, 'enum (''issue'',''revoke'')' AS expected_type, 'NO' AS expected_nullable
+SELECT 'festival_wristband_events' AS table_name, 'action' AS column_name, 'enum (''issue'',''revoke'',''update_profile'')' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
 SELECT 'festival_wristband_events' AS table_name, 'actor_name' AS column_name, 'varchar(200)' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
@@ -476,7 +476,7 @@ SELECT 'festival_wristband_events' AS table_name, 'occurred_at' AS column_name, 
 UNION ALL
 SELECT 'festival_wristband_events' AS table_name, 'reason' AS column_name, 'text' AS expected_type, 'YES' AS expected_nullable
 UNION ALL
-SELECT 'festival_wristband_events' AS table_name, 'target_user_uuid' AS column_name, 'char(36)' AS expected_type, 'NO' AS expected_nullable
+SELECT 'festival_wristband_events' AS table_name, 'target_user_uuid' AS column_name, 'char(36)' AS expected_type, 'YES' AS expected_nullable
 UNION ALL
 SELECT 'festival_wristband_events' AS table_name, 'wristband_id' AS column_name, 'bigint' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
@@ -494,9 +494,13 @@ SELECT 'festival_wristbands' AS table_name, 'issuer_name' AS column_name, 'varch
 UNION ALL
 SELECT 'festival_wristbands' AS table_name, 'subject_hash' AS column_name, 'varchar(64)' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
+SELECT 'festival_wristbands' AS table_name, 'target_student_no' AS column_name, 'varchar(10)' AS expected_type, 'YES' AS expected_nullable
+UNION ALL
+SELECT 'festival_wristbands' AS table_name, 'target_department' AS column_name, 'varchar(100)' AS expected_type, 'YES' AS expected_nullable
+UNION ALL
 SELECT 'festival_wristbands' AS table_name, 'target_name' AS column_name, 'varchar(200)' AS expected_type, 'NO' AS expected_nullable
 UNION ALL
-SELECT 'festival_wristbands' AS table_name, 'target_user_uuid' AS column_name, 'char(36)' AS expected_type, 'NO' AS expected_nullable
+SELECT 'festival_wristbands' AS table_name, 'target_user_uuid' AS column_name, 'char(36)' AS expected_type, 'YES' AS expected_nullable
 UNION ALL
 SELECT 'festival_wristbands' AS table_name, 'updated_at' AS column_name, 'datetime(6)' AS expected_type, 'NO' AS expected_nullable
 UNION ALL

@@ -7,7 +7,7 @@
         <div class="wristband-table-scroll">
             <table class="wristband-table"><thead><tr><th scope="col">기록</th><th scope="col">수령자</th><th scope="col">현재 상태</th><th scope="col">최근 지급자</th><th scope="col">최근 지급 일시</th><th scope="col">관리</th></tr></thead>
                 <tbody><tr th:each="item : ${records.content}">
-                    <td th:text="${item.id}"></td><td th:text="${item.targetName}"></td>
+                    <td th:text="${item.id}"></td><td><span th:text="${item.targetName}"></span><br th:if="${item.targetStudentNo != null}"><small th:if="${item.targetStudentNo != null}" th:text="${item.targetStudentNo}"></small></td>
                     <td th:text="${item.issued ? '지급 완료' : '지급 철회'}"></td><td th:text="${item.issuerName}"></td>
                     <td th:text="${#temporals.format(item.issuedAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm:ss')}"></td>
                     <td><a class="button button-secondary button-small" th:href="@{/admin/wristbands/records/{id}(id=${item.id})}">이력·철회</a></td>
