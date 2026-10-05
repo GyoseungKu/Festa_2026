@@ -76,6 +76,31 @@ class WristbandTests {
     private void assertCode(Runnable action, String code) {
         assertThatThrownBy(action::run).isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code()).isEqualTo(code));
     }
+    @Test void unifiedSearchRespectsRoleAndPrefersRegisteredUsers() throws Exception {
+        for (String role : List.of("ADMIN", "SUPER_ADMIN")) {
+            var cookie = new Cookie("festivalAdminAccess", role);
+            mvc.perform(get("/admin/wristbands").cookie(cookie)).andExpect(status().isOk())
+                    .andExpect(content().string(org.hamcrest.Matchers.not(containsString("/admin/wristbands/manual/search"))));
+            mvc.perform(post("/admin/wristbands/search").cookie(cookie).with(csrf()).param("query", " 2026100001 "))
+                    .andExpect(status().isOk()).andExpect(model().attributeExists("manualResult"))
+                    .andExpect(model().attributeDoesNotExist("candidates"))
+                    .andExpect(content().string(containsString("학번으로 팔찌 지급 처리")));
+            for (String query : List.of("홍길동", "2026", "20261000010"))
+                mvc.perform(post("/admin/wristbands/search").cookie(cookie).with(csrf()).param("query", query))
+                        .andExpect(status().isOk()).andExpect(model().attributeDoesNotExist("manualResult"));
+        }
+        mvc.perform(post("/admin/wristbands/search").cookie(new Cookie("festivalAdminAccess", "STAFF"))
+                        .with(csrf()).param("query", "2026100001"))
+                .andExpect(status().isOk()).andExpect(model().attributeDoesNotExist("manualResult"));
+        studentWithNumber("2026100001");
+        for (String route : List.of("/search", "/manual/search"))
+            mvc.perform(post("/admin/wristbands" + route).cookie(new Cookie("festivalAdminAccess", "ADMIN"))
+                            .with(csrf()).param("query", "2026100001").param("studentNo", "2026100001"))
+                    .andExpect(status().isOk()).andExpect(model().attributeExists("candidates"))
+                    .andExpect(model().attributeDoesNotExist("manualResult"))
+                    .andExpect(content().string(containsString("홍길동")));
+    }
+
     @Test void manualLookupChecksExactRosterAndDoesNotCreateAccounts() {
         String number = "2026100001";
         assertThat(manual.lookup(FestivalRole.ADMIN, number).studentFeePaid()).isFalse();

@@ -20,19 +20,16 @@
         </section>
         <section class="panel">
             <h2>수동 조회</h2><p class="support-copy">이름·학번·아이디 등으로 검색한 뒤 본인을 확인해 주세요. QR 조회와 검색만으로 팔찌가 지급되지는 않습니다.</p>
+            <p th:if="${canManage}" class="support-copy">가입자를 찾을 수 없는 경우 10자리 전체 학번을 입력하면 학생회비 납부 여부와 팔찌 지급 기록을 확인하고 직접 지급할 수 있습니다.</p>
             <form class="wristband-form" method="post" th:action="@{/admin/wristbands/search}">
                 <label class="field-group"><span>검색어</span><input name="query" th:value="${query}" minlength="2" maxlength="100" required autocomplete="off" placeholder="이름 또는 학번"></label>
                 <button class="button button-primary" type="submit">사용자 조회</button>
             </form>
         </section>
     </div>
-    <section th:if="${canManage}" class="panel">
-        <h2>미가입자 · 학번 직접 조회</h2>
-        <p class="support-copy">홈페이지에 가입하지 않은 학생은 전체 학번으로 조회해 주세요. 학생회비 납부 여부와 기존 지급 기록을 확인합니다. 지급 전 학생증 등으로 본인과 학번을 확인해 주세요.</p>
-        <form class="wristband-form" method="post" th:action="@{/admin/wristbands/manual/search}">
-            <label class="field-group"><span>학번</span><input name="studentNo" th:value="${manualStudentNo}" inputmode="numeric" pattern="[0-9]{10}" minlength="10" maxlength="10" required autocomplete="off" placeholder="10자리 전체 학번"></label>
-            <button class="button button-primary" type="submit">학번 조회</button>
-        </form>
+    <section th:if="${canManage and manualResult != null}" class="panel">
+        <h2>조회 결과 · 학번 확인</h2>
+        <p class="support-copy">일치하는 축제 가입자를 찾지 못했습니다. 입력한 학번의 납부 여부와 지급 기록입니다. 지급 전 학생증 등으로 본인과 학번을 확인해 주세요.</p>
         <div th:if="${manualResult != null}">
             <dl class="profile-grid">
                 <div><dt>학번</dt><dd th:text="${manualResult.studentNo}"></dd></div>

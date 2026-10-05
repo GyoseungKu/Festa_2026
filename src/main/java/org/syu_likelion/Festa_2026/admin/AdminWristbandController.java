@@ -57,10 +57,19 @@ public class AdminWristbandController {
     String search(@RequestParam String query, @RequestParam(defaultValue = "0") int page,
             HttpServletRequest request, HttpServletResponse response, Model model) {
         var actor = authenticate(request, response, model);
+        return searchResult(actor, query, page, model);
+    }
+    private String searchResult(AdminAccessService.AdminIdentity actor, String query, int page, Model model) {
         model.addAttribute("query", query);
         try {
             var result = lookup.search(actor.role(), query, page);
-            model.addAttribute("search", result); model.addAttribute("candidates", result.items());
+            if (result.totalElements() == 0 && WristbandService.isAdmin(actor.role())
+                    && query.strip().matches("[0-9]{10}")) {
+                model.addAttribute("manualResult", manual.lookup(actor.role(), query.strip()));
+            } else {
+                model.addAttribute("search", result);
+                model.addAttribute("candidates", result.items());
+            }
         } catch (ApiException e) { model.addAttribute("error", e.getMessage()); }
         catch (SsoException e) { model.addAttribute("error", "사용자 정보를 조회하지 못했습니다. 다시 시도해 주세요."); }
         return "admin/wristbands/issue";
@@ -80,10 +89,12 @@ public class AdminWristbandController {
             HttpServletResponse response, Model model) {
         var actor = authenticate(request, response, model);
         WristbandService.requireAdmin(actor.role());
-        model.addAttribute("manualStudentNo", studentNo);
-        try { model.addAttribute("manualResult", manual.lookup(actor.role(), studentNo)); }
-        catch (ApiException e) { model.addAttribute("error", e.getMessage()); }
-        return "admin/wristbands/issue";
+        if (!studentNo.strip().matches("[0-9]{10}")) {
+            model.addAttribute("query", studentNo);
+            model.addAttribute("error", "학번은 마스킹 없이 10자리 숫자로 입력해 주세요.");
+            return "admin/wristbands/issue";
+        }
+        return searchResult(actor, studentNo, 0, model);
     }
     @PostMapping("/manual/issue")
     String manualIssue(@RequestParam String studentNo, @RequestParam(required = false) String name,
