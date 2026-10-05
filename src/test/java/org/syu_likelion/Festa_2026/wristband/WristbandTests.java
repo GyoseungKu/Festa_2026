@@ -216,6 +216,33 @@ class WristbandTests {
                 .andExpect(status().isOk()).andExpect(content().string(containsString("학번으로 팔찌 지급 처리")))
                 .andExpect(content().string(containsString("김학생")));
     }
+    @Test void managementFiltersCurrentStatusAndKeepsFilterAcrossPages() throws Exception {
+        var admin = new Cookie("festivalAdminAccess", "ADMIN");
+        for (int i = 0; i < 22; i++)
+            manual.issue(FestivalRole.ADMIN, actor, "관리자", Long.toString(2026101000L + i), "학생" + i, null);
+        var revoked = records.findBySubjectHash(hasher.hash("2026101000")).orElseThrow();
+        wristbands.revoke(FestivalRole.ADMIN, actor, "관리자", revoked.getId(), revoked.getVersion(), "회수");
+        assertThat(wristbands.list(FestivalRole.ADMIN, 0, WristbandService.StatusFilter.ALL).getTotalElements()).isEqualTo(22);
+        var issued = wristbands.list(FestivalRole.ADMIN, 0, WristbandService.StatusFilter.ISSUED);
+        assertThat(issued.getTotalElements()).isEqualTo(21);
+        assertThat(issued.getContent()).allMatch(Wristband::isIssued);
+        assertThat(wristbands.list(FestivalRole.ADMIN, 1, WristbandService.StatusFilter.ISSUED).getNumberOfElements()).isEqualTo(1);
+        assertThat(wristbands.list(FestivalRole.ADMIN, 0, WristbandService.StatusFilter.REVOKED).getContent())
+                .extracting(Wristband::getId).containsExactly(revoked.getId());
+        mvc.perform(get("/admin/wristbands/manage").cookie(admin).param("status", "ISSUED"))
+                .andExpect(status().isOk()).andExpect(content().string(containsString("조회 결과 21건")))
+                .andExpect(content().string(containsString("status=ISSUED")));
+        mvc.perform(get("/admin/wristbands/manage").cookie(admin).param("status", "ISSUED").param("page", "1"))
+                .andExpect(status().isOk()).andExpect(content().string(containsString("status=ISSUED")));
+        mvc.perform(get("/admin/wristbands/manage").cookie(admin).param("status", "REVOKED"))
+                .andExpect(status().isOk()).andExpect(content().string(containsString("조회 결과 1건")))
+                .andExpect(content().string(containsString("현재 지급 완료 21명")));
+        assertCode(() -> wristbands.list(FestivalRole.STAFF, 0, WristbandService.StatusFilter.REVOKED), "WRISTBAND_MANAGE_FORBIDDEN");
+        manual.issue(FestivalRole.ADMIN, actor, "관리자", "2026101000", null, null);
+        assertThat(wristbands.list(FestivalRole.ADMIN, 0, WristbandService.StatusFilter.REVOKED).getTotalElements()).isZero();
+        assertThat(wristbands.list(FestivalRole.ADMIN, 0, WristbandService.StatusFilter.ISSUED).getTotalElements()).isEqualTo(22);
+    }
+
     @Test void unpaidVerifiedStudentsCanReceiveAndRevocationRequiresAdminAndReason() {
         UUID id = student(true, false);
         var issued = issue(id);

@@ -124,10 +124,17 @@ public class WristbandService {
         record.revoke(now);
         events.save(new WristbandEvent(record, WristbandEvent.Action.REVOKE, actor, display(actorName), reason.strip(), now));
     }
+    public enum StatusFilter { ALL, ISSUED, REVOKED }
     @Transactional(readOnly = true)
     public Page<Wristband> list(FestivalRole role, int page) {
+        return list(role, page, StatusFilter.ALL);
+    }
+    @Transactional(readOnly = true)
+    public Page<Wristband> list(FestivalRole role, int page, StatusFilter status) {
         requireAdmin(role);
-        return records.findAll(PageRequest.of(Math.max(0, page), 20, Sort.by(Sort.Direction.DESC, "updatedAt", "id")));
+        var pageable = PageRequest.of(Math.max(0, page), 20, Sort.by(Sort.Direction.DESC, "updatedAt", "id"));
+        return status == null || status == StatusFilter.ALL ? records.findAll(pageable)
+                : records.findByIssued(status == StatusFilter.ISSUED, pageable);
     }
     @Transactional(readOnly = true)
     public long issuedCount(FestivalRole role) { requireAdmin(role); return records.countByIssuedTrue(); }

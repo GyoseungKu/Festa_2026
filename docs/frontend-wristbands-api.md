@@ -26,13 +26,15 @@
 | `POST /admin/wristbands/manual/search` | ADMIN 이상 | `studentNo`: 마스킹 없는 10자리 학번; 납부 여부·지급 기록 조회 HTML |
 | `POST /admin/wristbands/manual/issue` | ADMIN 이상 | `studentNo`, 선택 입력 `name`(200자 이내)·`department`(100자 이내); 지급 후 상세로 리다이렉트 |
 | `POST /admin/wristbands/records/{id}/profile` | ADMIN 이상 | `version`, 선택 입력 `name`·`department`; 학번 직접 지급 기록의 수령자 정보 수정 |
-| `GET /admin/wristbands/manage` | ADMIN 이상 | `page`: 0부터; 최신 변경 순 20건, 현재 지급 완료 인원 |
+| `GET /admin/wristbands/manage` | ADMIN 이상 | `page`: 0부터; `status`: `ALL`(기본)·`ISSUED`·`REVOKED`; 최신 변경 순 20건, 전체 현재 지급 완료 인원 |
 | `GET /admin/wristbands/records/{id}` | ADMIN 이상 | `page`: 0부터; 지급·철회 이력 최신순 20건 |
 | `POST /admin/wristbands/records/{id}/revoke` | ADMIN 이상 | `version`: 조회한 버전, `reason`: 철회 사유; 상세로 리다이렉트 |
 
 검색은 기존 QR 사용자 검색과 같은 이름·학번·아이디 등의 검색을 사용합니다. STAFF 화면은 이름·학번을 마스킹하고 학과, 학생 인증, 납부, 지급 여부·시각만 보여줍니다. 지급 폼에는 처리 대상 UUID가 포함됩니다. 기존 `/api/qr/search`의 STAFF 응답 필드는 변경하지 않습니다. ADMIN 이상은 지급 기록의 수령자 이름·UUID와 처리자 이름·UUID를 조회할 수 있습니다.
 
 목록은 철회된 기록도 포함합니다. 현재 지급 인원은 철회 상태를 제외합니다. 지급·철회 시 서버에서 상태와 권한을 다시 검증하므로 화면의 버튼 비활성화만으로 권한을 판단하지 않습니다. 오래된 상세 화면에서 이전 지급을 철회하려 하면 버전 불일치로 거부합니다.
+
+지급 관리의 상태 필터로 전체·지급 완료·지급 철회를 구분합니다. 현재 상태 기준이므로 철회 후 재지급한 학생은 지급 완료에 표시됩니다. 필터를 바꾸면 첫 페이지부터 조회하며 페이지 이동에도 필터가 유지됩니다. 조회 결과 건수는 필터 기준이고 상단 지급 완료 인원은 전체 기준입니다. 정렬은 최근 변경순(동일 시각이면 기록 ID 내림차순)을 유지합니다.
 
 ### 미가입자 학번 조회·지급·회수
 

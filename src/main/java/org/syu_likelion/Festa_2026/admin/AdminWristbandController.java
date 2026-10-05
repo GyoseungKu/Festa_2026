@@ -111,9 +111,12 @@ public class AdminWristbandController {
         return "redirect:/admin/wristbands/records/" + id;
     }
     @GetMapping("/manage")
-    String manage(@RequestParam(defaultValue = "0") int page, HttpServletRequest request, HttpServletResponse response, Model model) {
+    String manage(@RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "ALL") WristbandService.StatusFilter status,
+            HttpServletRequest request, HttpServletResponse response, Model model) {
         var actor = authenticate(request, response, model);
-        model.addAttribute("records", wristbands.list(actor.role(), page));
+        model.addAttribute("records", wristbands.list(actor.role(), page, status));
+        model.addAttribute("statusFilter", status.name());
         model.addAttribute("issuedCount", wristbands.issuedCount(actor.role()));
         return "admin/wristbands/manage";
     }

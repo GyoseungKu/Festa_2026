@@ -10,4 +10,5 @@ public interface WristbandRepository extends JpaRepository<Wristband, Long> {
     java.util.List<Wristband> findByActiveUserUuidIn(java.util.Collection<UUID> userUuids);
     java.util.List<Wristband> findBySubjectHashInAndIssuedTrue(java.util.Collection<String> hashes);
     long countByIssuedTrue();
+    org.springframework.data.domain.Page<Wristband> findByIssued(boolean issued, org.springframework.data.domain.Pageable pageable);
 }
