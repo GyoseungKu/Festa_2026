@@ -175,7 +175,9 @@ public class SsoAuthClient {
         long started = System.nanoTime();
         try {
             HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create(properties.baseUrl() + path))
-                    .timeout(properties.readTimeout())
+                    .timeout("POST".equals(method) && ("/api/auth/email/send".equals(path)
+                            || "/api/users/me/email/verification".equals(path))
+                            ? properties.mailReadTimeout() : properties.readTimeout())
                     .header("Accept", "application/json")
                     .header("X-Correlation-ID", correlationId);
             if (authorization != null) builder.header("Authorization", authorization);

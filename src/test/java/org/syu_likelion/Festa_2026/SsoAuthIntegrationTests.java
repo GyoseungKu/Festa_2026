@@ -41,7 +41,7 @@ import org.syu_likelion.Festa_2026.sso.SsoInternalProfileClient;
 
 @SpringBootTest(properties = {
         "sso.client-id=test-client", "sso.client-secret=test-secret",
-        "sso.read-timeout=100ms", "auth.refresh-cookie-secure=false",
+        "sso.read-timeout=100ms", "sso.mail-read-timeout=1s", "auth.refresh-cookie-secure=false",
         "spring.datasource.url=jdbc:h2:mem:sso-tests;MODE=MySQL;DB_CLOSE_DELAY=-1",
         "spring.datasource.driver-class-name=org.h2.Driver",
         "spring.datasource.username=sa", "spring.datasource.password=",
@@ -58,6 +58,7 @@ class SsoAuthIntegrationTests {
     @Autowired FestivalUserRepository users;
     @Autowired JdbcTemplate jdbc;
     @Autowired SsoInternalProfileClient internalProfiles;
+    @Autowired SsoAuthClient ssoClient;
 
     @DynamicPropertySource
     static void ssoProperties(DynamicPropertyRegistry registry) {
@@ -543,6 +544,17 @@ class SsoAuthIntegrationTests {
         mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"loginId\":\"festival01\",\"password\":\"password123\"}"))
                 .andExpect(status().isServiceUnavailable()).andExpect(jsonPath("$.code").value("SSO_UNAVAILABLE"));
+    }
+
+    @Test
+    void emailSendUsesLongerTimeoutForSignupRecoveryAndNewAddress() {
+        RESPONSES.add(new StubResponse(200, "{}", null, 300));
+        ssoClient.sendSignupEmailCode(new org.syu_likelion.Festa_2026.auth.AuthDtos.EmailRequest("student@example.com"));
+        RESPONSES.add(new StubResponse(200, "{}", null, 300));
+        ssoClient.sendRecoveryEmailCode(new org.syu_likelion.Festa_2026.auth.AuthDtos.RecoveryEmailSendRequest(
+                "student@example.com", org.syu_likelion.Festa_2026.auth.AuthDtos.RecoveryPurpose.FIND_ID, null));
+        RESPONSES.add(new StubResponse(200, "{}", null, 300));
+        ssoClient.sendNewEmailCode("access", new org.syu_likelion.Festa_2026.user.UserDtos.EmailRequest("student@example.com"));
     }
 
     @Test
