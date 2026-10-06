@@ -159,32 +159,31 @@ class StampPrizeIntegrationTests {
         assertThat(prizes.historyAs(FestivalRole.ADMIN, old.getId(), 0).getTotalElements()).isEqualTo(2);
     }
 
-    @Test void sixthStampRequiresExternalAndSeventhIsRejectedForBothMethods() {
+    @Test void sixthGeneralStampIsAcceptedAndSeventhIsRejectedForBothMethods() {
         for (int i = 0; i < 5; i++) stamps.grantBySearchAs(actor, createBooth(BoothCategory.GENERAL), target);
         Long general = createBooth(BoothCategory.GENERAL);
-        Long external = createBooth(BoothCategory.EXTERNAL);
-        assertThatThrownBy(() -> stamps.grantBySearchAs(actor, general, target))
-                .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code()).isEqualTo("STAMP_EXTERNAL_REQUIRED"));
-        assertThatThrownBy(() -> stamps.grantQrAs(actor, FestivalRole.ADMIN, general, "token"))
-                .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code()).isEqualTo("STAMP_EXTERNAL_REQUIRED"));
-        stamps.grantQrAs(actor, FestivalRole.ADMIN, external, "token");
+        stamps.grantBySearchAs(actor, general, target);
         assertThat(prizes.lookupUserAs(FestivalRole.ADMIN, target).eligible()).isTrue();
-        assertThatThrownBy(() -> stamps.grantBySearchAs(actor, general, target))
+        stamps.revokeBySearchAs(actor, general, target);
+        stamps.grantQrAs(actor, FestivalRole.ADMIN, general, "token");
+        assertThat(prizes.lookupUserAs(FestivalRole.ADMIN, target).eligible()).isTrue();
+        assertThatThrownBy(() -> stamps.grantBySearchAs(actor, createBooth(BoothCategory.GENERAL), target))
                 .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code()).isEqualTo("STAMP_BOARD_FULL"));
-        assertThatThrownBy(() -> stamps.grantQrAs(actor, FestivalRole.ADMIN, general, "token"))
+        assertThatThrownBy(() -> stamps.grantQrAs(actor, FestivalRole.ADMIN, createBooth(BoothCategory.EXTERNAL), "token"))
                 .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code()).isEqualTo("STAMP_BOARD_FULL"));
         assertThat(stampRepository.findAllByUserUserUuidOrderByGrantedAtAsc(target)).hasSize(6);
     }
 
-    @Test void existingBoardWithoutExternalCannotRedeemPrize() {
+    @Test void existingBoardWithoutExternalCanRedeemPrize() {
         var user = users.findByUserUuid(target).orElseThrow();
         for (int i = 0; i < 6; i++) {
             var booth = boothRepository.findById(createBooth(BoothCategory.GENERAL)).orElseThrow();
             stampRepository.saveAndFlush(new BoothStamp(booth, user, java.time.Instant.now(), actor, StampMethod.ADMIN_SEARCH));
         }
-        assertThat(prizes.lookupUserAs(FestivalRole.ADMIN, target).eligible()).isFalse();
-        assertThatThrownBy(() -> prizes.grantUserAs(actor, FestivalRole.ADMIN, target))
-                .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code()).isEqualTo("STAMP_PRIZE_NOT_READY"));
+        assertThat(prizes.lookupUserAs(FestivalRole.ADMIN, target).eligible()).isTrue();
+        prizes.grantUserAs(actor, FestivalRole.ADMIN, target);
+        assertThat(prizes.lookupUserAs(FestivalRole.ADMIN, target).prizeGranted()).isTrue();
+
     }
 
     @Test void concurrentStampGrantsCannotExceedSix() throws Exception {

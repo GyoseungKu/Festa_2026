@@ -70,7 +70,7 @@ public class StampPrizeService {
         }
         List<BoothStamp> board = stamps.findAllForUserForUpdate(target);
         if (!StampBoardPolicy.complete(board)) {
-            throw new ApiException(HttpStatus.CONFLICT, "STAMP_PRIZE_NOT_READY", "외부 부스 스탬프를 최소 1개 포함하여 스탬프 6개를 모아야 상품을 지급할 수 있습니다.");
+            throw new ApiException(HttpStatus.CONFLICT, "STAMP_PRIZE_NOT_READY", "스탬프 6개를 모아야 상품을 지급할 수 있습니다.");
         }
         StampPrize prize;
         if (existing == null) prize = prizes.saveAndFlush(new StampPrize(target, actor, clock.instant(), board.size()));

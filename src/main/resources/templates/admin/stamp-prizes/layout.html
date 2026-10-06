@@ -18,7 +18,7 @@
         <main id="admin-content" tabindex="-1" class="admin-main prize-main">
             <nav class="breadcrumb" aria-label="현재 위치"><a th:href="@{/admin}">관리자 홈</a><span>/</span><a th:href="@{/admin/stamps}">스탬프 지급 관리</a><span>/</span><strong th:text="${title}">상품 지급</strong></nav>
             <header class="prize-heading">
-                <div><p class="eyebrow">STAMP REWARD</p><h1 th:text="${title}">스탬프 상품 지급</h1><p>사용자를 확인하고, 외부 부스 1개 이상을 포함해 서로 다른 부스의 스탬프 6개를 모았으면 상품을 지급합니다.</p></div>
+                <div><p class="eyebrow">STAMP REWARD</p><h1 th:text="${title}">스탬프 상품 지급</h1><p>사용자를 확인하고, 서로 다른 부스의 스탬프 6개를 모았으면 상품을 지급합니다.</p></div>
                 <nav class="prize-tabs" aria-label="상품 지급 메뉴">
                     <a th:href="@{/admin/stamps/prizes}" th:attr="aria-current=${active == 'issue' ? 'page' : null}">조회·지급</a>
                     <a th:href="@{/admin/stamps/prizes/manage}" th:attr="aria-current=${active == 'history' ? 'page' : null}">지급 관리·이력</a>

@@ -61,7 +61,7 @@
             <div><h2 id="prize-action-heading" th:text="${prizeTarget.prizeGranted ? '상품 지급 완료' : '상품 지급 처리'}"></h2>
                 <p class="support-copy" th:if="${prizeTarget.eligible}">위 사용자의 본인 여부와 스탬프 내역을 확인한 후 지급해 주세요.</p>
                 <p class="support-copy" th:if="${prizeTarget.prizeGranted}">이미 상품을 지급했습니다. 추가 지급은 할 수 없습니다.</p>
-                <p class="support-copy" th:unless="${prizeTarget.prizeGranted or prizeTarget.eligible}">외부 부스 스탬프를 최소 1개 포함하여 스탬프 6개를 모은 후 상품을 지급할 수 있습니다.</p>
+                <p class="support-copy" th:unless="${prizeTarget.prizeGranted or prizeTarget.eligible}">스탬프 6개를 모은 후 상품을 지급할 수 있습니다.</p>
             </div>
             <p class="support-copy" th:if="${prizeTarget.prizeGrantedAt != null}" th:text="'지급 시각 · ' + ${#temporals.format(prizeTarget.prizeGrantedAt.atZone(seoulZone), 'yyyy-MM-dd HH:mm:ss')} + ' KST'"></p>
             <div class="prize-actions">
